@@ -37,22 +37,14 @@ endfunction()
 add_petrinet(parallel_all.xpnet parallel_all.pnet all)
 add_petrinet(parallel_first.xpnet parallel_first.pnet first)
 
-add_petrinet(parallel_tree_all.xpnet parallel_tree_all.pnet tree_all)
-add_petrinet(parallel_rgraph_all.xpnet parallel_rgraph_all.pnet rgraph_all)
-
-
 install (FILES
   "${CMAKE_BINARY_DIR}/parallel_all.pnet"
   "${CMAKE_BINARY_DIR}/parallel_first.pnet"
-  "${CMAKE_BINARY_DIR}/parallel_tree_all.pnet"
-  "${CMAKE_BINARY_DIR}/parallel_rgraph_all.pnet"
   DESTINATION libexec/workflow
 )
 
 install (FILES
   "${CMAKE_BINARY_DIR}/gen_parallel_all.pnet/pnetc/op/libsingular_parallel_all.so"
   "${CMAKE_BINARY_DIR}/gen_parallel_first.pnet/pnetc/op/libsingular_parallel_first.so"
-  "${CMAKE_BINARY_DIR}/gen_parallel_tree_all.pnet/pnetc/op/libsingular_parallel_tree_all.so"
-  "${CMAKE_BINARY_DIR}/gen_parallel_rgraph_all.pnet/pnetc/op/libsingular_parallel_rgraph_all.so"
   DESTINATION libexec/workflow
 )

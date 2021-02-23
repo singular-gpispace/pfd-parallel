@@ -428,12 +428,6 @@ void write_in_structs_to_file_from_index( lists const& struct_list
                                                        , i + index)
                                , in_token
                                , struct_list->m[i]);
-    std::cout << calculate_file_sha1_hash(get_in_struct_filename( base_filename
-                                                                , i + index)
-                                         )
-              << " for in struct "
-              << std::to_string(i + index)
-              << std::endl;
   }
 }
 

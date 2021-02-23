@@ -16,6 +16,6 @@ set_target_properties (parallel_implementation
   INSTALL_RPATH_USE_LINK_PATH TRUE
 )
 
-install (FILES LIB/parallelgspc.lib
-  DESTINATION "${CMAKE_INSTALL_PREFIX}"
-)
+#install (FILES LIB/parallelgspc.lib
+#  DESTINATION "${CMAKE_INSTALL_PREFIX}"
+#)

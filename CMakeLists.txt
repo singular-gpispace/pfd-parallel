@@ -77,6 +77,7 @@ set_target_properties (SINGULAR-parallel-module
 
 add_subdirectory (parallel)
 add_subdirectory (workflow)
+add_subdirectory (singular)
 
 #install (DIRECTORY "${SINGULAR_HOME}/"
 #  DESTINATION "${BUNDLE_ROOT}/singular"

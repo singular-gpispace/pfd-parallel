@@ -314,8 +314,6 @@ std::optional<std::multimap<std::string, pnet::type::value::value_type>>
 /*** Library function declarations ***/
 BOOLEAN sggspc_wait_all (leftv res, leftv args);
 BOOLEAN sggspc_wait_first (leftv res, leftv args);
-BOOLEAN sggspc_tree_wait_all (leftv res, leftv args);
-BOOLEAN sggspc_rgraph_wait_all (leftv res, leftv args);
 
 /*** General helper function implementation ***/
 
@@ -398,6 +396,8 @@ try
     as.outStructName() + " " + as.outStructDesc() + " " +
     as.neededLibrary() + " " + as.functionName() + " " +
     as.graphType() + "\n";
+  /*
+  */
 
   std::vector<std::string> options;
   std::size_t num_addargs = as.addArgsList()->nr + 1;
@@ -417,7 +417,7 @@ try
     options.push_back (addarg_str);
   }
 
-  PrintS (debugout.c_str());
+  //PrintS (debugout.c_str());
   PrintS (("have " + std::to_string (as.numTasks()) + " tasks\n").c_str());
 
   int in_token, out_token;
@@ -542,22 +542,10 @@ extern "C" int mod_init (SModulFunctions* psModulFunctions)
     ((currPack->libname ? currPack->libname : ""),
       "sggspc_wait_first", FALSE, sggspc_wait_first);
 
-  /*** trees ***/
-  psModulFunctions->iiAddCproc
-    ((currPack->libname ? currPack->libname : ""),
-      "sggspc_tree_wait_all", FALSE, sggspc_tree_wait_all);
-
-  /*** graphs ***/
-  psModulFunctions->iiAddCproc
-    ((currPack->libname ? currPack->libname : ""),
-      "sggspc_rgraph_wait_all", FALSE, sggspc_rgraph_wait_all);
-
   return MAX_TOK;
 }
 
 /*** Library function implementation ***/
-
-/*** lists ***/
 
 BOOLEAN sggspc_wait_all (leftv res, leftv args)
 try {
@@ -638,121 +626,5 @@ catch (...)
 {
   // need to check which resources must be tidied up
   sggspc_print_current_exception (std::string ("in sggspc_wait_first"));
-  return TRUE;
-}
-
-/*** trees ***/
-
-BOOLEAN sggspc_tree_wait_all (leftv res, leftv args)
-try {
-
-  ArgumentState as (args, "tree_all");
-
-  auto result = gpis_launch_with_workflow (as.singPI().workflow_tree_all(), as);
-  if (!result.has_value()) {
-    res->rtyp = NONE;
-    return FALSE;
-  }
-
-  std::multimap<std::string, pnet::type::value::value_type>::const_iterator
-    sm_result_it (result.value().find ("output"));
-  if (sm_result_it == result.value().end())
-  {
-    throw std::runtime_error ("Petri net has not finished correctly");
-  }
-  if (result.value().count("computed_node_count") != 1) {
-    throw std::runtime_error ("No computed node count returned");
-  }
-
-  pnet::type::value::value_type const pn_computed_node_count
-      (result.value().find ("computed_node_count")->second);
-  unsigned long computed_node_count = boost::get<unsigned long> 
-                                          (pn_computed_node_count);
-
-  std::cout << std::to_string(computed_node_count) << " nodes computed.\n";
-
-  lists out_list = static_cast<lists> (omAlloc0Bin (slists_bin));
-  out_list->Init (computed_node_count);
-
-  for (std::size_t i = 0; i < computed_node_count; i++)
-  {
-    si_link l = ssi_open_for_read (as.baseFileName() +
-                                   ".o" +
-                                   std::to_string (i));
-    // later consider case of "wrong" output (and do not throw)
-    lists entry = ssi_read_newstruct (l, as.outStructName());
-    ssi_close_and_remove (l);
-    out_list->m[i].rtyp = as.outToken();
-    out_list->m[i].data = entry;
-  }
-
-
-  res->rtyp = LIST_CMD;
-  res->data = out_list;
-
-  return FALSE;
-}
-catch (...)
-{
-  // need to check which resources must be tidied up
-  sggspc_print_current_exception (std::string ("in sggspc_tree_wait_all"));
-  return TRUE;
-}
-
-/*** graphs ***/
-
-BOOLEAN sggspc_rgraph_wait_all (leftv res, leftv args)
-try {
-
-  ArgumentState as (args, "rgraph_all");
-
-  auto result = gpis_launch_with_workflow (as.singPI().workflow_rgraph_all(), as);
-  if (!result.has_value()) {
-    res->rtyp = NONE;
-    return FALSE;
-  }
-
-  std::multimap<std::string, pnet::type::value::value_type>::const_iterator
-    sm_result_it (result.value().find ("output"));
-  if (sm_result_it == result.value().end())
-  {
-    throw std::runtime_error ("Petri net has not finished correctly");
-  }
-  if (result.value().count("computed_node_count") != 1) {
-    throw std::runtime_error ("No computed node count returned");
-  }
-
-  pnet::type::value::value_type const pn_computed_node_count
-      (result.value().find ("computed_node_count")->second);
-  unsigned long computed_node_count = boost::get<unsigned long> 
-                                          (pn_computed_node_count);
-
-  std::cout << std::to_string(computed_node_count) << " nodes computed.\n";
-
-  lists out_list = static_cast<lists> (omAlloc0Bin (slists_bin));
-  out_list->Init (computed_node_count);
-
-  for (std::size_t i = 0; i < computed_node_count; i++)
-  {
-    si_link l = ssi_open_for_read (as.baseFileName() +
-                                   ".o" +
-                                   std::to_string (i));
-    // later consider case of "wrong" output (and do not throw)
-    lists entry = ssi_read_newstruct (l, as.outStructName());
-    ssi_close_and_remove (l);
-    out_list->m[i].rtyp = as.outToken();
-    out_list->m[i].data = entry;
-  }
-
-
-  res->rtyp = LIST_CMD;
-  res->data = out_list;
-
-  return FALSE;
-}
-catch (...)
-{
-  // need to check which resources must be tidied up
-  sggspc_print_current_exception (std::string ("in sggspc_rgraph_wait_all"));
   return TRUE;
 }
