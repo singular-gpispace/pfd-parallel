@@ -1,0 +1,33 @@
+#pragma once
+
+#include <drts/drts.hpp>
+
+#include <boost/filesystem/path.hpp>
+#include <boost/program_options.hpp>
+
+#cmakedefine SP_INSTALL_PATH "@SP_INSTALL_PATH@"
+
+namespace singular_parallel
+{
+  //! \note collects information relative to the path of the executable
+  class installation
+  {
+  public:
+    installation();
+    installation (boost::filesystem::path const&);
+    installation (boost::filesystem::path const&,
+     boost::filesystem::path const&);
+
+    boost::filesystem::path workflow_all() const;
+    boost::filesystem::path workflow_first() const;
+    boost::filesystem::path workflow_tree_all() const;
+    boost::filesystem::path workflow_rgraph_all() const;
+    boost::filesystem::path workflow_dir() const;
+    gspc::installation gspc_installation
+      (boost::program_options::variables_map&) const;
+
+  private:
+    boost::filesystem::path const _path;
+    boost::filesystem::path const _gspc_path;
+  };
+}

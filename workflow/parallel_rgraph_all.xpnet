@@ -1,0 +1,335 @@
+<defun name="parallel_rgraph_all">
+
+  <struct name="option_token_type">
+    <field name="function_name" type="string"/>
+    <field name="expand_node_function" type="string"/>
+    <field name="needed_library" type="string"/>
+    <field name="in_struct_name" type="string"/>
+    <field name="in_struct_desc" type="string"/>
+    <field name="out_struct_name" type="string"/>
+    <field name="out_struct_desc" type="string"/>
+  </struct>
+
+  <struct name="task_token_type">
+    <field name="base_filename" type="string"/>
+    <field name="id" type="unsigned long"/>
+  </struct>
+
+  <struct name="generator_token_type">
+    <field name="base_filename" type="string"/>
+    <field name="max_count" type="unsigned long"/>
+    <field name="explore_size" type="unsigned long"/>
+  </struct>
+
+  <struct name="collector_token_type">
+    <field name="base_filename" type="string"/>
+    <field name="current_count" type="unsigned long"/>
+  </struct>
+
+  <in name="implementation" type="string" place="implementation"/>
+  <in name="path_to_libsingular" type="string" place="path_to_libsingular"/>
+  <in name="base_filename" type="string" place="base_filename"/>
+  <in name="function_name" type="string" place="function_name"/>
+  <in name="expand_node_function" type="string" place="expand_node_function"/>
+  <in name="needed_library" type="string" place="needed_library"/>
+  <in name="in_struct_name" type="string" place="in_struct_name"/>
+  <in name="in_struct_desc" type="string" place="in_struct_desc"/>
+  <in name="out_struct_name" type="string" place="out_struct_name"/>
+  <in name="out_struct_desc" type="string" place="out_struct_desc"/>
+  <in name="max_count" type="unsigned long" place="max_count"/>
+  <in name="initial_task_list" type="list" place="initial_task_list"/>
+  <out name="output" type="string" place="output"/>
+  <out name="computed_node_count" type="unsigned long" place="running_count"/>
+  <net>
+    <place name="implementation" type="string"/>
+    <place name="path_to_libsingular" type="string"/>
+    <place name="base_filename" type="string"/>
+    <place name="function_name" type="string"/>
+    <place name="expand_node_function" type="string"/>
+    <place name="needed_library" type="string"/>
+    <place name="in_struct_name" type="string"/>
+    <place name="in_struct_desc" type="string"/>
+    <place name="out_struct_name" type="string"/>
+    <place name="out_struct_desc" type="string"/>
+    <place name="max_count" type="unsigned long"/>
+    <place name="running_count" type="unsigned long"/>
+    <place name="initial_task_list" type="list"/>
+    <place name="global_options" type="option_token_type"/>
+    <place name="generator_state" type="generator_token_type"/>
+    <place name="collector_state" type="collector_token_type"/>
+    <place name="tasks" type="task_token_type"/>
+    <place name="results" type="task_token_type"/>
+    <place name="started" type="int"/>
+    <place name="graph_front" type="unsigned long"/>
+    <place name="graph_hashes" type="set"/>
+    <place name="output" type="string"/>
+
+    <transition name="initialize">
+      <defun>
+        <in name="implementation" type="string" />
+        <in name="base_filename" type="string"/>
+        <in name="max_count" type="unsigned long"/>
+        <in name="initial_task_list" type="list"/>
+        <in name="function_name" type="string"/>
+        <in name="expand_node_function" type="string"/>
+        <in name="needed_library" type="string"/>
+        <in name="in_struct_name" type="string"/>
+        <in name="in_struct_desc" type="string"/>
+        <in name="out_struct_name" type="string"/>
+        <in name="out_struct_desc" type="string"/>
+        <out name="state" type="generator_token_type"/>
+        <out name="cstate" type="collector_token_type"/>
+        <out name="options" type="option_token_type"/>
+        <out name="running_count" type="unsigned long"/>
+        <out name="graph_front_list" type="list"/>
+        <out name="graph_hashes" type="set"/>
+        <out name="started" type="int"/>
+        <module name="singular_parallel_rgraph_all"
+                require_function_unloads_without_rest="false"
+                function="initialize (base_filename,
+                                      max_count,
+                                      initial_task_list,
+                                      function_name,
+                                      expand_node_function,
+                                      needed_library,
+                                      in_struct_name,
+                                      in_struct_desc,
+                                      out_struct_name,
+                                      out_struct_desc,
+                                      state,
+                                      cstate,
+                                      graph_front_list,
+                                      graph_hashes,
+                                      options,
+                                      running_count,
+                                      started,
+                                      implementation
+                                      )">
+          <cinclude href="share/include/interface.hpp"/>
+          <cinclude href="util-generic/dynamic_linking.hpp"/>
+          <cinclude href="iostream"/>
+          <cinclude href="share/include/type_aliases.hpp"/>
+          <code><![CDATA[
+            state.base_filename = base_filename;
+            state.max_count = max_count;
+            state.explore_size = initial_task_list.size();
+            graph_front_list = initial_task_list;
+            graph_hashes = fhg::util::scoped_dlhandle
+                      (implementation, RTLD_GLOBAL | RTLD_NOW | RTLD_DEEPBIND)
+                      .sym<decltype (create_initial_hashset)> 
+                      ("create_initial_hashset")
+                      (initial_task_list, base_filename);
+            options.function_name = function_name;
+            options.expand_node_function = expand_node_function;
+            options.needed_library = needed_library;
+            options.in_struct_name = in_struct_name;
+            options.in_struct_desc = in_struct_desc;
+            options.out_struct_name = out_struct_name;
+            options.out_struct_desc = out_struct_desc;
+            cstate.base_filename = base_filename;
+            cstate.current_count = 0ul;
+            running_count = 0ul;
+            started = 0;
+          ]]></code>
+        </module>
+      </defun>
+      <connect-read port="implementation" place="implementation"/>
+      <connect-in port="base_filename" place="base_filename"/>
+      <connect-in port="max_count" place="max_count"/>
+      <connect-in port="initial_task_list" place="initial_task_list"/>
+      <connect-in port="function_name" place="function_name"/>
+      <connect-in port="expand_node_function" place="expand_node_function"/>
+      <connect-in port="needed_library" place="needed_library"/>
+      <connect-in port="in_struct_name" place="in_struct_name"/>
+      <connect-in port="in_struct_desc" place="in_struct_desc"/>
+      <connect-in port="out_struct_name" place="out_struct_name"/>
+      <connect-in port="out_struct_desc" place="out_struct_desc"/>
+      <connect-out port="state" place="generator_state"/>
+      <connect-out port="cstate" place="collector_state"/>
+      <connect-out port="options" place="global_options"/>
+      <connect-out port="running_count" place="running_count"/>
+      <connect-out port="started" place="started"/>
+      <connect-out-many port="graph_front_list" place="graph_front"/>
+      <connect-out port="graph_hashes" place="graph_hashes"/>
+    </transition>
+
+    <transition name="extract">
+      <defun>
+        <in name="implementation" type="string"/>
+        <in name="path_to_libsingular" type="string"/>
+        <in name="options" type="option_token_type"/>
+        <in name="node_id" type="unsigned long" />
+        <inout name="state" type="generator_token_type"/>
+        <inout name="running_count" type="unsigned long"/>
+        <inout name="started" type="int"/>
+        <inout name="graph_hashes" type="set"/>
+        <out name="graph_front_list" type="list" />
+        <out name="task" type="task_token_type"/>
+        <condition>
+          (${running_count} :lt: ${state.max_count}) :and:
+          (${state.explore_size} :gt: 0ul)
+        </condition>
+        <module name="singular_parallel_rgraph_all"
+                require_function_unloads_without_rest="false"
+                function="extract (implementation,
+                                   path_to_libsingular,
+                                   options,
+                                   state,
+                                   task,
+                                   running_count,
+                                   node_id,
+                                   graph_front_list,
+                                   graph_hashes,
+                                   started
+                                   )">
+          <cinclude href="share/include/interface.hpp"/>
+          <cinclude href="util-generic/dynamic_linking.hpp"/>
+          <cinclude href="iostream"/>
+          <code><![CDATA[
+            unsigned long written_count = running_count + state.explore_size;
+
+            std::cout << "element of interest: " << std::to_string(node_id) << "\n";
+            state.explore_size = state.explore_size - 1;
+
+            singular_parallel::pnet_list neigh_list = fhg::util::scoped_dlhandle
+            (implementation, RTLD_GLOBAL | RTLD_NOW | RTLD_DEEPBIND)
+            .sym<decltype (sp_graph_extract_neighbours)> ("sp_graph_extract_neighbours")
+              ( path_to_libsingular
+              , state.base_filename
+              , options.in_struct_name
+              , options.in_struct_desc
+              , options.needed_library
+              , options.expand_node_function
+              , node_id
+              , written_count
+              , graph_hashes
+              );
+
+            if (!neigh_list.empty()) {
+              std::cout << "not empty neighbourhood for "
+                        << std::to_string(node_id)
+                        << std::endl;
+              graph_front_list = neigh_list;
+              state.explore_size = state.explore_size + neigh_list.size();
+            }
+
+            task.base_filename = state.base_filename;
+            task.id = node_id;
+            running_count = running_count + 1ul;
+            started = 1;
+          ]]></code>
+        </module>
+      </defun>
+      <connect-read port="implementation" place="implementation"/>
+      <connect-read port="path_to_libsingular" place="path_to_libsingular"/>
+      <connect-read port="options" place="global_options"/>
+      <connect-in port="node_id" place="graph_front"/>
+      <connect-inout port="state" place="generator_state"/>
+      <connect-inout port="running_count" place="running_count"/>
+      <connect-inout port="started" place="started"/>
+      <connect-inout port="graph_hashes" place="graph_hashes"/>
+      <connect-out-many port="graph_front_list" place="graph_front"/>
+      <connect-out port="task" place="tasks"/>
+    </transition>
+
+    <transition name="done_extract">
+      <defun>
+        <in name="state" type="generator_token_type"/>
+        <in name="running_count" type="unsigned long"/>
+        <condition>
+          (${running_count} :eq: ${state.max_count}) :or:
+          (${state.explore_size} :eq: 0ul)
+        </condition>
+        <expression>
+        </expression>
+      </defun>
+      <connect-in port="state" place="generator_state"/>
+      <connect-read port="running_count" place="running_count"/>
+    </transition>
+
+    <transition name="compute">
+      <defun>
+        <require key="worker" mandatory="true"/>
+        <in name="in" type="task_token_type"/>
+        <in name="implementation" type="string"/>
+        <in name="path_to_libsingular" type="string"/>
+        <in name="options" type="option_token_type"/>
+        <out name="out" type="task_token_type"/>
+        <module name="singular_parallel_rgraph_all"
+                require_function_unloads_without_rest="false"
+                function="compute (implementation,
+                                   path_to_libsingular,
+                                   options,
+                                   in,
+                                   out)">
+          <cinclude href="share/include/interface.hpp"/>
+          <cinclude href="util-generic/dynamic_linking.hpp"/>
+          <code><![CDATA[
+          fhg::util::scoped_dlhandle
+            (implementation, RTLD_GLOBAL | RTLD_NOW | RTLD_DEEPBIND)
+            .sym<decltype (singular_parallel_compute)> ("singular_parallel_compute")
+              ( path_to_libsingular
+              , in.base_filename
+              , in.id
+              , options.function_name
+              , options.needed_library
+              , options.in_struct_name
+              , options.in_struct_desc
+              , options.out_struct_name
+              , options.out_struct_desc
+              );
+          out = in;
+          ]]></code>
+        </module>
+      </defun>
+      <connect-in port="in" place="tasks"/>
+      <connect-read port="implementation" place="implementation"/>
+      <connect-read port="path_to_libsingular" place="path_to_libsingular"/>
+      <connect-read port="options" place="global_options"/>
+      <connect-out port="out" place="results"/>
+    </transition>
+
+    <transition name="collect">
+      <defun>
+        <in name="result" type="task_token_type"/>
+        <in name="running_count" type="unsigned long"/>
+        <inout name="cstate" type="collector_token_type"/>
+        <condition>
+          ${cstate.current_count} :lt: ${running_count}
+        </condition>
+        <expression>
+          ${cstate.current_count} := ${cstate.current_count} + 1ul;
+        </expression>
+      </defun>
+      <connect-in port="result" place="results"/>
+      <connect-read port="running_count" place="running_count"/>
+      <connect-inout port="cstate" place="collector_state"/>
+    </transition>
+
+    <transition name="finish">
+      <defun>
+        <in name="cstate" type="collector_token_type"/>
+        <in name="options" type="option_token_type"/>
+        <in name="implementation" type="string"/>
+        <in name="path_to_libsingular" type="string"/>
+        <in name="started" type="int"/>
+        <inout name="running_count" type="unsigned long"/>
+        <out name="output" type="string"/>
+        <condition>
+          (${cstate.current_count} :eq: ${running_count}) :and: (${started} :eq: 1)
+        </condition>
+        <expression>
+          ${output} := "DONE";
+        </expression>
+      </defun>
+      <connect-in port="cstate" place="collector_state"/>
+      <connect-in port="options" place="global_options"/>
+      <connect-in port="implementation" place="implementation"/>
+      <connect-in port="path_to_libsingular" place="path_to_libsingular"/>
+      <connect-in port="started" place="started"/>
+      <connect-inout port="running_count" place="running_count"/>
+      <connect-out port="output" place="output"/>
+    </transition>
+
+  </net>
+</defun>
