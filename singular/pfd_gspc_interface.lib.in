@@ -7,17 +7,18 @@ proc pfd_gspc_compute (in_struct input)
   execute("ring r = " + input.neededring);
   string filename = input.matrixname + "_" + string(input.row) +
                                        "_" +  string(input.col) + ".txt";
-  //output.result = pfdSingleEntry(filename, "/u/h/heymann/PFD", "/u/h/heymann/PFD");
+  output.result = pfdSingleEntry(filename, "/u/h/heymann/PFD", "/u/h/heymann/PFD");
   return (output);
   /*
   link l = ":r " + filename;
   def s = read(l);
   */
-  output.result = "success: " + filename + ".txt " + input.neededring;
+  //output.result = "success: " + filename + ".txt " + input.neededring + ;
+  output.result = "success: " + filename + ".txt " + hello_world();
   return(output);
 }
 
 proc mod_init() {
   // TODO: change to installed pfd library
-  //LIB "@PFD_SING_LIB_PATH@/pfd.lib";
+  LIB "@PFD_SING_LIB_PATH@/pfd.lib";
 }
