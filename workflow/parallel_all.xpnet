@@ -1,0 +1,196 @@
+<defun name="parallel_all">
+
+  <struct name="option_token_type">
+    <field name="function_name" type="string"/>
+    <field name="needed_library" type="string"/>
+    <field name="in_struct_name" type="string"/>
+    <field name="in_struct_desc" type="string"/>
+    <field name="out_struct_name" type="string"/>
+    <field name="out_struct_desc" type="string"/>
+  </struct>
+
+  <struct name="task_token_type">
+    <field name="base_filename" type="string"/>
+    <field name="id" type="unsigned int"/>
+  </struct>
+
+  <struct name="generator_token_type">
+    <field name="base_filename" type="string"/>
+    <field name="current_count" type="unsigned int"/>
+    <field name="total_count" type="unsigned int"/>
+  </struct>
+
+  <in name="implementation" type="string" place="implementation"/>
+  <in name="path_to_libsingular" type="string" place="path_to_libsingular"/>
+  <in name="base_filename" type="string" place="base_filename"/>
+  <in name="function_name" type="string" place="function_name"/>
+  <in name="needed_library" type="string" place="needed_library"/>
+  <in name="in_struct_name" type="string" place="in_struct_name"/>
+  <in name="in_struct_desc" type="string" place="in_struct_desc"/>
+  <in name="out_struct_name" type="string" place="out_struct_name"/>
+  <in name="out_struct_desc" type="string" place="out_struct_desc"/>
+  <in name="task_count" type="unsigned int" place="task_count"/>
+  <out name="output" type="string" place="output"/>
+  <net>
+    <place name="implementation" type="string"/>
+    <place name="path_to_libsingular" type="string"/>
+    <place name="base_filename" type="string"/>
+    <place name="function_name" type="string"/>
+    <place name="needed_library" type="string"/>
+    <place name="in_struct_name" type="string"/>
+    <place name="in_struct_desc" type="string"/>
+    <place name="out_struct_name" type="string"/>
+    <place name="out_struct_desc" type="string"/>
+    <place name="task_count" type="unsigned int"/>
+    <place name="global_options" type="option_token_type"/>
+    <place name="generator_state" type="generator_token_type"/>
+    <place name="collector_state" type="generator_token_type"/>
+    <place name="tasks" type="task_token_type"/>
+    <place name="results" type="task_token_type"/>
+    <place name="output" type="string"/>
+
+    <transition name="initialize">
+      <defun>
+        <in name="base_filename" type="string"/>
+        <in name="task_count" type="unsigned int"/>
+        <in name="function_name" type="string"/>
+        <in name="needed_library" type="string"/>
+        <in name="in_struct_name" type="string"/>
+        <in name="in_struct_desc" type="string"/>
+        <in name="out_struct_name" type="string"/>
+        <in name="out_struct_desc" type="string"/>
+        <out name="state" type="generator_token_type"/>
+        <out name="cstate" type="generator_token_type"/>
+        <out name="options" type="option_token_type"/>
+        <expression>
+          ${state.base_filename} := ${base_filename};
+          ${state.current_count} := 0U;
+          ${state.total_count} := ${task_count};
+          ${options.function_name} := ${function_name};
+          ${options.needed_library} := ${needed_library};
+          ${options.in_struct_name} := ${in_struct_name};
+          ${options.in_struct_desc} := ${in_struct_desc};
+          ${options.out_struct_name} := ${out_struct_name};
+          ${options.out_struct_desc} := ${out_struct_desc};
+          ${cstate.base_filename} := ${base_filename};
+          ${cstate.current_count} := 0U;
+          ${cstate.total_count} := ${task_count};
+        </expression>
+      </defun>
+      <connect-in port="base_filename" place="base_filename"/>
+      <connect-in port="task_count" place="task_count"/>
+      <connect-in port="function_name" place="function_name"/>
+      <connect-in port="needed_library" place="needed_library"/>
+      <connect-in port="in_struct_name" place="in_struct_name"/>
+      <connect-in port="in_struct_desc" place="in_struct_desc"/>
+      <connect-in port="out_struct_name" place="out_struct_name"/>
+      <connect-in port="out_struct_desc" place="out_struct_desc"/>
+      <connect-out port="state" place="generator_state"/>
+      <connect-out port="cstate" place="collector_state"/>
+      <connect-out port="options" place="global_options"/>
+    </transition>
+
+    <transition name="extract">
+      <defun>
+        <inout name="state" type="generator_token_type"/>
+        <out name="task" type="task_token_type"/>
+        <condition>
+          ${state.current_count} :lt: ${state.total_count}
+        </condition>
+        <expression>
+          ${task.base_filename} := ${state.base_filename};
+          ${task.id} := ${state.current_count};
+          ${state.current_count} := ${state.current_count} + 1U;
+        </expression>
+      </defun>
+      <connect-inout port="state" place="generator_state"/>
+      <connect-out port="task" place="tasks"/>
+    </transition>
+
+    <transition name="done_extract">
+      <defun>
+        <in name="state" type="generator_token_type"/>
+        <condition>
+          ${state.current_count} :eq: ${state.total_count}
+        </condition>
+        <expression>
+        </expression>
+      </defun>
+      <connect-in port="state" place="generator_state"/>
+    </transition>
+
+    <transition name="compute">
+      <defun>
+        <require key="worker" mandatory="true"/>
+        <in name="in" type="task_token_type"/>
+        <in name="implementation" type="string"/>
+        <in name="path_to_libsingular" type="string"/>
+        <in name="options" type="option_token_type"/>
+        <out name="out" type="task_token_type"/>
+        <module name="singular_parallel_all"
+                require_function_unloads_without_rest="false"
+                function="compute (implementation,
+                                   path_to_libsingular,
+                                   options,
+                                   in,
+                                   out)">
+          <cinclude href="share/include/interface.hpp"/>
+          <cinclude href="util-generic/dynamic_linking.hpp"/>
+          <code><![CDATA[
+          fhg::util::scoped_dlhandle
+            (implementation, RTLD_GLOBAL | RTLD_NOW | RTLD_DEEPBIND)
+            .sym<decltype (singular_parallel_compute)> ("singular_parallel_compute")
+              ( path_to_libsingular, in.base_filename, in.id
+              , options.function_name, options.needed_library
+              , options.in_struct_name, options.in_struct_desc
+              , options.out_struct_name, options.out_struct_desc
+              );
+          out = in;
+          ]]></code>
+        </module>
+      </defun>
+      <connect-in port="in" place="tasks"/>
+      <connect-read port="implementation" place="implementation"/>
+      <connect-read port="path_to_libsingular" place="path_to_libsingular"/>
+      <connect-read port="options" place="global_options"/>
+      <connect-out port="out" place="results"/>
+    </transition>
+
+    <transition name="collect">
+      <defun>
+        <in name="result" type="task_token_type"/>
+        <inout name="cstate" type="generator_token_type"/>
+        <condition>
+          ${cstate.current_count} :lt: ${cstate.total_count}
+        </condition>
+        <expression>
+          ${cstate.current_count} := ${cstate.current_count} + 1U;
+        </expression>
+      </defun>
+      <connect-in port="result" place="results"/>
+      <connect-inout port="cstate" place="collector_state"/>
+    </transition>
+
+    <transition name="finish">
+      <defun>
+        <in name="cstate" type="generator_token_type"/>
+        <in name="options" type="option_token_type"/>
+        <in name="implementation" type="string"/>
+        <in name="path_to_libsingular" type="string"/>
+        <out name="output" type="string"/>
+        <condition>
+          ${cstate.current_count} :eq: ${cstate.total_count}
+        </condition>
+        <expression>
+          ${output} := "DONE";
+        </expression>
+      </defun>
+      <connect-in port="cstate" place="collector_state"/>
+      <connect-in port="options" place="global_options"/>
+      <connect-in port="implementation" place="implementation"/>
+      <connect-in port="path_to_libsingular" place="path_to_libsingular"/>
+      <connect-out port="output" place="output"/>
+    </transition>
+
+  </net>
+</defun>

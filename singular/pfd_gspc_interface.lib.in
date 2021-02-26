@@ -1,0 +1,23 @@
+version="v0.0.1";
+category="Algebraic geometry";
+info="demo";
+proc pfd_gspc_compute (in_struct input)
+{
+  out_struct output;
+  execute("ring r = " + input.neededring);
+  string filename = input.matrixname + "_" + string(input.row) +
+                                       "_" +  string(input.col) + ".txt";
+  //output.result = pfdSingleEntry(filename, "/u/h/heymann/PFD", "/u/h/heymann/PFD");
+  return (output);
+  /*
+  link l = ":r " + filename;
+  def s = read(l);
+  */
+  output.result = "success: " + filename + ".txt " + input.neededring;
+  return(output);
+}
+
+proc mod_init() {
+  // TODO: change to installed pfd library
+  //LIB "@PFD_SING_LIB_PATH@/pfd.lib";
+}

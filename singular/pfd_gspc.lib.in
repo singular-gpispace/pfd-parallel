@@ -1,0 +1,259 @@
+///////////////////////////////////////
+version="version pfd_gspc.lib 0.1 Feb_2021 ";
+category="Algebraic geometry";
+info="";
+proc mod_init()
+{
+  LIB "libSINGULAR-parallel-module.so";
+  newstruct("configToken", "string tokentype, def options");
+  newstruct("gspcConfigToken",
+            "string tmpdir, " +
+            "string nodefile, " +
+            "int procspernode, " +
+            "string rifstrategy, " +
+            "string loghost, " +
+            "int logport, " +
+            "list addargs, " +
+            "string loghostfile");
+  newstruct("parallelConfigToken",
+            "string instructname, " +
+            "string instructdesc, " +
+            "string outstructname, " +
+            "string outstructdesc, " +
+            "string neededlibrary, " +
+            "string functionname, " +
+            "string expandnodefunction, " +
+            "int upperbound");
+}
+
+proc configure_gspc()
+{
+  gspcConfigToken gc;
+  gc.rifstrategy = "ssh";
+  configToken ct;
+  ct.tokentype = "gspcConfigToken";
+  ct.options = gc;
+  return(ct);
+}
+
+proc configure_parallel()
+{
+  parallelConfigToken pc;
+  configToken ct;
+  ct.tokentype = "parallelConfigToken";
+  ct.options = pc;
+  return(ct);
+}
+
+proc extract_loghost_from_file(string loghostfile)
+{
+  string loghost = read(loghostfile);
+  if ((loghost == "") || (loghost == newline))
+  {
+    ERROR("no hostname in loghostfile");
+  }
+  if (loghost[size(loghost)] == newline) // delete trailing LF
+  {
+    loghost = loghost[1..(size(loghost)-1)];
+  }
+  return (loghost);
+}
+
+proc get_loghost(configToken gc)
+{
+  if (gc.options.loghost == "") // no hostname given, so read from file
+  {
+    if (gc.options.loghostfile == "")
+    {
+      ERROR("logging requested, no loghost and no loghostfile given");
+    }
+    return (extract_loghost_from_file(gc.options.loghostfile));
+  } else {
+    return (gc.options.loghost);
+  }
+}
+
+proc get_tmpdir(configToken gc)
+{
+  if (gc.options.tmpdir[1] == "/")
+  {
+    return (gc.options.tmpdir);
+  }
+  else
+  {
+    return (system("getenv", "PWD") + "/" + gc.options.tmpdir);
+  }
+}
+
+proc get_parallel_launch_command(string ret_name, string tmpdir, string pnet_id)
+{
+  if ((pnet_id == "wait_all") || (pnet_id == "wait_first")) {
+    string s_command = "def " + ret_name + " = sggspc_" +
+                                    pnet_id +
+                                    "(l, " +
+                                    "\"" + tmpdir + "\"" + ", " +
+                                    "gc.options.nodefile, " +
+                                    "gc.options.procspernode, " +
+                                    "gc.options.rifstrategy, " +
+                                    "gc.options.addargs, " +
+                                    "pc.options.instructname, " +
+                                    "pc.options.instructdesc, " +
+                                    "pc.options.outstructname, " +
+                                    "pc.options.outstructdesc, " +
+                                    "pc.options.neededlibrary, " +
+                                    "pc.options.functionname);";
+    return (s_command);
+  }
+}
+
+proc check_for_valid_pnet_id(string pnet_id)
+{
+  if ((pnet_id != "wait_all") && (pnet_id != "wait_first")) {
+    ERROR("Unknown function '" + pnet_id + ",' please give correct option");
+  }
+}
+
+proc get_log_opts(configToken gc)
+{
+  if (gc.options.logport != 0) // logging requested
+  {
+    list logopt = list("--log-host",
+                       get_loghost(gc),
+                       "--log-port",
+                       string(gc.options.logport));
+  } else {
+    list logopt = list();
+  }
+  return (logopt);
+}
+
+proc check_gspc_token_type(configToken gc)
+{
+  if (typeof(gc.options) != "gspcConfigToken") {
+    ERROR("Expected a gspcConfigToken.  Instead, got a " gc.options);
+  }
+}
+
+proc check_parallel_token_type(configToken pc)
+{
+  if (typeof(pc.options) != "parallelConfigToken") {
+    ERROR("Expected a parallelConfigToken.  Instead, got a " pc.options);
+  }
+}
+
+proc get_ldpathopt() {
+  if (system("getenv", "LD_LIBRARY_PATH") != "")
+  {
+    list ldpathopt = list("--worker-env-copy-variable", "LD_LIBRARY_PATH");
+  } else {
+    list ldpathopt = list();
+  }
+  return (ldpathopt);
+}
+
+static proc parallel_wait(list l,
+                          configToken gc,
+                          configToken pc,
+                          string pnet_id)
+{
+  check_gspc_token_type(gc);
+  check_parallel_token_type(pc);
+
+  gc.options.addargs = gc.options.addargs + get_log_opts(gc);
+  gc.options.addargs = gc.options.addargs + get_ldpathopt();
+
+  string tmpdir = get_tmpdir(gc);
+
+  check_for_valid_pnet_id(pnet_id);
+
+  string s_command = get_parallel_launch_command("sm_result", tmpdir, pnet_id);
+  execute(s_command);
+  return (sm_result);
+}
+
+proc parallel_waitfirst(list l, configToken gc, configToken pc)
+{
+  return(parallel_wait(l, gc, pc, "wait_first"));
+}
+
+proc parallel_waitall(list l, configToken gc, configToken pc)
+{
+  return(parallel_wait(l, gc, pc, "wait_all"));
+}
+
+/*** PFD functions ***/
+
+proc entry_filename(string matrixname, int row, int col)
+{
+  return (matrixname + "_" +string(row) + "_" + string(col))
+}
+
+proc default_gspc_config()
+{
+  configToken gc = configure_gspc();
+
+  gc.options.tmpdir = "/dev/shm/@USER@/pfd_tmpfile";
+  gc.options.nodefile = "@HOME@/nodefile";
+  gc.options.procspernode = 8;
+  gc.options.loghost = "@HOSTNAME@";
+  gc.options.logport = 6439;
+
+  system("sh", "mkdir -p /dev/shm/@USER@/pfd_tmpfile");
+
+  return (gc);
+}
+
+proc pfd_structs_config()
+{
+  configToken pc = configure_parallel();
+
+  pc.options.instructname = "in_struct";
+  pc.options.instructdesc = "string matrixname, int row, int col, string neededring";
+  pc.options.outstructname = "out_struct";
+  pc.options.outstructdesc = "string result";
+  pc.options.neededlibrary = "@PFD_SING_LIB_PATH@/pfd_gspc_interface.lib";
+  pc.options.functionname = "pfd_gspc_compute";
+
+  return (pc);
+}
+
+proc parallel_pfd ( string matrixname
+                  , list entry_indices
+                  , list #
+                  )
+{
+  configToken gc, pc;
+  int i;
+  list l;
+
+  if (! defined(basering)) {
+    ERROR("Please set the applicable ring required for the underlying polynomials");
+    return(0);
+  }
+
+  if (size(#) >= 1) {
+    gc = #[1];
+    print("noice!");
+  } else {
+    gc = default_gspc_config();
+  }
+
+  pc = pfd_structs_config();
+
+  newstruct(pc.options.instructname, pc.options.instructdesc);
+  newstruct(pc.options.outstructname, pc.options.outstructdesc);
+  in_struct ins;
+
+  ins.matrixname = matrixname;
+  ins.neededring = string(basering);
+  for (i = 1; i <= size(entry_indices); i++) {
+      ins.row = entry_indices[i][1];
+      ins.col = entry_indices[i][2];
+      l[i] = ins;
+  }
+
+  def re_all = parallel_waitall(l,gc,pc);
+  print (re_all);
+
+  return (1);
+}
