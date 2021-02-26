@@ -1,1 +1,0 @@
-#cmakedefine PFD_SING_LIB_PATH "@PFD_SING_LIB_PATH@"

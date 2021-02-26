@@ -9,7 +9,6 @@
 #include <boost/filesystem.hpp>
 
 #include "singular_functions.hpp"
-#include "implementation.hpp"
 
 /*** local function declarations ***/
 
@@ -92,8 +91,6 @@ void singular_parallel_compute ( std::string const& path_to_libsingular
   lists in_lst = ssi_read_newstruct(base_filename + ".i" + std::to_string (id),
                      in_struct_name);
 
-  std::string pfd_path = std::string(PFD_SING_LIB_PATH) + "/pfd.lib";
-  load_singular_library(pfd_path);
   load_singular_library (needed_library);
   std::pair<int, lists> out = call_user_proc (function_name,
                                               needed_library,
