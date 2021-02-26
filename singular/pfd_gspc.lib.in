@@ -1,5 +1,5 @@
 ///////////////////////////////////////
-version="version singular-parallel.lib 0.2 Jan_2021 ";
+version="version pfd_gspc.lib 0.1 Feb_2021 ";
 category="Algebraic geometry";
 info="";
 proc mod_init()
@@ -179,4 +179,81 @@ proc parallel_waitfirst(list l, configToken gc, configToken pc)
 proc parallel_waitall(list l, configToken gc, configToken pc)
 {
   return(parallel_wait(l, gc, pc, "wait_all"));
+}
+
+/*** PFD functions ***/
+
+proc entry_filename(string matrixname, int row, int col)
+{
+  return (matrixname + "_" +string(row) + "_" + string(col))
+}
+
+proc default_gspc_config()
+{
+  configToken gc = configure_gspc();
+
+  gc.options.tmpdir = "/dev/shm/@USER@/pfd_tmpfile";
+  gc.options.nodefile = "@HOME@/nodefile";
+  gc.options.procspernode = 8;
+  gc.options.loghost = "@HOSTNAME@";
+  gc.options.logport = 6439;
+
+  system("sh", "mkdir -p /dev/shm/@USER@/pfd_tmpfile");
+
+  return (gc);
+}
+
+proc pfd_structs_config()
+{
+  configToken pc = configure_parallel();
+
+  pc.options.instructname = "in_struct";
+  pc.options.instructdesc = "string matrixname, int row, int col, string neededring";
+  pc.options.outstructname = "out_struct";
+  pc.options.outstructdesc = "string result";
+  pc.options.neededlibrary = "@PFD_SING_LIB_PATH@/pfd_gspc_interface.lib";
+  pc.options.functionname = "pfd_gspc_compute";
+
+  return (pc);
+}
+
+proc parallel_pfd ( string matrixname
+                  , list entry_indices
+                  , list #
+                  )
+{
+  configToken gc, pc;
+  int i;
+  list l;
+
+  if (! defined(basering)) {
+    ERROR("Please set the applicable ring required for the underlying polynomials");
+    return(0);
+  }
+
+  if (size(#) >= 1) {
+    gc = #[1];
+    print("noice!");
+  } else {
+    gc = default_gspc_config();
+  }
+
+  pc = pfd_structs_config();
+
+  newstruct(pc.options.instructname, pc.options.instructdesc);
+  newstruct(pc.options.outstructname, pc.options.outstructdesc);
+  in_struct ins;
+
+  ins.matrixname = matrixname;
+  ins.neededring = string(basering);
+  for (i = 1; i <= size(entry_indices); i++) {
+      ins.row = entry_indices[i][1];
+      ins.col = entry_indices[i][2];
+      l[i] = ins;
+  }
+
+  def re_all = parallel_waitall(l,gc,pc);
+  print (re_all);
+
+  return (1);
 }

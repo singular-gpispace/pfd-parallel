@@ -30,10 +30,14 @@ find_boost (1.61 REQUIRED QUIET FROM_GPISPACE_INSTALLATION COMPONENTS
   chrono
 )
 
-#set (BUNDLE_ROOT "libexec/bundle")
-#bundle_GPISpace (DESTINATION "${BUNDLE_ROOT}/gpispace" COMPONENTS "runtime" "monitoring")
+set (BUNDLE_ROOT "libexec/bundle")
+bundle_GPISpace (DESTINATION "${BUNDLE_ROOT}/gpispace"
+  COMPONENTS "runtime"
+             "monitoring"
+)
 
 set(SP_INSTALL_PATH "${CMAKE_INSTALL_PREFIX}")
+set(PFD_SING_LIB_PATH "${CMAKE_INSTALL_PREFIX}/LIB")
 configure_file("src/installation.hpp.in" "src/installation.hpp")
 
 include_directories ("src")
@@ -67,13 +71,14 @@ extended_add_library (NAME module
             Singular
   POSITION_INDEPENDENT
   INSTALL
-  INSTALL_DESTINATION "${CMAKE_INSTALL_PREFIX}"
+  INSTALL_DESTINATION "${CMAKE_INSTALL_PREFIX}/LIB"
 )
 set_target_properties (SINGULAR-parallel-module
   PROPERTIES
-  INSTALL_RPATH "$ORIGIN/lib"
+  INSTALL_RPATH "$ORIGIN/../lib"
   INSTALL_RPATH_USE_LINK_PATH TRUE
 )
+bundle_GPISpace_add_rpath (TARGET SINGULAR-parallel-module INSTALL_DIRECTORY "LIB")
 
 add_subdirectory (parallel)
 add_subdirectory (workflow)
