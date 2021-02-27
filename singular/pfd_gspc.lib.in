@@ -208,7 +208,9 @@ proc pfd_structs_config()
   configToken pc = configure_parallel();
 
   pc.options.instructname = "in_struct";
-  pc.options.instructdesc = "string matrixname, int row, int col, string neededring";
+  pc.options.instructdesc = "string matrixname, int row, int col, " +
+                            "string neededring, string fromdir, " +
+                            "string todir";
   pc.options.outstructname = "out_struct";
   pc.options.outstructdesc = "string result";
   pc.options.neededlibrary = "@PFD_SING_LIB_PATH@/pfd_gspc_interface.lib";
@@ -225,6 +227,7 @@ proc parallel_pfd ( string matrixname
   configToken gc, pc;
   int i;
   list l;
+  string fromdir, todir;
 
   if (! defined(basering)) {
     ERROR("Please set the applicable ring required for the underlying polynomials");
@@ -233,9 +236,20 @@ proc parallel_pfd ( string matrixname
 
   if (size(#) >= 1) {
     gc = #[1];
-    print("noice!");
   } else {
     gc = default_gspc_config();
+  }
+
+  if (size(#) >= 2) {
+    fromdir = #[2];
+  } else {
+    fromdir = "@HOME@";
+  }
+
+  if (size(#) >= 3) {
+    todir = #[3];
+  } else {
+    todir = fromdir;
   }
 
   pc = pfd_structs_config();
@@ -246,6 +260,9 @@ proc parallel_pfd ( string matrixname
 
   ins.matrixname = matrixname;
   ins.neededring = string(basering);
+  ins.fromdir = fromdir;
+  ins.todir = todir;
+
   for (i = 1; i <= size(entry_indices); i++) {
       ins.row = entry_indices[i][1];
       ins.col = entry_indices[i][2];

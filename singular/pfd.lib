@@ -2700,7 +2700,6 @@ SEE ALSO: pfdMat, pfdSingleEntrySSI
       fact[1][k] = fact[1][k]/lcoeff;
       constant = constant*(lcoeff^fact[2][k]); // polynomial is monic (thus unique)
       lcoeff = content(fact[1][k]);
-      return (string (fact[1][k])); // whoooooo
       fact[1][k] = fact[1][k]/lcoeff;
       constant = constant*(lcoeff^fact[2][k]); // polynomial has nice coefficients
     }

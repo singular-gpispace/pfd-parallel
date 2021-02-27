@@ -342,7 +342,6 @@ std::optional<std::multimap<std::string, pnet::type::value::value_type>>
     std::multimap<std::string, pnet::type::value::value_type> values_on_ports
       ( { {"implementation", implementation.string()}
         , {"path_to_libsingular", fhg::util::executable_path (&siInit)
-                                                              .parent_path()
                                                               .string()}
         , {"base_filename", as.baseFileName()}
         , {"function_name", as.functionName()}
