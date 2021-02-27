@@ -9,7 +9,7 @@ set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wextra")
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
 
-add_subdirectory (cmake)
+add_subdirectory (${GPISPACE_REPO}/cmake cmake)
 include (add_macros)
 include (beautify_find_boost)
 include (beautify_find_GPISpace)
@@ -44,7 +44,11 @@ include_directories ("src")
 include_directories ("${CMAKE_CURRENT_SOURCE_DIR}")
 include_directories ("${CMAKE_CURRENT_BINARY_DIR}/src")
 
-add_subdirectory (src/util-generic)
+include_directories ("${CMAKE_SOURCE_DIR}/src")
+include_directories ("${CMAKE_BINARY_DIR}")
+include_directories("${GPISPACE_REPO}/src")
+
+add_subdirectory (${GPISPACE_REPO}/src/util-generic src/util-generic)
 
 extended_add_library (NAME installation
   TYPE SHARED

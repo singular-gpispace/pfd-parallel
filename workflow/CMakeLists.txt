@@ -10,6 +10,7 @@ function(add_petrinet in out module_name)
             --gen-cxxflags=-I"${CMAKE_BINARY_DIR}"
             --gen-cxxflags=-I"${CMAKE_SOURCE_DIR}"
             --gen-cxxflags=-I"${CMAKE_SOURCE_DIR}/src"
+            --gen-cxxflags=-I"${GPISPACE_REPO}/src"
             --gen-cxxflags=-I"${GSPC_HOME}/include"
             --gen-cxxflags=-I"${GSPC_HOME}/external/boost/include"
             --gen-ldflags="-L${CMAKE_BINARY_DIR}"
