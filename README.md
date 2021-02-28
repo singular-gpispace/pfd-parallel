@@ -37,9 +37,10 @@ export GPISPACE_REPO=<gpi-space-repo>
 export GPISPACE_BUILD_DIR=<gpi-space-build-dir>
 export GPISPACE_INSTALL_DIR=<gpi-space-install-prefix>
 export GPISPACE_TEST_DIR=<test-directory>
-export GSPC_NODEFILE_FOR_TESTS="${PWD}/nodefile"
+export GSPC_NODEFILE_FOR_TESTS=<path-to-nodefile> # suggested: $HOME/nodefile
 export SING_ROOT=<dir-for-sing-related-source-code>
 export DEP_LIBS=<sing-dependencies-install-prefix>
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$DEP_LIBS
 export SINGULAR_INSTALL_DIR=<singular-install-prefix>
 EOF
 ```
@@ -175,6 +176,17 @@ The code listings in this document assume
   filesystem.
 - `${GPISPACE_TEST_DIR}` to be an empty directory on a shared
   filesystem, which used when running the system tests.
+
+> ---
+> NOTE: until version 21.03 is realeased, the following patch is required:
+> ---
+```bash
+cd $GPISPACE_REPO
+sed -i 's/INSTALL_RPATH_USE_LINK_PATH false/INSTALL_RPATH_USE_LINK_PATH ${INSTALL_DO_NOT_BUNDLE}/' cmake/add_macros.cmake
+```
+> ---
+> After version 21.03 and above, this step can be omitted.
+> ---
 
 ```bash
 cd "${GPISPACE_REPO}"
