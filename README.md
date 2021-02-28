@@ -214,11 +214,11 @@ cd $SING_REPO
 git clone git@github.com:Singular/Singular.git Sources
 ```
 
-Now, we need to compile the various depencies first.
+Now, we need to compile the various dependencies first.
 
 ### flint
 The official guides for singular clones the latest development branch of flint.
-As flint is being actively develeped and the APIs changed quite often, this has
+As flint is being actively developed and the APIs changed quite often, this has
 led to issues in the past.  Therefore, we rather recommend that a release
 version be downloaded and compiled instead.  
 
@@ -296,9 +296,9 @@ We expect the following variables to be set:
   Singular above.
 - `${ROOT_DIR}` The root of the cloned PFD project.
 - `${BUILD_DIR}` The path of the build directory.  It is recommended to build in
-  a seperate directory to the source code, preferably starting with an empty
+  a separate directory to the source code, preferably starting with an empty
   build directory.
-- `${INSTALL_DIR}` The path to shere the PFD project should be installed.
+- `${INSTALL_DIR}` The path to where the PFD project should be installed.
 
 ```bash
 cd $BUILD_DIR
