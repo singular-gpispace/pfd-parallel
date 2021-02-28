@@ -23,6 +23,27 @@ GPI-Space supports multiple Linux distributions:
 * Ubuntu 18.04 LTS
 * Ubuntu 20.04 LTS
 
+For the various dependencies, it is recommended to create a file that exports
+the various install locations as environment variables.
+
+```bash
+cat > env_vars_pfd.txt << "EOF"
+export BOOST_ROOT=<boost-install-prefix>
+export Libssh2_ROOT=<libssh2-install-prefix>
+export LD_LIBRARY_PATH="${Libssh2_ROOT}/lib"${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
+export GASPI_ROOT=<gpi-install-prefix>
+export PKG_CONFIG_PATH="${GASPI_ROOT}/lib${arch}/pkgconfig"${PKG_CONFIG_PATH:+:${PKG_CONFIG_PATH}}
+export GPISPACE_REPO=<gpi-space-repo>
+export GPISPACE_BUILD_DIR=<gpi-space-build-dir>
+export GPISPACE_INSTALL_DIR=<gpi-space-install-prefix>
+export GPISPACE_TEST_DIR=<test-directory>
+export GSPC_NODEFILE_FOR_TESTS="${PWD}/nodefile"
+export SING_ROOT=<dir-for-sing-related-source-code>
+export DEP_LIBS=<sing-dependencies-install-prefix>
+export SINGULAR_INSTALL_DIR=<singular-install-prefix>
+EOF
+```
+
 ### Boost
 
 | Website | Supported Versions |
@@ -58,7 +79,8 @@ cd boost
   install
 ```
 Take note to replace `<install-prefix>` with the appropriate path on your
-system where you need boost installed.
+system where you need boost installed. Also, if you are using
+`env_vars_pfs.txt`, the export step can be ommited.
 
 ### libssh2
 
@@ -144,7 +166,7 @@ script above.
 
 The code listings in this document assume
 
-- `${GPISPACE_SOURCE_DIR}` to be the directory storing the GPI-Space
+- `${GPISPACE_REPO}` to be the directory storing the GPI-Space
   sources.
 - `${GPISPACE_BUILD_DIR}` to be an empty directory to be used for
   building GPI-Space.
@@ -155,13 +177,14 @@ The code listings in this document assume
   filesystem, which used when running the system tests.
 
 ```bash
-cd "${GPISPACE_SOURCE_DIR}"
+cd "${GPISPACE_REPO}"
 
 mkdir -p "${GPISPACE_BUILD_DIR}" && cd "${GPISPACE_BUILD_DIR}"
 
-cmake -C ${GPISPACE_SOURCE_DIR}/config.cmake                      \
+cmake -C ${GPISPACE_REPO}/config.cmake                            \
+      -D CMAKE_INSTALL_PREFIX=${GPISPACE_INSTALL_DIR}             \
       -B ${GPISPACE_BUILD_DIR}                                    \
-      -S ${GPISPACE_SOURCE_DIR}
+      -S ${GPISPACE_REPO}
 
 cmake --build ${GPISPACE_BUILD_DIR}                               \
       --target install                                            \
@@ -206,11 +229,11 @@ finally Singular itself, all the while assuming the user does *not* have `sudo`
 privileges. We assume that mpfr and gmp are installed by the package manager
 to `/usr`
 
-Start by choosing a location for the Singular source code. We will indicate this
-by `$SING_REPO`. Clone Singular
+Start by choosing a location where Singular can be cloned. We will indicate this
+by `$SING_ROOT`. Clone Singular
 
 ```bash
-cd $SING_REPO
+cd $SING_ROOT
 git clone git@github.com:Singular/Singular.git Sources
 ```
 
@@ -220,38 +243,38 @@ Now, we need to compile the various dependencies first.
 The official guides for singular clones the latest development branch of flint.
 As flint is being actively developed and the APIs changed quite often, this has
 led to issues in the past.  Therefore, we rather recommend that a release
-version be downloaded and compiled instead.  
+version be downloaded and compiled instead.
 
 ```bash
-cd $SING_REPO
+cd $SING_ROOT
 wget http://www.flintlib.org/flint-2.7.1.tar.gz
 tar -xvf flint-2.7.1.tar.gz
 cd flint-2.7.1
-./configure --with-gmp=/usr --prefix=$TMP_DIR --with-mpfr=/usr
+./configure --with-gmp=/usr --prefix=$DEP_LIBS --with-mpfr=/usr
 make -j $(nproc)
 make install
 ```
 
 ### 4ti2
 ```bash
-cd $SING_REPO
+cd $SING_ROOT
 mkdir 4ti2
 cd 4ti2
 wget http://www.4ti2.de/version_1.6/4ti2-1.6.tar.gz
 tar xvfz 4ti2-1.6.tar.gz
 cd 4ti2-1.6
-./configure --prefix=$TMP_DIR
+./configure --prefix=$DEP_LIBS
 make -j $(nproc)
 ```
 
 ### cddlib
 
 ```bash
-cd $SING_REPO
+cd $SING_ROOT
 wget https://github.com/cddlib/cddlib/releases/download/0.94j/cddlib-0.94j.tar.gz
 tar -xvf cddlib-0.94j.tar.gz
 cd cddlib-0.94j
-./configure --prefix=$TMP_DIR
+./configure --prefix=$DEP_LIBS
 make -j $(nproc)
 make install
 ```
@@ -259,11 +282,11 @@ make install
 ### ntl
 
 ```bash
-cd $SING_REPO
+cd $SING_ROOT
 wget https://libntl.org/ntl-11.4.3.tar.gz
 tar -xvf ntl-11.4.3.tar.gz
 cd ntl-11.4.3/src # note the extra src
-./configure PREFIX=$TMP_DIR -fPIC #notice PREFIX is capitalized without dashes
+./configure PREFIX=$DEP_LIBS -fPIC #notice PREFIX is capitalized without dashes
 make -j $(nproc)
 make install
 ```
@@ -273,13 +296,13 @@ make install
 We are finally ready to compile Singular itself against the libraries we just
 installed.
 ```bash
-cd $SING_REPO
+cd $SING_ROOT
 CPPFLAGS="-I/home/murray/fraunhofer/prog/tmp/include" \
 LDFLAGS="-L/home/murray/fraunhofer/prog/tmp/lib" \
-${SING_REPO}/Sources/configure \
-    --prefix=${SING_INSTALL} \
-    --with-flint=$TMP_DIR \
-    --with-ntl=$TMP_DIR \
+${SING_ROOT}/Sources/configure \
+    --prefix=${SINGULAR_INSTALL_DIR} \
+    --with-flint=$DEP_LIBS \
+    --with-ntl=$DEP_LIBS \
     --enable-gfanlib
 make -j $(nproc)
 make install
@@ -290,25 +313,25 @@ We are finally in a position to compile the PFD project.
 We expect the following variables to be set:
 - `${GPISPACE_REPO}` as path to the repository cloned from Github.  We need this
   for some cmake scripts, amongst other reasons.
-- `${GPISPACE_INSTALL}` The install prefix used when compiling and installing
+- `${GPISPACE_INSTALL_DIR}` The install prefix used when compiling and installing
   gpi-space above.
-- `${SINGULAR_INSTALL}` The install prefix used when compiling and installing
+- `${SINGULAR_INSTALL_DIR}` The install prefix used when compiling and installing
   Singular above.
-- `${ROOT_DIR}` The root of the cloned PFD project.
-- `${BUILD_DIR}` The path of the build directory.  It is recommended to build in
+- `${PFD_REPO}` The root of the cloned PFD project.
+- `${PFD_BUILD_DIR}` The path of the build directory.  It is recommended to build in
   a separate directory to the source code, preferably starting with an empty
   build directory.
-- `${INSTALL_DIR}` The path to where the PFD project should be installed.
+- `${PFD_INSTALL_DIR}` The path to where the PFD project should be installed.
 
 ```bash
-cd $BUILD_DIR
-cmake -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR \
-      -DCMAKE_BUILD_TYPE=Release          \
-      -DGSPC_HOME=$GPISPACE_INSTALL       \
-      -DALLOW_ANY_GPISPACE_VERSION=true   \
-      -DGPISPACE_REPO=$GPISPACE_REPO      \
-      -DSINGULAR_HOME=$SINGULAR_INSTALL   \
-      $ROOT_DIR
+cd $PFD_BUILD_DIR
+cmake -DCMAKE_INSTALL_PREFIX=$PFD_INSTALL_DIR   \
+      -DCMAKE_BUILD_TYPE=Release            \
+      -DGSPC_HOME=$GPISPACE_INSTALL_DIR     \
+      -DALLOW_ANY_GPISPACE_VERSION=true     \
+      -DGPISPACE_REPO=$GPISPACE_REPO        \
+      -DSINGULAR_HOME=$SINGULAR_INSTALL_DIR \
+      $PFD_REPO
 
 make -j $(nproc)
 make -j $(nproc) install
