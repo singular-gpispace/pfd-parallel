@@ -7,6 +7,35 @@ system using GPI-space.
 
 To get this project up and running, you need to compile GPI-Space and Singular.
 
+For the various dependencies, it is recommended to create a file that exports
+the various install locations as environment variables.
+
+```bash
+cat > env_vars_pfd.txt << "EOF"
+export BOOST_ROOT=<boost-install-prefix>
+export Libssh2_ROOT=<libssh2-install-prefix>
+export LD_LIBRARY_PATH="${Libssh2_ROOT}/lib"${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
+export GASPI_ROOT=<gpi-install-prefix>
+export PKG_CONFIG_PATH="${GASPI_ROOT}/lib${arch}/pkgconfig"${PKG_CONFIG_PATH:+:${PKG_CONFIG_PATH}}
+export GPI_ROOT_DIR=<gpi-root-dir>
+export GPISPACE_REPO=<gpi-space-repo>
+export GPISPACE_BUILD_DIR=<gpi-space-build-dir>
+export GPISPACE_INSTALL_DIR=<gpi-space-install-prefix>
+export GPISPACE_TEST_DIR=<test-directory>
+export GSPC_NODEFILE_FOR_TESTS=<path-to-nodefile> # suggested: $HOME/nodefile
+export SING_ROOT=<dir-for-sing-related-source-code>
+export DEP_LIBS=<sing-dependencies-install-prefix>
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$DEP_LIBS
+export SINGULAR_INSTALL_DIR=<singular-install-prefix>
+EOF
+```
+
+The meaning of the exact paths are described in the course of the README.
+Once all the locations have been set correctly, make the following call:
+```bash
+source env_vars_pfd.txt
+```
+
 ## GPI-Space
 
 GPI-Space targets and has been successfully used on x86-64 Linux
@@ -23,27 +52,7 @@ GPI-Space supports multiple Linux distributions:
 * Ubuntu 18.04 LTS
 * Ubuntu 20.04 LTS
 
-For the various dependencies, it is recommended to create a file that exports
-the various install locations as environment variables.
-
-```bash
-cat > env_vars_pfd.txt << "EOF"
-export BOOST_ROOT=<boost-install-prefix>
-export Libssh2_ROOT=<libssh2-install-prefix>
-export LD_LIBRARY_PATH="${Libssh2_ROOT}/lib"${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
-export GASPI_ROOT=<gpi-install-prefix>
-export PKG_CONFIG_PATH="${GASPI_ROOT}/lib${arch}/pkgconfig"${PKG_CONFIG_PATH:+:${PKG_CONFIG_PATH}}
-export GPISPACE_REPO=<gpi-space-repo>
-export GPISPACE_BUILD_DIR=<gpi-space-build-dir>
-export GPISPACE_INSTALL_DIR=<gpi-space-install-prefix>
-export GPISPACE_TEST_DIR=<test-directory>
-export GSPC_NODEFILE_FOR_TESTS=<path-to-nodefile> # suggested: $HOME/nodefile
-export SING_ROOT=<dir-for-sing-related-source-code>
-export DEP_LIBS=<sing-dependencies-install-prefix>
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$DEP_LIBS
-export SINGULAR_INSTALL_DIR=<singular-install-prefix>
-EOF
-```
+In the following, we will place all gpi-space related code in some `GPI_ROOT_DIR`.
 
 ### Boost
 
@@ -55,8 +64,12 @@ Note, that Boost 1.61 is not compatible with OpenSSL >= 1.1, so we recommend
 using Boost 1.63 as follows:
 
 ```bash
-boost_version=1.63.0
 export BOOST_ROOT=<install-prefix>
+
+boost_version=1.63.0
+
+cd $GPI_ROOT_DIR
+mkdir boost && cd boost
 
 git clone                                                         \
     --jobs $(nproc)                                               \
@@ -79,9 +92,14 @@ cd boost
   variant=release                                                 \
   install
 ```
-Take note to replace `<install-prefix>` with the appropriate path on your
-system where you need boost installed. Also, if you are using
-`env_vars_pfs.txt`, the export step can be ommited.
+> ---
+> **NOTE:**
+>
+> Take note to replace `<install-prefix>` with the appropriate path on your
+> system where you need boost installed. Also, if you are using
+> `env_vars_pfs.txt`, the export step can be omitted.
+>
+> ---
 
 ### libssh2
 
@@ -106,9 +124,13 @@ in order for applications to find the correct one.
 > ---
 
 ```bash
-libssh2_version=1.9.0
 export Libssh2_ROOT=<install-prefix>
 export LD_LIBRARY_PATH="${Libssh2_ROOT}/lib"${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
+
+cd $GPI_ROOT_DIR
+mkdir libssh && cd libssh
+
+libssh2_version=1.9.0
 
 git clone --jobs $(nproc)                                         \
           --depth 1                                               \
@@ -142,10 +164,22 @@ script above.
 
 If Infiniband support is required, the `--with-ethernet` option can be omitted.
 
+> ---
+> **NOTE:**
+>
+> Compiling GPI2 requires gawk. Please install this with a package manager, if
+> not already present on the system.
+>
+> ---
+
 ```bash
-arch=$(getconf LONG_BIT)
 export GASPI_ROOT=<install-prefix>
 export PKG_CONFIG_PATH="${GASPI_ROOT}/lib${arch}/pkgconfig"${PKG_CONFIG_PATH:+:${PKG_CONFIG_PATH}}
+
+cd $GPI_ROOT_DIR
+mkdir gpi2 && cd gpi2
+
+arch=$(getconf LONG_BIT)
 
 gpi2_version=1.3.2                                                            \
  && git clone                                                                 \
@@ -160,8 +194,14 @@ gpi2_version=1.3.2                                                            \
                  --with-fortran=false                                         \
                  --with-ethernet
 ```
-Note that `<install-prefix>` should be set to the correct path in the
-script above.
+> ---
+> **NOTE:**
+>
+> Note that `<install-prefix>` should be set to the correct path in the
+> script above. If the `env_vars_pfd.txt` file is being used, the export steps
+> may be omitted.
+>
+> ---
 
 ### GPI-Space
 
@@ -177,20 +217,31 @@ The code listings in this document assume
 - `${GPISPACE_TEST_DIR}` to be an empty directory on a shared
   filesystem, which used when running the system tests.
 
+Start by cloning gpi-space:
+
+```bash
+cd $GPI_ROOT_DIR
+mkdir gpispace && cd gpispace
+git clone git@github.com:cc-hpc-itwm/gpispace.git
+```
+
 > ---
-> NOTE: until version 21.03 is realeased, the following patch is required:
+> **NOTE:**
+>
+> Until version 21.03 is realeased, the following patch is required:
+>
 > ---
 ```bash
 cd $GPISPACE_REPO
 sed -i 's/INSTALL_RPATH_USE_LINK_PATH false/INSTALL_RPATH_USE_LINK_PATH ${INSTALL_DO_NOT_BUNDLE}/' cmake/add_macros.cmake
 ```
 > ---
+>
 > After version 21.03 and above, this step can be omitted.
+>
 > ---
 
 ```bash
-cd "${GPISPACE_REPO}"
-
 mkdir -p "${GPISPACE_BUILD_DIR}" && cd "${GPISPACE_BUILD_DIR}"
 
 cmake -C ${GPISPACE_REPO}/config.cmake                            \
@@ -230,7 +281,9 @@ ctest --output-on-failure                                         \
 
 ## Singular
 
-We install the current version of Singular, which will be required by our framework.
+We install the current version of Singular, which will be required by our
+framework. The version of Singular found in package manager does *not* generally
+work with the PFD project.
 
 Besides flint, Singular has various more standard dependencies, which are
 usually available through the package manager of your distribution. Please refer
@@ -249,7 +302,7 @@ cd $SING_ROOT
 git clone git@github.com:Singular/Singular.git Sources
 ```
 
-Now, we need to compile the various dependencies first.
+We need to compile the various dependencies first.
 
 ### flint
 The official guides for singular clones the latest development branch of flint.
@@ -259,6 +312,7 @@ version be downloaded and compiled instead.
 
 ```bash
 cd $SING_ROOT
+mkdir flint && cd flint
 wget http://www.flintlib.org/flint-2.7.1.tar.gz
 tar -xvf flint-2.7.1.tar.gz
 cd flint-2.7.1
@@ -283,6 +337,7 @@ make -j $(nproc)
 
 ```bash
 cd $SING_ROOT
+mkdir cddlib && cd cddlib
 wget https://github.com/cddlib/cddlib/releases/download/0.94j/cddlib-0.94j.tar.gz
 tar -xvf cddlib-0.94j.tar.gz
 cd cddlib-0.94j
@@ -295,6 +350,7 @@ make install
 
 ```bash
 cd $SING_ROOT
+mkdir ntl && cd ntl
 wget https://libntl.org/ntl-11.4.3.tar.gz
 tar -xvf ntl-11.4.3.tar.gz
 cd ntl-11.4.3/src # note the extra src
@@ -348,4 +404,5 @@ cmake -DCMAKE_INSTALL_PREFIX=$PFD_INSTALL_DIR   \
 make -j $(nproc)
 make -j $(nproc) install
 ```
-
+## Example to run PFD
+Watch this space...
