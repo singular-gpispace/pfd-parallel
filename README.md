@@ -7,7 +7,8 @@ Most of the code is an adapted version of the
 repository, implemented primarily by Lukas Ristau.
 
 This project provides allows for applying the partial fraction decoposition
-function in the massively parallel system GPI-space.
+function in the massively parallel system GPI-space, for a matrix of rational
+funcitons.
 
 To get this project up and running, you need to compile GPI-Space and Singular.
 
@@ -302,15 +303,12 @@ It is recommended to install the current version of Singular, which will be requ
 framework. The version of Singular found in package manager does *not* generally
 work with the PFD project.
 
-Note, various tools are required to be present on the system:
-
-TODO:
-
 Besides flint, Singular has various more standard dependencies, which are
 usually available through the package manager of your distribution. Feel free to
 refer to the
 [step-by-step instructions to build Singular](https://github.com/Singular/Singular/wiki/Step-by-Step-Installation-Instructions-for-Singular)
-for more details.
+for more details, taking note of the tools necessary to compile Singular under
+point 1.b.
 
 This document gives a thorough guide for building the various dependencies and
 then finally Singular itself, all the while assuming the user does *not* have
