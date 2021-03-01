@@ -2,13 +2,20 @@
 
 A partial Fraction Decomposition Framework for Singular has been implemented by
 Marcel Wittman, at the Technical University Kaiserslautern (TU Kaiserslautern).
-This project provides allows for applying this function in a massively parallel
-system using GPI-space.
+Most of the code is an adapted version of the
+[wait-all-first](https://github.com/singular-gpispace/wait-all-first)
+repository, implemented primarily by Lukas Ristau.
+
+This project provides allows for applying the partial fraction decoposition
+function in the massively parallel system GPI-space.
 
 To get this project up and running, you need to compile GPI-Space and Singular.
 
 For the various dependencies, it is recommended to create a file that exports
-the various install locations as environment variables.
+the various install locations as environment variables. For this purpose, the
+following command may be run at a convenient location, after which the resultant
+file should be edited, with the appropriate paths set for the various install
+locations.
 
 ```bash
 cat > env_vars_pfd.txt << "EOF"
@@ -16,7 +23,8 @@ export BOOST_ROOT=<boost-install-prefix>
 export Libssh2_ROOT=<libssh2-install-prefix>
 export LD_LIBRARY_PATH="${Libssh2_ROOT}/lib"${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
 export GASPI_ROOT=<gpi-install-prefix>
-export PKG_CONFIG_PATH="${GASPI_ROOT}/lib${arch}/pkgconfig"${PKG_CONFIG_PATH:+:${PKG_CONFIG_PATH}}
+export cpu_arch=$(getconf LONG_BIT)
+export PKG_CONFIG_PATH="${GASPI_ROOT}/lib${cpu_arch}/pkgconfig"${PKG_CONFIG_PATH:+:${PKG_CONFIG_PATH}}
 export GPI_ROOT_DIR=<gpi-root-dir>
 export GPISPACE_REPO=<gpi-space-repo>
 export GPISPACE_BUILD_DIR=<gpi-space-build-dir>
@@ -25,16 +33,22 @@ export GPISPACE_TEST_DIR=<test-directory>
 export GSPC_NODEFILE_FOR_TESTS=<path-to-nodefile> # suggested: $HOME/nodefile
 export SING_ROOT=<dir-for-sing-related-source-code>
 export DEP_LIBS=<sing-dependencies-install-prefix>
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$DEP_LIBS
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$DEP_LIBS/lib
 export SINGULAR_INSTALL_DIR=<singular-install-prefix>
+export SINGULAR_BUILD_DIR=<singular-build-dir>
+export PFD_REPO=<pfd-repo-clone>
+export PFD_INSTALL_DIR=<pfd-install-prefix>
+export PFD_BUILD_DIR=<pfd-build-dir>
 EOF
 ```
 
 The meaning of the exact paths are described in the course of the README.
-Once all the locations have been set correctly, make the following call:
+Once all the locations have been set correctly, the variables can easily be
+exported with the following call:
 ```bash
 source env_vars_pfd.txt
 ```
+This helps eliminate the chance of typos.
 
 ## GPI-Space
 
@@ -52,7 +66,7 @@ GPI-Space supports multiple Linux distributions:
 * Ubuntu 18.04 LTS
 * Ubuntu 20.04 LTS
 
-In the following, we will place all gpi-space related code in some `GPI_ROOT_DIR`.
+In this guide, all gpi-space related code will be placed in some `GPI_ROOT_DIR`.
 
 ### Boost
 
@@ -60,8 +74,8 @@ In the following, we will place all gpi-space related code in some `GPI_ROOT_DIR
 | :-: | :-: |
 | [Boost](https://boost.org) | >= 1.61, <= 1.63 |
 
-Note, that Boost 1.61 is not compatible with OpenSSL >= 1.1, so we recommend
-using Boost 1.63 as follows:
+Note, that Boost 1.61 is not compatible with OpenSSL >= 1.1, so it is
+recommended to use Boost 1.63, as follows:
 
 ```bash
 export BOOST_ROOT=<install-prefix>
@@ -109,7 +123,7 @@ cd boost
 
 `libssh2`  is not built with the OpenSSL backend on all systems. Additionally,
 some versions available via package manager might not be compatible with
-OpenSSH's default settings. For those reasons, we highly recommend building
+OpenSSH's default settings. For those reasons, it is highly recommended to build
 `libssh2` 1.9 from scratch. Doing so is however straightforward thanks to CMake.
 As additional dependencies `OpenSSL` and `Zlib` are required (for this any
 package manager version should be sufficient). Also, unless `Libssh2_ROOT` is
@@ -173,13 +187,12 @@ If Infiniband support is required, the `--with-ethernet` option can be omitted.
 > ---
 
 ```bash
+export cpu_arch=$(getconf LONG_BIT)
 export GASPI_ROOT=<install-prefix>
-export PKG_CONFIG_PATH="${GASPI_ROOT}/lib${arch}/pkgconfig"${PKG_CONFIG_PATH:+:${PKG_CONFIG_PATH}}
+export PKG_CONFIG_PATH="${GASPI_ROOT}/lib${cpu_arch}/pkgconfig"${PKG_CONFIG_PATH:+:${PKG_CONFIG_PATH}}
 
 cd $GPI_ROOT_DIR
 mkdir gpi2 && cd gpi2
-
-arch=$(getconf LONG_BIT)
 
 gpi2_version=1.3.2                                                            \
  && git clone                                                                 \
@@ -237,7 +250,7 @@ sed -i 's/INSTALL_RPATH_USE_LINK_PATH false/INSTALL_RPATH_USE_LINK_PATH ${INSTAL
 ```
 > ---
 >
-> After version 21.03 and above, this step can be omitted.
+> After version 21.03 and above, this `sed` step can be omitted.
 >
 > ---
 
@@ -258,7 +271,8 @@ cmake --build ${GPISPACE_BUILD_DIR}                               \
 > **NOTE:**
 >
 > GPI-Space requires a working SSH environment with a password-less
-> SSH-key when using the SSH RIF strategy.
+> SSH-key when using the SSH RIF strategy. To ensure this, make sure when
+> generating your ssh keypair to leave the password field empty.
 >
 > ---
 
@@ -279,43 +293,51 @@ ctest --output-on-failure                                         \
       --tests-regex share_selftest
 ```
 
+Some of these tests take a long time, and there are 286 tests in the suite at
+the time of writing this document.
+
 ## Singular
 
-We install the current version of Singular, which will be required by our
+It is recommended to install the current version of Singular, which will be required by our
 framework. The version of Singular found in package manager does *not* generally
 work with the PFD project.
 
+Note, various tools are required to be present on the system:
+
+TODO:
+
 Besides flint, Singular has various more standard dependencies, which are
-usually available through the package manager of your distribution. Please refer
-to the [step-by-step instructions to build Singular](https://github.com/Singular/Singular/wiki/Step-by-Step-Installation-Instructions-for-Singular) for more details.
+usually available through the package manager of your distribution. Feel free to
+refer to the
+[step-by-step instructions to build Singular](https://github.com/Singular/Singular/wiki/Step-by-Step-Installation-Instructions-for-Singular)
+for more details.
 
-Here we give a thorough guide for building the various dependencies and then
-finally Singular itself, all the while assuming the user does *not* have `sudo`
-privileges. We assume that mpfr and gmp are installed by the package manager
-to `/usr`
+This document gives a thorough guide for building the various dependencies and
+then finally Singular itself, all the while assuming the user does *not* have
+`sudo`/`root` privileges. This guide assumes that `mpfr` and `gmp` are installed
+by the package manager to `/usr`
 
-Start by choosing a location where Singular can be cloned. We will indicate this
-by `$SING_ROOT`. Clone Singular
+Start by choosing a location where Singular can be cloned. This will be
+indicated by `$SING_ROOT` and compile the various dependencies
 
 ```bash
-cd $SING_ROOT
-git clone git@github.com:Singular/Singular.git Sources
+export SING_ROOT=<sing-dependencies_root_dir>
+mkdir -p $SING_ROOT
 ```
-
-We need to compile the various dependencies first.
 
 ### flint
 The official guides for singular clones the latest development branch of flint.
 As flint is being actively developed and the APIs changed quite often, this has
-led to issues in the past.  Therefore, we rather recommend that a release
-version be downloaded and compiled instead.
+led to issues in the past.  Therefore, it is rather recommended that a release
+version be downloaded and compiled instead.  The newest release with which
+Singular can be built (at the time of writing) is version 2.6.3.
 
 ```bash
 cd $SING_ROOT
 mkdir flint && cd flint
-wget http://www.flintlib.org/flint-2.7.1.tar.gz
-tar -xvf flint-2.7.1.tar.gz
-cd flint-2.7.1
+wget http://www.flintlib.org/flint-2.6.3.tar.gz
+tar -xvf flint-2.6.3.tar.gz
+cd flint-2.6.3
 ./configure --with-gmp=/usr --prefix=$DEP_LIBS --with-mpfr=/usr
 make -j $(nproc)
 make install
@@ -324,13 +346,13 @@ make install
 ### 4ti2
 ```bash
 cd $SING_ROOT
-mkdir 4ti2
-cd 4ti2
+mkdir 4ti2 && cd 4ti2
 wget http://www.4ti2.de/version_1.6/4ti2-1.6.tar.gz
 tar xvfz 4ti2-1.6.tar.gz
 cd 4ti2-1.6
 ./configure --prefix=$DEP_LIBS
 make -j $(nproc)
+make install
 ```
 
 ### cddlib
@@ -354,17 +376,27 @@ mkdir ntl && cd ntl
 wget https://libntl.org/ntl-11.4.3.tar.gz
 tar -xvf ntl-11.4.3.tar.gz
 cd ntl-11.4.3/src # note the extra src
-./configure PREFIX=$DEP_LIBS -fPIC #notice PREFIX is capitalized without dashes
+./configure PREFIX=$DEP_LIBS CXXFLAGS=-fPIC #notice PREFIX and CXXFLAGS is capitalized without dashes
 make -j $(nproc)
 make install
 ```
 
 ### Compile Singular
 
-We are finally ready to compile Singular itself against the libraries we just
-installed.
+Singular may now be compiled against the libraries compiled and installed above.
+
 ```bash
 cd $SING_ROOT
+git clone                                                \
+    --depth 1                                            \
+    git@github.com:Singular/Singular.git                 \
+    Sources
+
+cd Sources
+./autogen.sh
+
+mkdir -p $SINGULAR_BUILD_DIR && cd $SINGULAR_BUILD_DIR
+
 CPPFLAGS="-I/home/murray/fraunhofer/prog/tmp/include" \
 LDFLAGS="-L/home/murray/fraunhofer/prog/tmp/lib" \
 ${SING_ROOT}/Sources/configure \
@@ -376,11 +408,11 @@ make -j $(nproc)
 make install
 ```
 ## Compile PFD
-We are finally in a position to compile the PFD project.
+The PFD project can now be compiled and installed.
 
-We expect the following variables to be set:
-- `${GPISPACE_REPO}` as path to the repository cloned from Github.  We need this
-  for some cmake scripts, amongst other reasons.
+The following environment variables must be set:
+- `${GPISPACE_REPO}` as path to the repository cloned from Github. This is
+  needed for some cmake scripts, amongst other reasons.
 - `${GPISPACE_INSTALL_DIR}` The install prefix used when compiling and installing
   gpi-space above.
 - `${SINGULAR_INSTALL_DIR}` The install prefix used when compiling and installing
@@ -392,7 +424,7 @@ We expect the following variables to be set:
 - `${PFD_INSTALL_DIR}` The path to where the PFD project should be installed.
 
 ```bash
-cd $PFD_BUILD_DIR
+mkdir -p $PFD_BUILD_DIR && cd $PFD_BUILD_DIR
 cmake -DCMAKE_INSTALL_PREFIX=$PFD_INSTALL_DIR   \
       -DCMAKE_BUILD_TYPE=Release            \
       -DGSPC_HOME=$GPISPACE_INSTALL_DIR     \
