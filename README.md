@@ -426,15 +426,115 @@ The following environment variables must be set:
 ```bash
 mkdir -p $PFD_BUILD_DIR && cd $PFD_BUILD_DIR
 cmake -DCMAKE_INSTALL_PREFIX=$PFD_INSTALL_DIR   \
-      -DCMAKE_BUILD_TYPE=Release            \
-      -DGSPC_HOME=$GPISPACE_INSTALL_DIR     \
-      -DALLOW_ANY_GPISPACE_VERSION=true     \
-      -DGPISPACE_REPO=$GPISPACE_REPO        \
-      -DSINGULAR_HOME=$SINGULAR_INSTALL_DIR \
+      -DCMAKE_BUILD_TYPE=Release                \
+      -DGSPC_HOME=$GPISPACE_INSTALL_DIR         \
+      -DALLOW_ANY_GPISPACE_VERSION=true         \
+      -DGPISPACE_REPO=$GPISPACE_REPO            \
+      -DSINGULAR_HOME=$SINGULAR_INSTALL_DIR     \
       $PFD_REPO
 
 make -j $(nproc)
 make -j $(nproc) install
 ```
 ## Example to run PFD
-Watch this space...
+To run an example, we need a Singular script that loads the `pfd_gspc.lib`
+library. A gpi-space configure token needs to be prepared, with some important
+configuration:  The path of a temporary directory, where files will be stored
+during the computation and handling of the various files at runtime, the
+location of a nodefile, containing a location on then network where gpi-space is
+installed, the number of processes each node should run in parallel, the address
+of a running instance of the gpi-space monitoring tool, as well as the port on
+which the monitoring tool is listening (Note, the program can be run without the
+monitoring tool, in which case the last two options should remain unset). Next,
+the ring in which the rational function's numerator and denominator is found is
+declared.  The input of the system is in the form of files, identified by the
+row and column in a matrix where it must be found, in the form
+`<basename>_<row>_<col>.(txt|ssi)`, where the suffix is txt if the file is in
+plain text format, and ssi if the input files are in this binary format
+implemented by singular. To specify the input files to be calculated, put the
+coordinates of the matrix entries to be calculated in a list of lists.
+
+Finally, all this is provided to the `parallel_pfd` function as arguments,
+preferably with the optional argument for the path to where the input files are
+found.  The user may also provide in a separate argument the path of where the
+output files should be written.
+
+An example script `test_pfd.sing` for a 4 by 4 matrix might be
+
+```cpp
+LIB "pfd_gspc.lib";
+
+configToken gc = configure_gspc();
+
+gc.options.tmpdir = "<path-to-tmpdir>";
+gc.options.nodefile = "<path-to-nodefile>";
+gc.options.procspernode = 8;
+gc.options.loghost = "<hostname>";
+gc.options.logport = 6439;
+
+ring r = 0, x, lp;
+
+list l = list( list(1, 1)
+             , list(1, 2)
+             , list(1, 3)
+             , list(1, 4)
+             , list(2, 1)
+             , list(2, 2)
+             , list(2, 3)
+             , list(2, 4)
+             , list(3, 1)
+             , list(3, 2)
+             , list(3, 3)
+             , list(3, 4)
+             , list(4, 1)
+             , list(4, 2)
+             , list(4, 3)
+             , list(4, 4)
+             );
+parallel_pfd( "fraction"
+            , l
+            , gc
+            , "<path-to-input-files>"
+            , "<path-to-output-files>");
+exit;
+```
+Next, if you wish to start a monitor, this may be done as follows:
+```bash
+cat > start_monitor.sh << "EOF"
+#!/usr/bin/bash
+
+set -euo pipefail
+
+# raster or native (native for X forwarding)
+QT_DEBUG_PLUGINS=0                                                \
+        QT_GRAPHICSSYSTEM=native                                  \
+        $PFD_INSTALL_DIR/libexec/bundle/gpispace/bin/gspc-monitor \
+        --port 6439 &
+
+EOF
+chmod a+x start_monitor.sh
+./start_monitor.sh
+```
+Ensure that the `--port` number matches the one set in the singular script.
+Also, if this is run over ssh on a remote machine, make sure that x forwarding
+is enabled.
+
+Create the input files:
+```bash
+pushd <input-dir>
+for r in {1..4}
+do
+  for c in {1..4}
+  do
+    echo "x/(x*(x+1))" >> fraction_"$r"_"$c".txt
+  done
+done
+popd
+```
+
+Finally, the test may be started with
+```bash
+SINGULARPATH="$PFD_INSTALL_DIR/LIB"                           \
+        $SINGULAR_INSTALL_DIR/bin/Singular                    \
+        test_pfd.sing
+```
