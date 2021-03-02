@@ -35,13 +35,16 @@ computation nodes to be used for running the system.
 ```bash
 cat > env_vars_pfd.txt << "EOF"
 export PFD_PROJECT_COMPILE_ROOT=<compile-root>
-# Some location on the system harddrive for hosting build directories, that is
-# also fast, for example /dev/shm/$USER/pfd, which stores purely in memory, and
-# is lost after each reboot, or $HOME/pfd if the user has a fast ssd drive.
+# Some fast location in local system for hosting build directories, 
+# for example, something like /tmpbig/$USER/pfd or /dev/shm/$USER/pfd
+# (note that the latter stores purely in memory, thus the contents of this 
+# location will be lost after reboot), or just $HOME/pfd if the user has a 
+# fast home directory.
 
 export PFD_PROJECT_INSTALL_ROOT=<install-root>
-# The install root is recommended to be some nfs mountpoint, where a cluster
-# might be able to read from, for example /scratch/$USER/pfd/
+# The install root is recommended to be some network (nfs) mountpoint, where 
+# each node of the cluster should be able to read from, for example 
+# something like /scratch/$USER/pfd/
 
 # GPI-Space dependencies:
 export BOOST_ROOT=$PFD_PROJECT_INSTALL_ROOT/boost/install
@@ -269,7 +272,7 @@ git clone git@github.com:cc-hpc-itwm/gpispace.git
 > ---
 > **NOTE:**
 >
-> Until version 21.03 is realeased, the following patch is required:
+> Until version 21.03 of GPI-Space is realeased, the following patch is required:
 >
 > ---
 ```bash
