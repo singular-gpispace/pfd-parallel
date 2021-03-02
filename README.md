@@ -20,37 +20,63 @@ locations.
 
 ```bash
 cat > env_vars_pfd.txt << "EOF"
-export BOOST_ROOT=<boost-install-prefix>
-export Libssh2_ROOT=<libssh2-install-prefix>
+export PFD_PROJECT_COMPILE_ROOT=<compile-root>
+# Some location on the system harddrive for hosting build directories, that is
+# also fast, for example /dev/shm/$USER/pfd, which stores purely in memory, and
+# is lost after each reboot, or $HOME/pfd if the user has a fast ssd drive.
+
+export PFD_PROJECT_INSTALL_ROOT=<install-root>
+# The install root is recommended to be some nfs mountpoint, where a cluster
+# might be able to read from, for example /scratch/$USER/pfd/
+
+# GPI-Space dependencies:
+export BOOST_ROOT=$PFD_PROJECT_INSTALL_ROOT/boost/install
+export Libssh2_ROOT=$PFD_PROJECT_INSTALL_ROOT/libssh/install
 export LD_LIBRARY_PATH="${Libssh2_ROOT}/lib"${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
-export GASPI_ROOT=<gpi-install-prefix>
+export GASPI_ROOT=$PFD_PROJECT_INSTALL_ROOT/gpi2/install
 export cpu_arch=$(getconf LONG_BIT)
 export PKG_CONFIG_PATH="${GASPI_ROOT}/lib${cpu_arch}/pkgconfig"${PKG_CONFIG_PATH:+:${PKG_CONFIG_PATH}}
-export GPI_ROOT_DIR=<gpi-root-dir>
-export GPISPACE_REPO=<gpi-space-repo>
-export GPISPACE_BUILD_DIR=<gpi-space-build-dir>
-export GPISPACE_INSTALL_DIR=<gpi-space-install-prefix>
-export GPISPACE_TEST_DIR=<test-directory>
+
+# GPI-Space:
+export GPI_ROOT_DIR=$PFD_PROJECT_COMPILE_ROOT
+export GPISPACE_REPO=$GPI_ROOT_DIR/gpispace/gpispace
+export GPISPACE_BUILD_DIR=$GPI_ROOT_DIR/gpispace/build
+export GPISPACE_INSTALL_DIR=$PFD_PROJECT_INSTALL_ROOT/gpispace/install
+export GPISPACE_TEST_DIR=<test-directory> # any test directoy should be good
 export GSPC_NODEFILE_FOR_TESTS=<path-to-nodefile> # suggested: $HOME/nodefile
-export SING_ROOT=<dir-for-sing-related-source-code>
-export DEP_LIBS=<sing-dependencies-install-prefix>
+
+# Singular:
+export SING_ROOT=$PFD_PROJECT_COMPILE_ROOT/Singular
+export DEP_LIBS=$PFD_PROJECT_INSTALL_ROOT/sing_dep_libs
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$DEP_LIBS/lib
-export SINGULAR_INSTALL_DIR=<singular-install-prefix>
-export SINGULAR_BUILD_DIR=<singular-build-dir>
-export PFD_REPO=<pfd-repo-clone>
-export PFD_INSTALL_DIR=<pfd-install-prefix>
-export PFD_BUILD_DIR=<pfd-build-dir>
+export SINGULAR_INSTALL_DIR=$PFD_PROJECT_INSTALL_ROOT/Singular/install
+export SINGULAR_BUILD_DIR=$SING_ROOT/build
+
+# PFD:
+export PFD_ROOT=$PFD_PROJECT_COMPILE_ROOT/pfd
+export PFD_REPO=$PFD_ROOT/pfd
+export PFD_INSTALL_DIR=$PFD_PROJECT_INSTALL_ROOT/pfd/install
+export PFD_BUILD_DIR=$PFD_ROOT/build
 EOF
+
 ```
 
-The meaning of the exact paths are described in the course of the README.
+The above structure can of course be altered to suite the compiler's setup,
+as long as the scripts in this REAME are altered accordingly, since they assume
+the directory structure.
 Once all the locations have been set correctly, the variables can easily be
 exported with the following call:
 ```bash
 source env_vars_pfd.txt
-```
-This helps eliminate the chance of typos.
 
+```
+
+Ensure that the compile and install roots exist:
+```bash
+mkdir -p $PFD_PROJECT_COMPILE_ROOT
+mkdir -p $PFD_PROJECT_INSTALL_ROOT
+
+```
 ## GPI-Space
 
 GPI-Space targets and has been successfully used on x86-64 Linux
@@ -67,7 +93,11 @@ GPI-Space supports multiple Linux distributions:
 * Ubuntu 18.04 LTS
 * Ubuntu 20.04 LTS
 
-In this guide, all gpi-space related code will be placed in some `GPI_ROOT_DIR`.
+Ensure that the `GPI_ROOT_DIR` exists:
+```bash
+mkdir -p $GPI_ROOT_DIR
+
+```
 
 ### Boost
 
@@ -79,9 +109,6 @@ Note, that Boost 1.61 is not compatible with OpenSSL >= 1.1, so it is
 recommended to use Boost 1.63, as follows:
 
 ```bash
-export BOOST_ROOT=<install-prefix>
-# The export step could be left out, if env_vars_pfd.txt used
-
 boost_version=1.63.0
 
 cd $GPI_ROOT_DIR
@@ -107,14 +134,8 @@ cd boost
   link=static                                                     \
   variant=release                                                 \
   install
+
 ```
-> ---
-> **NOTE:**
->
-> Take note to replace `<install-prefix>` with the appropriate path on your
-> system where you need boost installed.
->
-> ---
 
 ### libssh2
 
@@ -139,10 +160,6 @@ in order for applications to find the correct one.
 > ---
 
 ```bash
-export Libssh2_ROOT=<install-prefix>
-export LD_LIBRARY_PATH="${Libssh2_ROOT}/lib"${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
-# The export steps may be left out, if env_vars_pfd.txt used
-
 cd $GPI_ROOT_DIR
 mkdir libssh && cd libssh
 
@@ -169,8 +186,6 @@ cmake --build libssh2/build                                       \
       -j $(nproc)
 
 ```
-Note that `<install-prefix>` should be set to the correct path in the
-script above.
 
 ### GPI-2
 
@@ -189,11 +204,6 @@ If Infiniband support is required, the `--with-ethernet` option can be omitted.
 > ---
 
 ```bash
-export cpu_arch=$(getconf LONG_BIT)
-export GASPI_ROOT=<install-prefix>
-export PKG_CONFIG_PATH="${GASPI_ROOT}/lib${cpu_arch}/pkgconfig"${PKG_CONFIG_PATH:+:${PKG_CONFIG_PATH}}
-# The export steps may be left out, if env_vars_pfd.txt used
-
 cd $GPI_ROOT_DIR
 mkdir gpi2 && cd gpi2
 
@@ -209,6 +219,7 @@ gpi2_version=1.3.2                                                            \
  && ./install.sh -p "${GASPI_ROOT}"                                           \
                  --with-fortran=false                                         \
                  --with-ethernet
+
 ```
 > ---
 > **NOTE:**
@@ -238,6 +249,7 @@ Start by cloning gpi-space:
 cd $GPI_ROOT_DIR
 mkdir gpispace && cd gpispace
 git clone git@github.com:cc-hpc-itwm/gpispace.git
+
 ```
 
 > ---
@@ -249,6 +261,7 @@ git clone git@github.com:cc-hpc-itwm/gpispace.git
 ```bash
 cd $GPISPACE_REPO
 sed -i 's/INSTALL_RPATH_USE_LINK_PATH false/INSTALL_RPATH_USE_LINK_PATH ${INSTALL_DO_NOT_BUNDLE}/' cmake/add_macros.cmake
+
 ```
 > ---
 >
@@ -267,6 +280,7 @@ cmake -C ${GPISPACE_REPO}/config.cmake                            \
 cmake --build ${GPISPACE_BUILD_DIR}                               \
       --target install                                            \
       -j $(nproc)
+
 ```
 
 > ---
@@ -293,6 +307,7 @@ export GSPC_NODEFILE_FOR_TESTS="${PWD}/nodefile"
 
 ctest --output-on-failure                                         \
       --tests-regex share_selftest
+
 ```
 
 Some of these tests take a long time, and there are 286 tests in the suite at
@@ -320,10 +335,8 @@ Start by choosing a location where Singular can be cloned. This will be
 indicated by `$SING_ROOT` and compile the various dependencies
 
 ```bash
-export SING_ROOT=<sing-dependencies_root_dir>
-# The export step may be left out, if env_vars_pfd.txt used
-
 mkdir -p $SING_ROOT
+
 ```
 
 ### flint
@@ -342,6 +355,7 @@ cd flint-2.6.3
 ./configure --with-gmp=/usr --prefix=$DEP_LIBS --with-mpfr=/usr
 make -j $(nproc)
 make install
+
 ```
 
 ### 4ti2
@@ -354,6 +368,7 @@ cd 4ti2-1.6
 ./configure --prefix=$DEP_LIBS
 make -j $(nproc)
 make install
+
 ```
 
 ### cddlib
@@ -367,6 +382,7 @@ cd cddlib-0.94j
 ./configure --prefix=$DEP_LIBS
 make -j $(nproc)
 make install
+
 ```
 
 ### ntl
@@ -380,6 +396,7 @@ cd ntl-11.4.3/src # note the extra src
 ./configure PREFIX=$DEP_LIBS CXXFLAGS=-fPIC #notice PREFIX and CXXFLAGS is capitalized without dashes
 make -j $(nproc)
 make install
+
 ```
 
 ### Compile Singular
@@ -407,24 +424,32 @@ ${SING_ROOT}/Sources/configure \
     --enable-gfanlib
 make -j $(nproc)
 make install
+
 ```
 ## Compile PFD
 The PFD project can now be compiled and installed.
 
 The following environment variables must be set:
-- `${GPISPACE_REPO}` as path to the repository cloned from Github. This is
+- `${GPISPACE_REPO}` The path to the repository cloned from Github. This is
   needed for some cmake scripts, amongst other reasons.
-- `${GPISPACE_INSTALL_DIR}` The install prefix used when compiling and installing
-  gpi-space above.
-- `${SINGULAR_INSTALL_DIR}` The install prefix used when compiling and installing
-  Singular above.
+- `${GPISPACE_INSTALL_DIR}` The install prefix used when compiling and
+  installing gpi-space above.
+- `${SINGULAR_INSTALL_DIR}` The install prefix used when compiling and
+  installing Singular above.
 - `${PFD_REPO}` The root of the cloned PFD project.
-- `${PFD_BUILD_DIR}` The path of the build directory.  It is recommended to build in
-  a separate directory to the source code, preferably starting with an empty
-  build directory.
+- `${PFD_BUILD_DIR}` The path of the build directory.  It is recommended to
+  build in a separate directory to the source code, preferably starting with an
+  empty  build directory.
 - `${PFD_INSTALL_DIR}` The path to where the PFD project should be installed.
 
 ```bash
+cd $PFD_ROOT
+
+git clone                                                \
+    --depth 1                                            \
+    git@github.com:singular-gpispace/PFD.git             \
+    pfd
+
 mkdir -p $PFD_BUILD_DIR && cd $PFD_BUILD_DIR
 cmake -DCMAKE_INSTALL_PREFIX=$PFD_INSTALL_DIR   \
       -DCMAKE_BUILD_TYPE=Release                \
@@ -436,6 +461,7 @@ cmake -DCMAKE_INSTALL_PREFIX=$PFD_INSTALL_DIR   \
 
 make -j $(nproc)
 make -j $(nproc) install
+
 ```
 ## Example to run PFD
 To run an example, we need a Singular script that loads the `pfd_gspc.lib`
@@ -462,15 +488,19 @@ output files should be written.
 
 An example script `test_pfd.sing` for a 4 by 4 matrix might be
 
-```cpp
+```bash
+mkdir -p $PFD_ROOT/tmpdir
+echo $(hostname) > $PFD_ROOT/nodefile
+
+cat > test_pfd.sing.temp << "EOF"
 LIB "pfd_gspc.lib";
 
 configToken gc = configure_gspc();
 
-gc.options.tmpdir = "<path-to-tmpdir>";
-gc.options.nodefile = "<path-to-nodefile>";
+gc.options.tmpdir = "$PFD_ROOT/tmpdir";
+gc.options.nodefile = "$PFD_ROOT/nodefile";
 gc.options.procspernode = 8;
-gc.options.loghost = "<hostname>";
+gc.options.loghost = "$(hostname)";
 gc.options.logport = 6439;
 
 ring r = 0, x, lp;
@@ -494,12 +524,31 @@ list l = list( list(1, 1)
              );
 parallel_pfd( "fraction"
             , l
-            , "<path-to-input-files>"
+            , "$PFD_ROOT/input"
             , gc
-            , "<path-to-output-files>" // optional, only necessary if diff from input dir
+            , "$PFD_ROOT/results" // optional, only necessary if diff from input dir
             );
 exit;
+EOF
+
 ```
+We want to expand the environment variables in the script above, so create a
+hacky script for this purpose:
+```bash
+cat > shell_expand_script.sh << "EOF"
+echo 'cat <<END_OF_TEXT' >  temp.sh
+cat "$1"                 >> temp.sh
+echo 'END_OF_TEXT'       >> temp.sh
+bash temp.sh >> "$2"
+rm temp.sh
+EOF
+
+chmod a+x shell_expand_script.sh
+./shell_expand_script.sh test_pfd.sing.temp test_pfd.sing
+
+```
+
+
 Next, if you wish to start a monitor, this may be done as follows:
 ```bash
 cat > start_monitor.sh << "EOF"
@@ -516,6 +565,7 @@ QT_DEBUG_PLUGINS=0                                                \
 EOF
 chmod a+x start_monitor.sh
 ./start_monitor.sh
+
 ```
 Ensure that the `--port` number matches the one set in the singular script.
 Also, if this is run over ssh on a remote machine, make sure that x forwarding
@@ -523,20 +573,28 @@ is enabled.
 
 Create the input files:
 ```bash
-pushd <input-dir>
+mkdir -p $PFD_ROOT/input
+mkdir -p $PFD_ROOT/results
+pushd $PFD_ROOT/input
 for r in {1..4}
 do
   for c in {1..4}
   do
-    echo "x/(x*(x+1))" >> fraction_"$r"_"$c".txt
+    echo "x/(x*(x+1))" > fraction_"$r"_"$c".txt
   done
 done
 popd
+
 ```
 
 Finally, the test may be started with
 ```bash
+cat > run_pfd_example.sh << "EOF"
 SINGULARPATH="$PFD_INSTALL_DIR/LIB"                           \
         $SINGULAR_INSTALL_DIR/bin/Singular                    \
         test_pfd.sing
+EOF
+chmod a+x run_pfd_example.sh
+./run_pfd_example.sh
+
 ```
