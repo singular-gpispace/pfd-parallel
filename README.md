@@ -80,6 +80,7 @@ recommended to use Boost 1.63, as follows:
 
 ```bash
 export BOOST_ROOT=<install-prefix>
+# The export step could be left out, if env_vars_pfd.txt used
 
 boost_version=1.63.0
 
@@ -111,8 +112,7 @@ cd boost
 > **NOTE:**
 >
 > Take note to replace `<install-prefix>` with the appropriate path on your
-> system where you need boost installed. Also, if you are using
-> `env_vars_pfs.txt`, the export step can be omitted.
+> system where you need boost installed.
 >
 > ---
 
@@ -141,6 +141,7 @@ in order for applications to find the correct one.
 ```bash
 export Libssh2_ROOT=<install-prefix>
 export LD_LIBRARY_PATH="${Libssh2_ROOT}/lib"${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
+# The export steps may be left out, if env_vars_pfd.txt used
 
 cd $GPI_ROOT_DIR
 mkdir libssh && cd libssh
@@ -191,6 +192,7 @@ If Infiniband support is required, the `--with-ethernet` option can be omitted.
 export cpu_arch=$(getconf LONG_BIT)
 export GASPI_ROOT=<install-prefix>
 export PKG_CONFIG_PATH="${GASPI_ROOT}/lib${cpu_arch}/pkgconfig"${PKG_CONFIG_PATH:+:${PKG_CONFIG_PATH}}
+# The export steps may be left out, if env_vars_pfd.txt used
 
 cd $GPI_ROOT_DIR
 mkdir gpi2 && cd gpi2
@@ -212,8 +214,7 @@ gpi2_version=1.3.2                                                            \
 > **NOTE:**
 >
 > Note that `<install-prefix>` should be set to the correct path in the
-> script above. If the `env_vars_pfd.txt` file is being used, the export steps
-> may be omitted.
+> script above.
 >
 > ---
 
@@ -320,6 +321,8 @@ indicated by `$SING_ROOT` and compile the various dependencies
 
 ```bash
 export SING_ROOT=<sing-dependencies_root_dir>
+# The export step may be left out, if env_vars_pfd.txt used
+
 mkdir -p $SING_ROOT
 ```
 
