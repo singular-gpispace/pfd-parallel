@@ -1,14 +1,27 @@
 version="v0.0.1";
 category="Algebraic geometry";
 info="demo";
+
+proc pfd_gspc_filename (string matrixname, string suffix, int row, int col)
+{
+  string filename = matrixname
+                  + "_" + string(row)
+                  + "_" + string(col)
+                  + "." + suffix;
+  return (filename);
+}
+
 proc pfd_gspc_compute (in_struct input)
 {
-  out_struct output;
   execute("ring r = " + input.neededring);
-  string filename = input.matrixname + "_" + string(input.row) +
-                                       "_" +  string(input.col) + ".txt";
+  string filename = pfd_gspc_filename( input.matrixname
+                                     , input.suffix
+                                     , input.row
+                                     , input.col);
   pfdSingleEntry(filename, input.fromdir, input.todir);
-  output.result = "success: " + filename + ".txt " + hello_world();
+
+  out_struct output;
+  output.result = "success!";
   return(output);
 }
 
