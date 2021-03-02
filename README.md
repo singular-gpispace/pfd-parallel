@@ -1,16 +1,28 @@
 # PFD - Partial Fraction Decomposition
 
-A partial Fraction Decomposition Framework for Singular has been implemented by
-Marcel Wittman, at the Technical University Kaiserslautern (TU Kaiserslautern).
-Most of the code is an adapted version of the
+We provide a massively parallel framework for partial fraction decomposition of 
+rational functions based on the Singular/GPI-Space framework. 
+
+Our implementation is based on the approach described in the paper
+
+Janko, Boehm, Marcel Wittmann, Zihao Wu, Yingxuan Xu, and Yang Zhang: 
+IBP reduction coefficients made simple, JHEP 12 (2020) 054,
+
+which has been implemened in Singular in the library 
+[pfd.lib](https://github.com/Singular/Singular/blob/spielwiese/Singular/LIB/pfd.lib). 
+
+Although applicable in general, it is aimed at the partial fraction 
+decomposition of integration-by-parts coefficients in high energy physics.
+
+Most of the parallelization code is an adapted version of the
 [wait-all-first](https://github.com/singular-gpispace/wait-all-first)
 repository, implemented primarily by Lukas Ristau.
 
-This project provides allows for applying the partial fraction decoposition
-function in the massively parallel system GPI-space, for a matrix of rational
-funcitons.
+This project provides a function for applying the partial fraction decoposition
+function to a matrix of rational functions.
 
-To get this project up and running, you need to compile GPI-Space and Singular.
+To get this project up and running, you need to compile Singular, GPI-Space,
+some of their dependencies and the project code itself.
 
 For the various dependencies, it is recommended to create a file that exports
 the various install locations as environment variables. For this purpose, the
