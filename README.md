@@ -26,9 +26,11 @@ some of their dependencies and the project code itself.
 
 For the various dependencies, it is recommended to create a file that exports
 the various install locations as environment variables. For this purpose, the
-following command may be run at a convenient location, after which the resultant
-file should be edited, with the appropriate paths set for the various install
-locations.
+following command may be run at a convenient location, after which the resulting
+file should be edited to specify two directory roots, one for purposes of 
+compilation and one for installation of the code. While the first should 
+typically be a fast local file system, the second must be accessible from all
+computation nodes to be used for running the system.
 
 ```bash
 cat > env_vars_pfd.txt << "EOF"
