@@ -494,9 +494,10 @@ list l = list( list(1, 1)
              );
 parallel_pfd( "fraction"
             , l
-            , gc
             , "<path-to-input-files>"
-            , "<path-to-output-files>");
+            , gc
+            , "<path-to-output-files>" // optional, only necessary if diff from input dir
+            );
 exit;
 ```
 Next, if you wish to start a monitor, this may be done as follows:
