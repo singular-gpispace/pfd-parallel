@@ -2877,8 +2877,3 @@ SEE ALSO: pfdMat, pfdSingleEntry
     }
   }
 }
-
-proc hello_world()
-{
-  return ("Hello World!");
-}
