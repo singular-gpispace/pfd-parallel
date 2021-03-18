@@ -224,17 +224,17 @@ If Infiniband support is required, the `--with-ethernet` option can be omitted.
 cd $GPI_ROOT_DIR
 mkdir gpi2 && cd gpi2
 
-gpi2_version=1.3.2                                                            \
- && git clone                                                                 \
-        --depth 1                                                             \
-        --branch v${gpi2_version}                                             \
-        https://github.com/cc-hpc-itwm/GPI-2.git                              \
-        GPI-2                                                                 \
- && cd GPI-2                                                                  \
- && grep "^CC\s*=\s*gcc$" . -lR                                               \
-    | xargs sed -i'' -e '/^CC\s*=\s*gcc$/d'                                   \
- && ./install.sh -p "${GASPI_ROOT}"                                           \
-                 --with-fortran=false                                         \
+gpi2_version=1.3.2                                                \
+ && git clone                                                     \
+        --depth 1                                                 \
+        --branch v${gpi2_version}                                 \
+        https://github.com/cc-hpc-itwm/GPI-2.git                  \
+        GPI-2                                                     \
+ && cd GPI-2                                                      \
+ && grep "^CC\s*=\s*gcc$" . -lR                                   \
+    | xargs sed -i'' -e '/^CC\s*=\s*gcc$/d'                       \
+ && ./install.sh -p "${GASPI_ROOT}"                               \
+                 --with-fortran=false                             \
                  --with-ethernet
 
 ```
@@ -265,7 +265,9 @@ Start by cloning gpi-space:
 ```bash
 cd $GPI_ROOT_DIR
 mkdir gpispace && cd gpispace
-git clone git@github.com:cc-hpc-itwm/gpispace.git
+git clone                                                         \
+    --depth 1                                                     \
+    git@github.com:cc-hpc-itwm/gpispace.git
 
 ```
 
@@ -424,9 +426,9 @@ Singular may now be compiled against the libraries compiled and installed above.
 
 ```bash
 cd $SING_ROOT
-git clone                                                \
-    --depth 1                                            \
-    git@github.com:Singular/Singular.git                 \
+git clone                                                         \
+    --depth 1                                                     \
+    git@github.com:Singular/Singular.git                          \
     Sources
 
 cd Sources
@@ -434,12 +436,12 @@ cd Sources
 
 mkdir -p $SINGULAR_BUILD_DIR && cd $SINGULAR_BUILD_DIR
 
-CPPFLAGS="-I$DEP_LIBS/include" \
-LDFLAGS="-L$DEP_LIBS/lib" \
-${SING_ROOT}/Sources/configure \
-    --prefix=${SINGULAR_INSTALL_DIR} \
-    --with-flint=$DEP_LIBS \
-    --with-ntl=$DEP_LIBS \
+CPPFLAGS="-I$DEP_LIBS/include"                                    \
+LDFLAGS="-L$DEP_LIBS/lib"                                         \
+${SING_ROOT}/Sources/configure                                    \
+    --prefix=${SINGULAR_INSTALL_DIR}                              \
+    --with-flint=$DEP_LIBS                                        \
+    --with-ntl=$DEP_LIBS                                          \
     --enable-gfanlib
 make -j $(nproc)
 make install
@@ -464,18 +466,18 @@ The following environment variables must be set:
 ```bash
 cd $PFD_ROOT
 
-git clone                                                \
-    --depth 1                                            \
-    git@github.com:singular-gpispace/PFD.git             \
+git clone                                                         \
+    --depth 1                                                     \
+    git@github.com:singular-gpispace/PFD.git                      \
     pfd
 
 mkdir -p $PFD_BUILD_DIR && cd $PFD_BUILD_DIR
-cmake -DCMAKE_INSTALL_PREFIX=$PFD_INSTALL_DIR   \
-      -DCMAKE_BUILD_TYPE=Release                \
-      -DGSPC_HOME=$GPISPACE_INSTALL_DIR         \
-      -DALLOW_ANY_GPISPACE_VERSION=true         \
-      -DGPISPACE_REPO=$GPISPACE_REPO            \
-      -DSINGULAR_HOME=$SINGULAR_INSTALL_DIR     \
+cmake -DCMAKE_INSTALL_PREFIX=$PFD_INSTALL_DIR                     \
+      -DCMAKE_BUILD_TYPE=Release                                  \
+      -DGSPC_HOME=$GPISPACE_INSTALL_DIR                           \
+      -DALLOW_ANY_GPISPACE_VERSION=true                           \
+      -DGPISPACE_REPO=$GPISPACE_REPO                              \
+      -DSINGULAR_HOME=$SINGULAR_INSTALL_DIR                       \
       $PFD_REPO
 
 make -j $(nproc)
@@ -609,8 +611,8 @@ popd
 Finally, the test may be started with
 ```bash
 cat > run_pfd_example.sh << "EOF"
-SINGULARPATH="$PFD_INSTALL_DIR/LIB"                           \
-        $SINGULAR_INSTALL_DIR/bin/Singular                    \
+SINGULARPATH="$PFD_INSTALL_DIR/LIB"                               \
+        $SINGULAR_INSTALL_DIR/bin/Singular                        \
         test_pfd.sing
 EOF
 chmod a+x run_pfd_example.sh
@@ -660,6 +662,8 @@ Note that the following requires root privileges. If you do not have root access
   ```bash
   sudo apt-get install libgmp-dev libmpfr-dev libcdd-dev libntl-dev
   ```
+  Note, in the above guide, we only assume libmpfr and libgmp is installed, and
+  libcdd and libntl is built locally from sources.
 
 * Library required by to build libssh:
   ```bash
