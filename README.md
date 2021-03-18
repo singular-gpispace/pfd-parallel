@@ -1,17 +1,17 @@
 # PFD - Partial Fraction Decomposition
 
-We provide a massively parallel framework for partial fraction decomposition of 
-rational functions based on the [Singular/GPI-Space framework](https://www.mathematik.uni-kl.de/~boehm/singulargpispace/). 
+We provide a massively parallel framework for partial fraction decomposition of
+rational functions based on the [Singular/GPI-Space framework](https://www.mathematik.uni-kl.de/~boehm/singulargpispace/).
 
 Our implementation is based on the approach described in the paper
 
-Janko, Boehm, Marcel Wittmann, Zihao Wu, Yingxuan Xu, and Yang Zhang: 
+Janko, Boehm, Marcel Wittmann, Zihao Wu, Yingxuan Xu, and Yang Zhang:
 IBP reduction coefficients made simple, JHEP 12 (2020) 054,
 
-which has been implemened in Singular in the library 
-[pfd.lib](https://github.com/Singular/Singular/blob/spielwiese/Singular/LIB/pfd.lib). 
+which has been implemened in Singular in the library
+[pfd.lib](https://github.com/Singular/Singular/blob/spielwiese/Singular/LIB/pfd.lib).
 
-Although applicable in general, it is aimed at the partial fraction 
+Although applicable in general, it is aimed at the partial fraction
 decomposition of integration-by-parts coefficients in high energy physics.
 
 Most of the parallelization code is an adapted version of the
@@ -27,24 +27,24 @@ some of their dependencies and the project code itself.
 For the various dependencies, it is recommended to create a file that exports
 the various install locations as environment variables. For this purpose, the
 following command may be run at a convenient location, after which the resulting
-file should be edited to specify two directory roots, one for purposes of 
-compilation and one for installation of the code. While the first should 
+file should be edited to specify two directory roots, one for purposes of
+compilation and one for installation of the code. While the first should
 typically be a fast local file system, the second must be accessible from all
 computation nodes to be used for running the system.
 
 ```bash
 cat > env_vars_pfd.txt << "EOF"
 export PFD_PROJECT_COMPILE_ROOT=<compile-root>
-# Some fast location in local system for hosting build directories, 
+# Some fast location in local system for hosting build directories,
 # for example, something like /tmpbig/$USER/pfd or /dev/shm/$USER/pfd
-# (note that the latter stores purely in memory, thus the contents of this 
-# location will be lost after reboot), or just $HOME/pfd if the user has a 
+# (note that the latter stores purely in memory, thus the contents of this
+# location will be lost after reboot), or just $HOME/pfd if the user has a
 # fast home directory.
 
 export PFD_PROJECT_INSTALL_ROOT=<install-root>
-# The install root is recommended to be some network (nfs) mountpoint, where 
-# each node of the cluster should be able to read from, for example 
-# something like /scratch/$USER/pfd/
+# The install root is recommended to be some network (nfs) mountpoint, where
+# each node of the cluster should be able to read from, for example
+# something like /scratch/$USER/pfd
 
 # GPI-Space dependencies:
 export BOOST_ROOT=$PFD_PROJECT_INSTALL_ROOT/boost/install
@@ -59,8 +59,6 @@ export GPI_ROOT_DIR=$PFD_PROJECT_COMPILE_ROOT
 export GPISPACE_REPO=$GPI_ROOT_DIR/gpispace/gpispace
 export GPISPACE_BUILD_DIR=$GPI_ROOT_DIR/gpispace/build
 export GPISPACE_INSTALL_DIR=$PFD_PROJECT_INSTALL_ROOT/gpispace/install
-export GPISPACE_TEST_DIR=<test-directory> # any test directoy should be good
-export GSPC_NODEFILE_FOR_TESTS=<path-to-nodefile> # suggested: $HOME/nodefile
 
 # Singular:
 export SING_ROOT=$PFD_PROJECT_COMPILE_ROOT/Singular
@@ -78,6 +76,8 @@ EOF
 
 ```
 
+As it is currently structured, the user needs only fill in the `<compile-root>`
+and the `<install-root>`, then all other veriables are set relative to these.
 The above structure can of course be altered to suite the compiler's setup,
 as long as the scripts in this REAME are altered accordingly, since they assume
 the directory structure.
@@ -315,6 +315,8 @@ installations.
 
 ```bash
 cd "${GPISPACE_BUILD_DIR}"
+
+export GPISPACE_TEST_DIR=<test-directory> # any empty test directoy should be good
 
 hostname > nodefile
 export GSPC_NODEFILE_FOR_TESTS="${PWD}/nodefile"
@@ -640,11 +642,11 @@ Note that the following requires root privileges. If you do not have root access
   sudo apt-get install cmake
   sudo apt-get install gawk
    ```
-      
+
   Or everything in one command:
   ```bash
   sudo apt-get install build-essential autoconf autogen libtool libreadline6-dev libglpk-dev cmake gawk
-  ```      
+  ```
 
 * Scientific libraries used by Singular:
   ```bash
@@ -652,18 +654,18 @@ Note that the following requires root privileges. If you do not have root access
   sudo apt-get install libmpfr-dev
   sudo apt-get install libcdd-dev
   sudo apt-get install libntl-dev
-  ```      
-  
+  ```
+
   Or everything in one command:
   ```bash
   sudo apt-get install libgmp-dev libmpfr-dev libcdd-dev libntl-dev
-  ```      
-  
+  ```
+
 * Library required by to build libssh:
   ```bash
   sudo apt-get install libssl-dev
-  ```      
-  
+  ```
+
 * Libraries required by GPI-Space
   ```bash
   sudo apt-get install openssh-server
@@ -672,9 +674,9 @@ Note that the following requires root privileges. If you do not have root access
   sudo apt-get install libudev-dev
   sudo apt-get install qt5-default
   sudo apt-get install chrpath
-  ```     
-     
+  ```
+
   Or everything in one command:
   ```bash
   sudo apt-get install openssh-server hwloc libhwloc-dev libudev-dev qt5-default chrpath
-  ```      
+  ```
