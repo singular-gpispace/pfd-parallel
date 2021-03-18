@@ -464,7 +464,7 @@ The following environment variables must be set:
 - `${PFD_INSTALL_DIR}` The path to where the PFD project should be installed.
 
 ```bash
-cd $PFD_ROOT
+mkdir -p $PFD_ROOT && cd $PFD_ROOT
 
 git clone                                                         \
     --depth 1                                                     \
