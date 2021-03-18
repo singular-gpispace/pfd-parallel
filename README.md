@@ -415,8 +415,8 @@ cd Sources
 
 mkdir -p $SINGULAR_BUILD_DIR && cd $SINGULAR_BUILD_DIR
 
-CPPFLAGS="-I/home/murray/fraunhofer/prog/tmp/include" \
-LDFLAGS="-L/home/murray/fraunhofer/prog/tmp/lib" \
+CPPFLAGS="-I$DEP_LIBS/include" \
+LDFLAGS="-L$DEP_LIBS/lib" \
 ${SING_ROOT}/Sources/configure \
     --prefix=${SINGULAR_INSTALL_DIR} \
     --with-flint=$DEP_LIBS \
