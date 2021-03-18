@@ -615,3 +615,66 @@ chmod a+x run_pfd_example.sh
 ./run_pfd_example.sh
 
 ```
+
+
+
+## Appendix: Standard packages required to build the framework
+
+Assuming that we are installing on a Ubuntu system (analogous packages exist in other distributions), we give installation instructions for standard packages which are required by the framework and may not be included in your of-the-shelf installation.
+
+Note that the following requires root privileges. If you do not have root access, ask your administator to install these packages. You may want to check with `dpkg -l <package name>` whether the package is installed already.
+
+* Version control system Git used for downloading sources:
+  ```bash
+  sudo apt-get install git
+  ```
+
+* Tools necessary for compiling the packages:
+  ```bash
+  sudo apt-get install build-essential
+  sudo apt-get install autoconf
+  sudo apt-get install autogen
+  sudo apt-get install libtool
+  sudo apt-get install libreadline6-dev
+  sudo apt-get install libglpk-dev
+  sudo apt-get install cmake
+  sudo apt-get install gawk
+   ```
+      
+  Or everything in one command:
+  ```bash
+  sudo apt-get install build-essential autoconf autogen libtool libreadline6-dev libglpk-dev cmake gawk
+  ```      
+
+* Scientific libraries used by Singular:
+  ```bash
+  sudo apt-get install libgmp-dev
+  sudo apt-get install libmpfr-dev
+  sudo apt-get install libcdd-dev
+  sudo apt-get install libntl-dev
+  ```      
+  
+  Or everything in one command:
+  ```bash
+  sudo apt-get install libgmp-dev libmpfr-dev libcdd-dev libntl-dev
+  ```      
+  
+* Library required by to build libssh:
+  ```bash
+  sudo apt-get install libssl-dev
+  ```      
+  
+* Libraries required by GPI-Space
+  ```bash
+  sudo apt-get install openssh-server
+  sudo apt-get install hwloc
+  sudo apt-get install libhwloc-dev
+  sudo apt-get install libudev-dev
+  sudo apt-get install qt5-default
+  sudo apt-get install chrpath
+  ```     
+     
+  Or everything in one command:
+  ```bash
+  sudo apt-get install openssh-server hwloc libhwloc-dev libudev-dev qt5-default chrpath
+  ```      
