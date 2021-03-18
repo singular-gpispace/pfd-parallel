@@ -1,33 +1,50 @@
 # PFD - Partial Fraction Decomposition
 
-A partial Fraction Decomposition Framework for Singular has been implemented by
-Marcel Wittman, at the Technical University Kaiserslautern (TU Kaiserslautern).
-Most of the code is an adapted version of the
+We provide a massively parallel framework for partial fraction decomposition of
+rational functions based on the [Singular/GPI-Space framework](https://www.mathematik.uni-kl.de/~boehm/singulargpispace/).
+
+Our implementation is based on the approach described in the paper
+
+Janko, Boehm, Marcel Wittmann, Zihao Wu, Yingxuan Xu, and Yang Zhang:
+IBP reduction coefficients made simple, JHEP 12 (2020) 054,
+
+which has been implemened in Singular in the library
+[pfd.lib](https://github.com/Singular/Singular/blob/spielwiese/Singular/LIB/pfd.lib).
+
+Although applicable in general, it is aimed at the partial fraction
+decomposition of integration-by-parts coefficients in high energy physics.
+
+Most of the parallelization code is an adapted version of the
 [wait-all-first](https://github.com/singular-gpispace/wait-all-first)
 repository, implemented primarily by Lukas Ristau.
 
-This project provides allows for applying the partial fraction decoposition
-function in the massively parallel system GPI-space, for a matrix of rational
-funcitons.
+This project provides a function for applying the partial fraction decoposition
+function to a matrix of rational functions.
 
-To get this project up and running, you need to compile GPI-Space and Singular.
+To get this project up and running, you need to compile Singular, GPI-Space,
+some of their dependencies and the project code itself.
 
 For the various dependencies, it is recommended to create a file that exports
 the various install locations as environment variables. For this purpose, the
-following command may be run at a convenient location, after which the resultant
-file should be edited, with the appropriate paths set for the various install
-locations.
+following command may be run at a convenient location, after which the resulting
+file should be edited to specify two directory roots, one for purposes of
+compilation and one for installation of the code. While the first should
+typically be a fast local file system, the second must be accessible from all
+computation nodes to be used for running the system.
 
 ```bash
 cat > env_vars_pfd.txt << "EOF"
 export PFD_PROJECT_COMPILE_ROOT=<compile-root>
-# Some location on the system harddrive for hosting build directories, that is
-# also fast, for example /dev/shm/$USER/pfd, which stores purely in memory, and
-# is lost after each reboot, or $HOME/pfd if the user has a fast ssd drive.
+# Some fast location in local system for hosting build directories,
+# for example, something like /tmpbig/$USER/pfd or /dev/shm/$USER/pfd
+# (note that the latter stores purely in memory, thus the contents of this
+# location will be lost after reboot), or just $HOME/pfd if the user has a
+# fast home directory.
 
 export PFD_PROJECT_INSTALL_ROOT=<install-root>
-# The install root is recommended to be some nfs mountpoint, where a cluster
-# might be able to read from, for example /scratch/$USER/pfd/
+# The install root is recommended to be some network (nfs) mountpoint, where
+# each node of the cluster should be able to read from, for example
+# something like /scratch/$USER/pfd
 
 # GPI-Space dependencies:
 export BOOST_ROOT=$PFD_PROJECT_INSTALL_ROOT/boost/install
@@ -42,8 +59,6 @@ export GPI_ROOT_DIR=$PFD_PROJECT_COMPILE_ROOT
 export GPISPACE_REPO=$GPI_ROOT_DIR/gpispace/gpispace
 export GPISPACE_BUILD_DIR=$GPI_ROOT_DIR/gpispace/build
 export GPISPACE_INSTALL_DIR=$PFD_PROJECT_INSTALL_ROOT/gpispace/install
-export GPISPACE_TEST_DIR=<test-directory> # any test directoy should be good
-export GSPC_NODEFILE_FOR_TESTS=<path-to-nodefile> # suggested: $HOME/nodefile
 
 # Singular:
 export SING_ROOT=$PFD_PROJECT_COMPILE_ROOT/Singular
@@ -61,6 +76,8 @@ EOF
 
 ```
 
+As it is currently structured, the user needs only fill in the `<compile-root>`
+and the `<install-root>`, then all other veriables are set relative to these.
 The above structure can of course be altered to suite the compiler's setup,
 as long as the scripts in this REAME are altered accordingly, since they assume
 the directory structure.
@@ -255,7 +272,7 @@ git clone git@github.com:cc-hpc-itwm/gpispace.git
 > ---
 > **NOTE:**
 >
-> Until version 21.03 is realeased, the following patch is required:
+> Until version 21.03 of GPI-Space is realeased, the following patch is required:
 >
 > ---
 ```bash
@@ -298,6 +315,8 @@ installations.
 
 ```bash
 cd "${GPISPACE_BUILD_DIR}"
+
+export GPISPACE_TEST_DIR=<test-directory> # any empty test directoy should be good
 
 hostname > nodefile
 export GSPC_NODEFILE_FOR_TESTS="${PWD}/nodefile"
@@ -415,8 +434,8 @@ cd Sources
 
 mkdir -p $SINGULAR_BUILD_DIR && cd $SINGULAR_BUILD_DIR
 
-CPPFLAGS="-I/home/murray/fraunhofer/prog/tmp/include" \
-LDFLAGS="-L/home/murray/fraunhofer/prog/tmp/lib" \
+CPPFLAGS="-I$DEP_LIBS/include" \
+LDFLAGS="-L$DEP_LIBS/lib" \
 ${SING_ROOT}/Sources/configure \
     --prefix=${SINGULAR_INSTALL_DIR} \
     --with-flint=$DEP_LIBS \
@@ -598,3 +617,66 @@ chmod a+x run_pfd_example.sh
 ./run_pfd_example.sh
 
 ```
+
+
+
+## Appendix: Standard packages required to build the framework
+
+Assuming that we are installing on a Ubuntu system (analogous packages exist in other distributions), we give installation instructions for standard packages which are required by the framework and may not be included in your of-the-shelf installation.
+
+Note that the following requires root privileges. If you do not have root access, ask your administator to install these packages. You may want to check with `dpkg -l <package name>` whether the package is installed already.
+
+* Version control system Git used for downloading sources:
+  ```bash
+  sudo apt-get install git
+  ```
+
+* Tools necessary for compiling the packages:
+  ```bash
+  sudo apt-get install build-essential
+  sudo apt-get install autoconf
+  sudo apt-get install autogen
+  sudo apt-get install libtool
+  sudo apt-get install libreadline6-dev
+  sudo apt-get install libglpk-dev
+  sudo apt-get install cmake
+  sudo apt-get install gawk
+   ```
+
+  Or everything in one command:
+  ```bash
+  sudo apt-get install build-essential autoconf autogen libtool libreadline6-dev libglpk-dev cmake gawk
+  ```
+
+* Scientific libraries used by Singular:
+  ```bash
+  sudo apt-get install libgmp-dev
+  sudo apt-get install libmpfr-dev
+  sudo apt-get install libcdd-dev
+  sudo apt-get install libntl-dev
+  ```
+
+  Or everything in one command:
+  ```bash
+  sudo apt-get install libgmp-dev libmpfr-dev libcdd-dev libntl-dev
+  ```
+
+* Library required by to build libssh:
+  ```bash
+  sudo apt-get install libssl-dev
+  ```
+
+* Libraries required by GPI-Space
+  ```bash
+  sudo apt-get install openssh-server
+  sudo apt-get install hwloc
+  sudo apt-get install libhwloc-dev
+  sudo apt-get install libudev-dev
+  sudo apt-get install qt5-default
+  sudo apt-get install chrpath
+  ```
+
+  Or everything in one command:
+  ```bash
+  sudo apt-get install openssh-server hwloc libhwloc-dev libudev-dev qt5-default chrpath
+  ```
