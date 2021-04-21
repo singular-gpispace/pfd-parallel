@@ -1,9 +1,0 @@
-[submodule "cmake"]
-	path = cmake
-	url = git@gitlab.hpc.devnet.itwm.fhg.de:shared/cmake.git
-[submodule "src/fhg/util/boost/program_options"]
-	path = src/fhg/util/boost/program_options
-	url = git@gitlab.hpc.devnet.itwm.fhg.de:fhg_util/boost_program_options.git
-[submodule "src/util-generic"]
-	path = src/util-generic
-	url = git@gitlab.hpc.devnet.itwm.fhg.de:shared/util-generic

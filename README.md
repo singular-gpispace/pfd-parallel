@@ -267,7 +267,7 @@ cd $GPI_ROOT_DIR
 mkdir gpispace && cd gpispace
 git clone                                                         \
     --depth 1                                                     \
-    git@github.com:cc-hpc-itwm/gpispace.git
+    https://github.com/cc-hpc-itwm/gpispace.git
 
 ```
 
@@ -428,7 +428,7 @@ Singular may now be compiled against the libraries compiled and installed above.
 cd $SING_ROOT
 git clone                                                         \
     --depth 1                                                     \
-    git@github.com:Singular/Singular.git                          \
+    https://github.com/Singular/Singular.git                      \
     Sources
 
 cd Sources
@@ -468,7 +468,7 @@ mkdir -p $PFD_ROOT && cd $PFD_ROOT
 
 git clone                                                         \
     --depth 1                                                     \
-    git@github.com:singular-gpispace/PFD.git                      \
+    https://github.com/singular-gpispace/PFD.git                  \
     pfd
 
 mkdir -p $PFD_BUILD_DIR && cd $PFD_BUILD_DIR
