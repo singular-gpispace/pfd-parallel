@@ -53,12 +53,17 @@ export LD_LIBRARY_PATH="${Libssh2_ROOT}/lib"${LD_LIBRARY_PATH:+:${LD_LIBRARY_PAT
 export GASPI_ROOT=$PFD_PROJECT_INSTALL_ROOT/gpi2/install
 export cpu_arch=$(getconf LONG_BIT)
 export PKG_CONFIG_PATH="${GASPI_ROOT}/lib${cpu_arch}/pkgconfig"${PKG_CONFIG_PATH:+:${PKG_CONFIG_PATH}}
+export PKG_CONFIG_PATH="${Libssh2_ROOT}/lib/pkgconfig:${Libssh2_ROOT}/lib64/pkgconfig"${PKG_CONFIG_PATH:+:${PKG_CONFIG_PATH}}
+
 
 # GPI-Space:
 export GPI_ROOT_DIR=$PFD_PROJECT_COMPILE_ROOT
 export GPISPACE_REPO=$GPI_ROOT_DIR/gpispace/gpispace
 export GPISPACE_BUILD_DIR=$GPI_ROOT_DIR/gpispace/build
 export GPISPACE_INSTALL_DIR=$PFD_PROJECT_INSTALL_ROOT/gpispace/install
+export GPISpace_ROOT=$GPISPACE_INSTALL_DIR # expected by cmake
+export GSPC_HOME=$GPISPACE_INSTALL_DIR # Set mostly for legacy reasons
+export SHARED_DIRECTORY_FOR_TESTS=$GPISPACE_BUILD_DIR/tests
 
 # Singular:
 export SING_ROOT=$PFD_PROJECT_COMPILE_ROOT/Singular
@@ -267,34 +272,29 @@ cd $GPI_ROOT_DIR
 mkdir gpispace && cd gpispace
 git clone                                                         \
     --depth 1                                                     \
+    --branch v21.03                                               \
     https://github.com/cc-hpc-itwm/gpispace.git
 
 ```
 
-> ---
-> **NOTE:**
->
-> Until version 21.03 of GPI-Space is realeased, the following patch is required:
->
-> ---
+Should you want to build the tests, run the following command.  Note, the tests
+significantly increase build time, so an experienced user who has built
+gpi-space on a given machine before might opt not to run to define the
+build_tests variable.
+
 ```bash
-cd $GPISPACE_REPO
-sed -i 's/INSTALL_RPATH_USE_LINK_PATH false/INSTALL_RPATH_USE_LINK_PATH ${INSTALL_DO_NOT_BUNDLE}/' cmake/add_macros.cmake
-
+export build_tests="-DBUILD_TESTING=on -DSHARED_DIRECTORY_FOR_TESTS=$SHARED_DIRECTORY_FOR_TESTS"
+mkdir $SHARED_DIRECTORY_FOR_TESTS
 ```
-> ---
->
-> After version 21.03 and above, this `sed` step can be omitted.
->
-> ---
 
+To build GPI-Space, run
 ```bash
 mkdir -p "${GPISPACE_BUILD_DIR}" && cd "${GPISPACE_BUILD_DIR}"
 
-cmake -C ${GPISPACE_REPO}/config.cmake                            \
-      -D CMAKE_INSTALL_PREFIX=${GPISPACE_INSTALL_DIR}             \
+cmake -D CMAKE_INSTALL_PREFIX=${GPISPACE_INSTALL_DIR}             \
       -B ${GPISPACE_BUILD_DIR}                                    \
-      -S ${GPISPACE_REPO}
+      -S ${GPISPACE_REPO}                                         \
+      ${build_tests:-}
 
 cmake --build ${GPISPACE_BUILD_DIR}                               \
       --target install                                            \
@@ -312,13 +312,44 @@ cmake --build ${GPISPACE_BUILD_DIR}                               \
 > ---
 
 ### Test GPI-Space
-This step may be omitted, but is recommended, especially for first time
-installations.
+
+> ---
+> **NOTE:**
+>
+> GPI-Space requires a working SSH environment with a password-less
+> SSH-key when using the SSH RIF strategy, the default for most
+> applications.
+>
+> By default, `${HOME}/.ssh/id_rsa` is used for authentication. If no
+> such key exists,
+>
+> ```bash
+> ssh-keygen -t rsa -b 4096 -N '' -f "${HOME}/.ssh/id_rsa"
+> ssh-copy-id -f -i "${HOME}/.ssh/id_rsa" "${HOSTNAME}"
+> ```
+> can be used to create and register one.
+>
+> ---
+
+The following is a simple self test, that should be sufficient for most users.
+```bash
+# to test with multiple nodes, set GSPC_NODEFILE_FOR_TESTS
+#   Slurm: export GSPC_NODEFILE_FOR_TESTS="$(generate_pbs_nodefile)"
+#   PBS/Torque: export GSPC_NODEFILE_FOR_TESTS="${PBS_NODEFILE}"
+# and SWH_INSTALL_DIR:
+#   export SWH_INSTALL_DIR=<a-shared-directory-visible-on-all-nodes>
+
+"${GPISpace_ROOT}/share/gspc/example/stochastic_with_heureka/selftest"
+```
+
+If GPI-Space has been built with testing enabled, then `ctest` can be
+used to execute the unit- and system tests. It can be ommitted, but is
+recommended for first time installations.
 
 ```bash
 cd "${GPISPACE_BUILD_DIR}"
 
-export GPISPACE_TEST_DIR=<test-directory> # any empty test directoy should be good
+export GPISPACE_TEST_DIR=$SHARED_DIRECTORY_FOR_TESTS # any empty test directoy should be good
 
 hostname > nodefile
 export GSPC_NODEFILE_FOR_TESTS="${PWD}/nodefile"
@@ -327,12 +358,12 @@ export GSPC_NODEFILE_FOR_TESTS="${PWD}/nodefile"
 # PBS/Torque: export GSPC_NODEFILE_FOR_TESTS="${PBS_NODEFILE}"
 
 ctest --output-on-failure                                         \
-      --tests-regex share_selftest
+      -j $(nproc)
 
 ```
 
-Some of these tests take a long time, and there are 286 tests in the suite at
-the time of writing this document.
+Some of these tests take a long time (811 seconds on Intel i7), and there are
+294 tests in the suite at the time of writing this document.
 
 ## Singular
 
@@ -475,7 +506,6 @@ mkdir -p $PFD_BUILD_DIR && cd $PFD_BUILD_DIR
 cmake -DCMAKE_INSTALL_PREFIX=$PFD_INSTALL_DIR                     \
       -DCMAKE_BUILD_TYPE=Release                                  \
       -DGSPC_HOME=$GPISPACE_INSTALL_DIR                           \
-      -DALLOW_ANY_GPISPACE_VERSION=true                           \
       -DGPISPACE_REPO=$GPISPACE_REPO                              \
       -DSINGULAR_HOME=$SINGULAR_INSTALL_DIR                       \
       $PFD_REPO
