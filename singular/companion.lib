@@ -1,0 +1,248 @@
+////////////////////////////////////////////////////////////////////
+version="version companion.lib 4.1.3.2 Feb_2021 ";
+category="??";
+info="
+";
+
+LIB "matrix.lib";
+LIB "general.lib";
+LIB "linalg.lib";
+
+static proc mod_init()
+{
+  option(redSB);
+  option(redTail);
+}
+proc doComputation(int j, list #)
+{
+  string rootdir;
+  if (size(#) >=1) {
+    rootdir = #[1] + "/";
+  } else {
+    rootdir = "";
+  }
+
+  rtimer=0;
+  system("--ticks-per-sec", 1000);
+  int t=rtimer;
+
+  string jobinput = read(rootdir + "jobs/" + string(j) + ".sing");
+  execute(jobinput);
+  number MM=q+1/q;
+  //print(varprod);
+  string idealstr = "ideal I=" +
+    read(rootdir +
+        "input/ideal_" +
+        string(LL) + "_" +
+        string(m) + ".txt") +
+    ";";
+  execute(idealstr);
+  ideal gr=std(I);
+  ideal basis=sort(kbase(gr))[1];  // sort
+  execute("poly target=" +
+      read(rootdir + "input/T_" + string(LL) +
+        "_" +
+        string(m) +
+        ".txt")
+      );
+  target= NF(target,gr);
+  int i;
+  for (i=1; i <= alpha; i++) {
+    target=NF(target*target,gr);
+  }
+  poly PF = trace2(target, gr,varprod,basis);
+  write( ":w " + rootdir +
+      "Z_output/" +
+      string(LL) + "_" +
+      string(m) + "/Z_" +
+      string(LL) + "_" +
+      string(m) + "_" +
+      string(k) + "_MM" +
+      string(MM) + "_" +
+      string(alpha) + ".txt"
+      , string(PF));
+  system("sh", "echo " + string(j) 
+               + " >> " +
+               rootdir + "logs/log_done_" + string(j) + "_.txt");
+  system("sh", "echo " + 
+               rootdir + "Z_output/" +
+               string(LL) + "_" +
+               string(m) + "/Z_" +
+               string(LL) + "_" +
+               string(m) + "_" +
+               string(k) + "_MM" +
+               string(MM) + "_" +
+               string(alpha) + ".txt"
+                + " >> " +
+                rootdir + "logs/log_done_" + string(j) + "_.txt");
+  system("sh", "echo " + 
+               "time: " + string(rtimer - t)
+               + " >> " +
+                rootdir + "logs/log_done_" + string(j) + "_.txt");
+  system("sh", "echo " + 
+               "memory: " + string(memory(2))
+               + " >> " +
+                rootdir + "logs/log_done_" + string(j) + "_.txt");
+  return(1);
+}
+
+proc coefficient(poly p, poly varp, poly m) // Find the coefficient of monomial m in p
+{
+  int j;
+  matrix matrixA=coef(p,varp);  // varp is the polynomial product
+  for(j=1; j<=ncols(matrixA); j++) {
+    if (matrixA[1,j] == m) {
+      return(matrixA[2,j]);
+    }
+  }
+  return(0);
+}
+
+proc coeflist(poly p, poly varp, ideal mlist) // Find the coefficient of monomial list "mlist" in p
+{
+  int i,j;
+  list clist;
+  matrix matrixA=coef(p,varp);
+  for(i=1; i<=size(mlist); i++) {
+    clist[i]=0;
+    for(j=1;j<=ncols(matrixA);j++)
+    {
+      if (matrixA[1,j] == mlist[i]) {
+        clist[i]=matrixA[2,j];
+      }
+    }
+  }
+  return(clist);
+}
+
+proc coefvector(poly p, poly varp, ideal mlist) // Find the coefficient of monomial list "mlist" in p, as a vector
+{
+  int i,j;
+  list clist;
+  poly x;
+  matrix matrixA=coef(p,varp);
+  vector v1=0;
+  for(j=1; j<=ncols(matrixA); j++) {
+    for(i=1; i<=size(mlist); i++) {  // Should be improved by a Hash table
+      if (matrixA[1,j] == mlist[i]) {
+        v1=v1+matrixA[2,j]*gen(i);
+        break;
+      }
+    }
+  }
+  return(v1);
+}
+
+proc companion(poly f, ideal gr, poly varp, ideal basis)  // This computes the companion matrix for f
+{
+  int i,j,len;
+  poly g;
+  len=size(basis);
+  module cm;
+  for(i=1; i<=size(basis); i++) {
+    g=NF(basis[i]*f,gr);
+    cm[i]=coefvector(g,varp,basis);
+  }
+  return(matrix(cm));
+}
+
+proc PolynomialInverse(poly f, ideal gr, poly varp, ideal basis) // This computes the f^-1 in a zero-dimensional ideal, assume the basis[1]=1
+{
+  matrix cm=companion2(f,gr,varp,basis);
+  matrix icm=inverse(cm);
+  int i;
+  poly invf=0;
+  for(i=1; i<=size(basis); i++) {
+    invf=invf+basis[i]*icm[i,1];
+  }
+  return(invf);
+}
+
+proc companion2(poly f, ideal gr, poly varp, ideal basis)  // This computes the companion matrix for f in a recursive way
+{
+  ideal a;
+  module cm;
+  poly result;
+  int i;
+  int j;
+  a[1]=f;
+  for(i=1; i<=size(basis); i++) {
+    for(j=i-1;j>=1;j--)
+    {
+      if (basis[i]/basis[j] != 0) {
+        a[i]=NF(a[j]*(basis[i]/basis[j]),gr);
+        break;
+      }
+    }
+    cm[i]=coefvector(a[i],varp,basis);
+  }
+  return(matrix(cm));
+}
+
+proc trace2(poly f, ideal gr, poly varp, ideal basis) // test algorithm for trace M4#M4
+{
+  ideal a;
+  poly result;
+  int i;
+  int j;
+  a[1]=f;
+  for(i=1; i<=size(basis); i++) {
+    for(j=i-1;j>=1;j--)
+    {
+      if (basis[i]/basis[j] != 0) {
+        a[i]=NF(a[j]*(basis[i]/basis[j]),gr);
+        break;
+      }
+    }
+    result=result+coefficient(a[i],varp,basis[i]);
+  }
+  return(result);
+}
+
+proc traces(ideal gr,  poly varp, ideal basis) // This computes all the traces for the basis elements
+{
+
+  // identity matrix
+
+  matrix idmatrix[size(basis)][size(basis)];
+  for(i=1; i<=size(basis); i++) {
+    idmatrix[i,i]=1;
+  }
+
+  // Compute the companion matrix of all ring variables
+
+  int i,j,len;
+  intvec indices;
+  list matrixList;
+  list result;
+  matrix m;
+  for (i=1; i<=nvars(R); i++) {
+    matrixList[i]=companion(var(i),gr,varp,basis);
+  }
+  print("matrices calculated ...");
+
+  // Compute the companion matrix of all ring variables
+  for(i=1; i<=size(basis); i++) {
+    indices=leadexp(basis[i]);
+    m=idmatrix;
+    for(j=1;j<=nvars(R);j++)
+    {
+      if (indices[j] > 0) {
+        m=m*power(matrixList[j],indices[j]);
+      }
+    }
+    result[i]=trace(m);
+  }
+  print("traces calculated ...");
+  return(result);
+}
+
+proc dotproduct(list list1, list list2)
+{
+  int i;
+  poly result=0;
+  for(i=1; i<=size(list1); i++) {
+    result=result+list1[i]*list2[i];
+  }
+  return(result);
+}

@@ -273,7 +273,8 @@ mkdir gpispace && cd gpispace
 git clone                                                         \
     --depth 1                                                     \
     --branch v21.03                                               \
-    https://github.com/cc-hpc-itwm/gpispace.git
+    https://github.com/cc-hpc-itwm/gpispace.git                   \
+    gpispace
 
 ```
 
@@ -283,7 +284,8 @@ gpi-space on a given machine before might opt not to run to define the
 build_tests variable.
 
 ```bash
-export build_tests="-DBUILD_TESTING=on -DSHARED_DIRECTORY_FOR_TESTS=$SHARED_DIRECTORY_FOR_TESTS"
+export build_tests="-DBUILD_TESTING=on
+-DSHARED_DIRECTORY_FOR_TESTS=$SHARED_DIRECTORY_FOR_TESTS"
 mkdir $SHARED_DIRECTORY_FOR_TESTS
 ```
 
@@ -598,7 +600,6 @@ chmod a+x shell_expand_script.sh
 ./shell_expand_script.sh test_pfd.sing.temp test_pfd.sing
 
 ```
-
 
 Next, if you wish to start a monitor, this may be done as follows:
 ```bash
