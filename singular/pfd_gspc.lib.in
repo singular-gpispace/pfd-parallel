@@ -293,3 +293,72 @@ PURPOSE:  apply @code{pfd} in parallel to the rational function saved in the
 
   return (1);
 }
+
+/*** companion functions ***/
+
+proc companion_structs_config()
+{
+  configToken pc = configure_parallel();
+
+  pc.options.instructname = "in_struct";
+  pc.options.instructdesc = "int index, " +
+                            "string rootdir";
+  pc.options.outstructname = "out_struct";
+  pc.options.outstructdesc = "string result";
+  pc.options.neededlibrary = "@PFD_SING_LIB_PATH@/companion_gspc_interface.lib";
+  pc.options.functionname = "companion_gspc_compute";
+
+  return (pc);
+}
+
+proc parallel_companion ( string rootdir
+                        , list file_indices
+                        , list #
+                        )
+"USAGE:   parallel_pfd(rootdir, file_indices[, gc]), rootdir string,  file_indicies list, gc configToken
+PURPOSE:  apply @code{companion} in parallel to the data saved in the
+          files identified by the file_indices.
+          @code{rootdir} is the path to the directory relative to which the
+          input files will be found and the output will be written.
+"
+{
+  configToken gc, pc;
+  int i;
+  list l;
+
+  /*
+  if (! defined(basering)) {
+    ERROR("Please set the applicable ring required for the underlying polynomials");
+    return(0);
+  }
+  */
+
+  if (size(#) >= 1) {
+    gc = #[1];
+  } else {
+    gc = default_gspc_config();
+  }
+
+
+  pc = companion_structs_config();
+
+  newstruct(pc.options.instructname, pc.options.instructdesc);
+  newstruct(pc.options.outstructname, pc.options.outstructdesc);
+  in_struct ins;
+
+  ins.rootdir = rootdir;
+
+  for (i = 1; i <= size(file_indices); i++) {
+      ins.index = file_indices[i];
+      l[i] = ins;
+  }
+
+  def re_all = parallel_waitall(l,gc,pc);
+
+  if (size(#) < 1) {
+    system("sh", "rm -rv " + gc.options.tmpdir);
+  }
+  print (re_all);
+
+  return (1);
+}
