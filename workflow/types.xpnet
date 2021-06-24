@@ -1,0 +1,28 @@
+<structs>
+  <struct name="option_token_type">
+    <field name="function_name" type="string"/>
+    <field name="needed_library" type="string"/>
+    <field name="in_struct_name" type="string"/>
+    <field name="in_struct_desc" type="string"/>
+    <field name="out_struct_name" type="string"/>
+    <field name="out_struct_desc" type="string"/>
+  </struct>
+  
+  <struct name="config_token">
+    <field name="path_to_libsingular" type="string"/>
+    <field name="base_filename" type="string"/>
+    <field name="implementation" type="string"/>
+    <field name="task_count" type="unsigned int"/>
+  </struct>
+
+  <struct name="task_token_type">
+    <field name="base_filename" type="string"/>
+    <field name="id" type="unsigned int"/>
+  </struct>
+
+  <struct name="generator_token_type">
+    <field name="base_filename" type="string"/>
+    <field name="current_count" type="unsigned int"/>
+    <field name="total_count" type="unsigned int"/>
+  </struct>
+</structs>

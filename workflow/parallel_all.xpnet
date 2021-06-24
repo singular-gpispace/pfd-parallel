@@ -1,24 +1,6 @@
 <defun name="parallel_all">
 
-  <struct name="option_token_type">
-    <field name="function_name" type="string"/>
-    <field name="needed_library" type="string"/>
-    <field name="in_struct_name" type="string"/>
-    <field name="in_struct_desc" type="string"/>
-    <field name="out_struct_name" type="string"/>
-    <field name="out_struct_desc" type="string"/>
-  </struct>
-
-  <struct name="task_token_type">
-    <field name="base_filename" type="string"/>
-    <field name="id" type="unsigned int"/>
-  </struct>
-
-  <struct name="generator_token_type">
-    <field name="base_filename" type="string"/>
-    <field name="current_count" type="unsigned int"/>
-    <field name="total_count" type="unsigned int"/>
-  </struct>
+  <include-structs href="types.xpnet"/>
 
   <in name="implementation" type="string" place="implementation"/>
   <in name="path_to_libsingular" type="string" place="path_to_libsingular"/>
@@ -31,6 +13,7 @@
   <in name="out_struct_desc" type="string" place="out_struct_desc"/>
   <in name="task_count" type="unsigned int" place="task_count"/>
   <out name="output" type="string" place="output"/>
+
   <net>
     <place name="implementation" type="string"/>
     <place name="path_to_libsingular" type="string"/>
