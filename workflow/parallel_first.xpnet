@@ -1,25 +1,7 @@
 <defun name="parallel_first">
 
-  <struct name="option_token_type">
-    <field name="function_name" type="string"/>
-    <field name="needed_library" type="string"/>
-    <field name="in_struct_name" type="string"/>
-    <field name="in_struct_desc" type="string"/>
-    <field name="out_struct_name" type="string"/>
-    <field name="out_struct_desc" type="string"/>
-  </struct>
-
-  <struct name="task_token_type">
-    <field name="base_filename" type="string"/>
-    <field name="id" type="unsigned int"/>
-  </struct>
-
-  <struct name="generator_token_type">
-    <field name="base_filename" type="string"/>
-    <field name="current_count" type="unsigned int"/>
-    <field name="total_count" type="unsigned int"/>
-  </struct>
-
+  <include-structs href="types.xpnet"/>
+  
   <in name="implementation" type="string" place="implementation"/>
   <in name="path_to_libsingular" type="string" place="path_to_libsingular"/>
   <in name="base_filename" type="string" place="base_filename"/>
@@ -42,11 +24,11 @@
     <place name="out_struct_name" type="string"/>
     <place name="out_struct_desc" type="string"/>
     <place name="task_count" type="unsigned int"/>
-    <place name="global_options" type="option_token_type"/>
-    <place name="generator_state" type="generator_token_type"/>
-    <place name="tasks" type="task_token_type"/>
-    <place name="result_before" type="task_token_type"/>
-    <place name="result_after" type="task_token_type"/>
+    <place name="global_options" type="option_type"/>
+    <place name="generator_state" type="generator_type"/>
+    <place name="tasks" type="task_type"/>
+    <place name="result_before" type="task_type"/>
+    <place name="result_after" type="task_type"/>
     <place name="output" type="unsigned int"/>
 
     <transition name="initialize">
@@ -59,8 +41,8 @@
         <in name="in_struct_desc" type="string"/>
         <in name="out_struct_name" type="string"/>
         <in name="out_struct_desc" type="string"/>
-        <out name="state" type="generator_token_type"/>
-        <out name="options" type="option_token_type"/>
+        <out name="state" type="generator_type"/>
+        <out name="options" type="option_type"/>
         <expression>
           ${state.base_filename} := ${base_filename};
           ${state.current_count} := 0U;
@@ -87,8 +69,8 @@
 
     <transition name="extract">
       <defun>
-        <inout name="state" type="generator_token_type"/>
-        <out name="task" type="task_token_type"/>
+        <inout name="state" type="generator_type"/>
+        <out name="task" type="task_type"/>
         <condition>
           ${state.current_count} :lt: ${state.total_count}
         </condition>
@@ -104,7 +86,7 @@
 
     <transition name="done_extract">
       <defun>
-        <in name="state" type="generator_token_type"/>
+        <in name="state" type="generator_type"/>
         <condition>
           ${state.current_count} :eq: ${state.total_count}
         </condition>
@@ -117,11 +99,11 @@
     <transition name="compute">
       <defun>
         <require key="worker" mandatory="true"/>
-        <in name="in" type="task_token_type"/>
+        <in name="in" type="task_type"/>
         <in name="implementation" type="string"/>
         <in name="path_to_libsingular" type="string"/>
-        <in name="options" type="option_token_type"/>
-        <out name="out" type="task_token_type"/>
+        <in name="options" type="option_type"/>
+        <out name="out" type="task_type"/>
         <module name="singular_parallel_first" function="compute (implementation,
           path_to_libsingular, options, in, out)" eureka-group="wait_first"
           pass_context="true">
@@ -173,8 +155,8 @@
 
     <transition name="got_an_event_eureka">
       <defun>
-        <in name="result_before" type="task_token_type"/>
-        <out name="result_after" type="task_token_type"/>
+        <in name="result_before" type="task_type"/>
+        <out name="result_after" type="task_type"/>
         <out name="eureka_good" type="set"/> <!-- eureka, ID inserted for WE -->
         <expression>
           ${eureka_good} := set_insert (Set{}, "wait_first");
@@ -188,8 +170,8 @@
 
     <transition name="finish">
       <defun>
-        <in name="result_after" type="task_token_type"/>
-        <in name="options" type="option_token_type"/>
+        <in name="result_after" type="task_type"/>
+        <in name="options" type="option_type"/>
         <in name="implementation" type="string"/>
         <in name="path_to_libsingular" type="string"/>
         <out name="output" type="unsigned int"/>

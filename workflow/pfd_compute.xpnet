@@ -1,0 +1,59 @@
+<defun name="pfd_copmpute">
+
+  <include-structs href="types.xpnet"/>
+
+  <require key="worker" mandatory="true"/>
+
+  <in name="in" type="task_type" place="intask"/>
+  <in name="config" type="config_type" place="readconfig"/>
+  <in name="options" type="option_type"place="readoptions"/>
+  <out name="out" type="task_type" place="out"/>
+
+  <net>
+    <place name="intask" type="task_type"/>
+    <place name="readconfig" type="config_type"/>
+    <place name="readoptions" type="option_type"/>
+    <place name="out" type="task_type"/>
+
+    <transition name="compute">
+      <defun>
+        <require key="worker" mandatory="true"/>
+        <in name="in" type="task_type"/>
+        <in name="config" type="config_type"/>
+        <in name="options" type="option_type"/>
+        <out name="out" type="task_type"/>
+
+        <module name="singular_parallel_allpfd"
+                require_function_unloads_without_rest="false"
+                function="compute (
+                                   config,
+                                   options,
+                                   in,
+                                   out)">
+          <cinclude href="share/include/interface.hpp"/>
+          <cinclude href="util-generic/dynamic_linking.hpp"/>
+          <cinclude href="iostream"/>
+          <code><![CDATA[
+            std::cout << "pfd computation " << in.id << " starting\n";
+            fhg::util::scoped_dlhandle
+              (config.implementation, RTLD_GLOBAL | RTLD_NOW | RTLD_DEEPBIND)
+              .sym<decltype (singular_parallel_compute)> ("singular_parallel_compute")
+              ( config.path_to_libsingular, config.base_filename, in.id
+              , options.function_name, options.needed_library
+              , options.in_struct_name, options.in_struct_desc
+              , options.out_struct_name, options.out_struct_desc
+              );
+            out = in;
+            std::cout << "pfd computation " << in.id << " done\n";
+          ]]></code>
+        </module>
+      </defun>
+      <connect-in port="in" place="intask"/>
+      <connect-read port="config" place="readconfig"/>
+      <connect-read port="options" place="readoptions"/>
+      <connect-out port="out" place="out"/>
+    </transition>
+    
+  </net>
+</defun>
+

@@ -248,112 +248,41 @@ EXAMPLE:  example pfd; shows an example"
 
   int counter,tt,ttt;
 
+  int imax;
+  list newterms,result;
   // (2) Nullstellensatz decomposition /////////////////////////////////////////
   if(debug)
     {int t2 = rtimer; write(l,"Nullstellensatz decomposition ");}
-  list dec,newterms,result;
-  int imax;
-  while(size(terms)>0)
-  {
-    if(debug) {ttt = rtimer; counter++;}
-    imax = size(terms);
-    newterms = list();
-    for(i=1; i<=imax; i++)
-    {
-      result = NSSdecompStep(terms[i],q);
-      if(size(result)>1) {newterms = mergepfd(newterms, result);}
-      else                    {dec = mergepfd(dec,      result);}
-    }
-    terms = newterms;
-    if(debug)
-      {fprintf(l,"  %s: %s ms, %s terms, %s unfinished",
-       counter, rtimer-ttt, size(terms)+size(dec), size(terms));}
-  }
+
+  terms = generic_dec_loop("NSSdecompStep", "size", terms, q, debug, l);
+
   if(debug)
-    {t2 = rtimer-t2; fprintf(l,"done! (%s ms, %s terms)", t2, size(dec));}
+    {t2 = rtimer-t2; fprintf(l,"done! (%s ms, %s terms)", t2, size(terms));}
 
   // (3) short numerator decomposition /////////////////////////////////////////
   if(debug)
     {int t3 = rtimer; write(l,"short numerator decompositions "); counter=0;}
-  terms = dec;
-  dec = list();
-  while(size(terms)>0)
-  {
-    if(debug) {tt = rtimer; counter++;}
-    imax = size(terms);
-    newterms = list();
-    for(i=1; i<=imax; i++)
-    {
-      result = shortNumeratorDecompStep(terms[i],q,debug,l);
 
-      if(debug) {ttt = rtimer;}
-      newterms = mergepfd(newterms, result[1]);
-      dec = mergepfd(dec, result[2]);
-      if(debug)
-        {fprintf(l,"      merging: %s ms, %s new terms",
-         rtimer-ttt, size(result[1]));}
-    }
-    terms = newterms;
-    if(debug)
-      {fprintf(l,"  %s: %s ms, %s terms, %s unfinished",
-       counter, rtimer-tt, size(terms)+size(dec), size(terms));}
-  }
+  terms = generic_dec_loop("shortNumeratorDecompStep", "index", terms, q, debug, l);
+
   if(debug)
-    {t3 = rtimer-t3; fprintf(l,"done! (%s ms, %s terms)", t3, size(dec));}
+    {t3 = rtimer-t3; fprintf(l,"done! (%s ms, %s terms)", t3, size(terms));}
 
   // (4) algebraic dependence decomposition ////////////////////////////////////
   if(debug)
     {int t4 = rtimer; write(l,"algebraic dependence decomposition "); counter=0;}
-  terms = dec;
-  dec = list();
-  while(size(terms)>0)
-  {
-    if(debug) {tt = rtimer; counter++;}
-    imax = size(terms);
-    newterms = list();
-    for(i=1; i<=imax; i++)
-    {
-      result = algDependDecompStep(terms[i],q,debug,l);
 
-      if(debug) {ttt = rtimer;}
-      if(size(result)>1) {newterms = mergepfd(newterms, result);}
-      else                    {dec = mergepfd(dec,      result);}
-      if(debug)
-        {fprintf(l,"      merging: %s ms, %s new terms", rtimer-ttt, size(result));}
-    }
-    terms = newterms;
-    if(debug)
-      {fprintf(l,"  %s: %s ms, %s terms, %s unfinished",
-       counter, rtimer-tt, size(terms)+size(dec),size(terms));}
-  }
+  terms = generic_dec_loop("algDependDecompStep", "size", terms, q, debug, l);
+
   if(debug)
-    {t4 = rtimer-t4; fprintf(l,"done! (%s ms, %s terms)", t4, size(dec));}
+    {t4 = rtimer-t4; fprintf(l,"done! (%s ms, %s terms)", t4, size(terms));}
 
   // (5) numerator decomposition ///////////////////////////////////////////////
   if(debug)
     {int t5 = rtimer; write(l,"numerator decompositions "); counter=0;}
-  terms = dec;
-  dec = list();
-  while(size(terms)>0)
-  {
-    if(debug) {tt = rtimer; counter++;}
-    imax = size(terms);
-    newterms = list();
-    for(i=1; i<=imax; i++)
-    {
-      result = numeratorDecompStep(terms[i],q,debug,l);
 
-      if(debug) {ttt = rtimer;}
-      newterms = mergepfd(newterms, result[1]);
-      dec = mergepfd(dec, result[2]);
-      if(debug)
-        {fprintf(l,"      merging: %s ms, %s new terms", rtimer-ttt, size(result[1]));}
-    }
-    terms = newterms;
-    if(debug)
-      {fprintf(l,"  %s: %s ms, %s terms, %s unfinished",
-       counter, rtimer-tt, size(terms)+size(dec), size(terms));}
-  }
+  list dec = generic_dec_loop("numeratorDecompStep", "index", terms, q, debug, l);
+
   if(debug)
     {t5 = rtimer-t5; fprintf(l,"done! (%s ms, %s terms)", t5, size(dec));}
 
@@ -442,7 +371,57 @@ example
   size(getStringpfd(dec));
 }
 
-static proc NSSdecompStep(list l, ideal q)
+proc generic_dec_loop(string decomp, string mergetype, list terms, ideal q, int debug, link l) {
+  list dec,newterms,result;
+  int imax;
+  int i;
+  int counter,tt,ttt;
+  string command;
+  list merged;
+
+  while(size(terms)>0) {
+    if(debug) {tt = rtimer; counter++;}
+    imax = size(terms);
+    newterms = list();
+
+    for(i=1; i<=imax; i++) {
+      command = "result = " + decomp + "(terms[i],q,debug,l);";
+      execute(command);
+
+      if(debug) {ttt = rtimer;}
+      command = "merged = merge_by_" + mergetype + "(newterms, dec, result);";
+      execute(command);
+      dec = merged[1];
+      newterms = merged[2];
+      if(debug)
+        {fprintf(l,"      merging: %s ms, %s new terms", rtimer-ttt, size(result));}
+    }
+    terms = newterms;
+    if(debug)
+      {fprintf(l,"  %s: %s ms, %s terms, %s unfinished",
+       counter, rtimer-tt, size(terms)+size(dec),size(terms));}
+  }
+
+  return(dec);
+}
+
+proc merge_by_size(newterms, dec, result)
+{
+  if(size(result)>1) {newterms = mergepfd(newterms, result);}
+  else                    {dec = mergepfd(dec,      result);}
+
+  return(dec, newterms);
+}
+
+proc merge_by_index(newterms, dec, result)
+{
+  newterms = mergepfd(newterms, result[1]);
+  dec = mergepfd(dec, result[2]);
+
+  return(dec, newterms);
+}
+
+static proc NSSdecompStep(list l, ideal q, list #)
 {
   poly f=l[1];
   intvec indices=l[2];

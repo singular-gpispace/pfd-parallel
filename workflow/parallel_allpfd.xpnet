@@ -2,25 +2,25 @@
 
   <include-structs href="types.xpnet"/>
 
-  <in name="config" type="config_token" place="config"/>
-  <in name="global_options" type="option_token_type" place="global_options"/>
+  <in name="config" type="config_type" place="config"/>
+  <in name="global_options" type="option_type" place="global_options"/>
   <out name="output" type="string" place="output"/>
   <net>
     <place name="initiated" type="unsigned int">
       <token><value>0U</value></token>
     </place>
 
-    <place name="config" type="config_token"/>
-    <place name="global_options" type="option_token_type"/>
+    <place name="config" type="config_type"/>
+    <place name="global_options" type="option_type"/>
     <place name="extract_control" type="unsigned int"/>
     <place name="control" type="unsigned int"/>
-    <place name="tasks" type="task_token_type"/>
-    <place name="results" type="task_token_type"/>
+    <place name="tasks" type="task_type"/>
+    <place name="results" type="task_type"/>
     <place name="output" type="string"/>
 
     <transition name="initialize">
       <defun>
-        <in name="config" type="config_token"/>
+        <in name="config" type="config_type"/>
         <inout name="initiated" type="unsigned int"/>
         <out name="ecount" type="unsigned int"/>
         <out name="control" type="unsigned int"/>
@@ -44,10 +44,10 @@
     <transition name="extract">
       <defun>
         <inout name="ecount" type="unsigned int"/>
-        <in name="config" type="config_token"/>
-        <out name="task" type="task_token_type"/>
+        <in name="config" type="config_type"/>
+        <out name="task" type="task_type"/>
         <condition>
-          ${ecount} :gt: 0U 
+          ${ecount} :gt: 0U
         </condition>
         <expression>
           ${task.base_filename} := ${config.base_filename};
@@ -64,7 +64,7 @@
       <defun>
         <in name="ecount" type="unsigned int"/>
         <condition>
-          ${ecount} :eq: 0U 
+          ${ecount} :eq: 0U
         </condition>
         <expression>
         </expression>
@@ -73,37 +73,7 @@
     </transition>
 
     <transition name="compute">
-      <defun>
-        <require key="worker" mandatory="true"/>
-        <in name="in" type="task_token_type"/>
-        <in name="config" type="config_token"/>
-        <in name="options" type="option_token_type"/>
-        <out name="out" type="task_token_type"/>
-        <module name="singular_parallel_allpfd"
-                require_function_unloads_without_rest="false"
-                function="compute (
-                                   config,
-                                   options,
-                                   in,
-                                   out)">
-          <cinclude href="share/include/interface.hpp"/>
-          <cinclude href="util-generic/dynamic_linking.hpp"/>
-          <cinclude href="iostream"/>
-          <code><![CDATA[
-          std::cout << "pfd computation " << in.id << " starting\n";
-          fhg::util::scoped_dlhandle
-            (config.implementation, RTLD_GLOBAL | RTLD_NOW | RTLD_DEEPBIND)
-            .sym<decltype (singular_parallel_compute)> ("singular_parallel_compute")
-              ( config.path_to_libsingular, config.base_filename, in.id
-              , options.function_name, options.needed_library
-              , options.in_struct_name, options.in_struct_desc
-              , options.out_struct_name, options.out_struct_desc
-              );
-          out = in;
-          std::cout << "pfd computation " << in.id << " done\n";
-          ]]></code>
-        </module>
-      </defun>
+      <include-function href="pfd_compute.xpnet"/>
       <connect-in port="in" place="tasks"/>
       <connect-read port="config" place="config"/>
       <connect-read port="options" place="global_options"/>
@@ -112,10 +82,10 @@
 
     <transition name="collect">
       <defun>
-        <in name="result" type="task_token_type"/>
+        <in name="result" type="task_type"/>
         <inout name="control" type="unsigned int"/>
         <condition>
-          ${control} :gt: 0U 
+          ${control} :gt: 0U
         </condition>
         <expression>
           ${control} := ${control} - 1U;
@@ -128,11 +98,11 @@
     <transition name="finish">
       <defun>
         <in name="control" type="unsigned int"/>
-        <in name="options" type="option_token_type"/>
-        <in name="config" type="config_token"/>
+        <in name="options" type="option_type"/>
+        <in name="config" type="config_type"/>
         <out name="output" type="string"/>
         <condition>
-          ${control} :eq: 0U 
+          ${control} :eq: 0U
         </condition>
         <expression>
           ${output} := "DONE";

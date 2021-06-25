@@ -53,5 +53,5 @@ endfunction()
 
 addinstall_pnet(parallel_all)
 addinstall_pnet(parallel_first)
-addinstall_pnet(parallel_allpfd)
+addinstall_pnet(parallel_allpfd pfd_compute.xpnet)
 

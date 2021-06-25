@@ -25,11 +25,11 @@
     <place name="out_struct_name" type="string"/>
     <place name="out_struct_desc" type="string"/>
     <place name="task_count" type="unsigned int"/>
-    <place name="global_options" type="option_token_type"/>
-    <place name="generator_state" type="generator_token_type"/>
-    <place name="collector_state" type="generator_token_type"/>
-    <place name="tasks" type="task_token_type"/>
-    <place name="results" type="task_token_type"/>
+    <place name="global_options" type="option_type"/>
+    <place name="generator_state" type="generator_type"/>
+    <place name="collector_state" type="generator_type"/>
+    <place name="tasks" type="task_type"/>
+    <place name="results" type="task_type"/>
     <place name="output" type="string"/>
 
     <transition name="initialize">
@@ -42,9 +42,9 @@
         <in name="in_struct_desc" type="string"/>
         <in name="out_struct_name" type="string"/>
         <in name="out_struct_desc" type="string"/>
-        <out name="state" type="generator_token_type"/>
-        <out name="cstate" type="generator_token_type"/>
-        <out name="options" type="option_token_type"/>
+        <out name="state" type="generator_type"/>
+        <out name="cstate" type="generator_type"/>
+        <out name="options" type="option_type"/>
         <expression>
           ${state.base_filename} := ${base_filename};
           ${state.current_count} := 0U;
@@ -75,8 +75,8 @@
 
     <transition name="extract">
       <defun>
-        <inout name="state" type="generator_token_type"/>
-        <out name="task" type="task_token_type"/>
+        <inout name="state" type="generator_type"/>
+        <out name="task" type="task_type"/>
         <condition>
           ${state.current_count} :lt: ${state.total_count}
         </condition>
@@ -92,7 +92,7 @@
 
     <transition name="done_extract">
       <defun>
-        <in name="state" type="generator_token_type"/>
+        <in name="state" type="generator_type"/>
         <condition>
           ${state.current_count} :eq: ${state.total_count}
         </condition>
@@ -105,11 +105,11 @@
     <transition name="compute">
       <defun>
         <require key="worker" mandatory="true"/>
-        <in name="in" type="task_token_type"/>
+        <in name="in" type="task_type"/>
         <in name="implementation" type="string"/>
         <in name="path_to_libsingular" type="string"/>
-        <in name="options" type="option_token_type"/>
-        <out name="out" type="task_token_type"/>
+        <in name="options" type="option_type"/>
+        <out name="out" type="task_type"/>
         <module name="singular_parallel_all"
                 require_function_unloads_without_rest="false"
                 function="compute (implementation,
@@ -141,8 +141,8 @@
 
     <transition name="collect">
       <defun>
-        <in name="result" type="task_token_type"/>
-        <inout name="cstate" type="generator_token_type"/>
+        <in name="result" type="task_type"/>
+        <inout name="cstate" type="generator_type"/>
         <condition>
           ${cstate.current_count} :lt: ${cstate.total_count}
         </condition>
@@ -156,8 +156,8 @@
 
     <transition name="finish">
       <defun>
-        <in name="cstate" type="generator_token_type"/>
-        <in name="options" type="option_token_type"/>
+        <in name="cstate" type="generator_type"/>
+        <in name="options" type="option_type"/>
         <in name="implementation" type="string"/>
         <in name="path_to_libsingular" type="string"/>
         <out name="output" type="string"/>
