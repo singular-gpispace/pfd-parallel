@@ -119,54 +119,70 @@ EXAMPLE:  example pfd; shows an example"
   int i,t1;
   if(typeof(#[1])=="list")
   {
+    // pfd(arguments[, parallelize]);
+    // unwrap the lists into seperate calls of pfd.
     if(size(#)>1)
     {
-      if(typeof(#[2])=="list")
-        {list arguments = #;    int parallelize = 1;}
-      else{if(typeof(#[2])=="int")
-        {list arguments = #[1]; int parallelize = #[2];}
+      if (typeof(#[2]) == "list") {
+        // pfd(arguments);
+        list arguments = #;
+        int parallelize = 1;
+      } else{if (typeof(#[2]) == "int") {
+        // pfd(arguments, parallelize);
+        list arguments = #[1];
+        int parallelize = #[2];}
       else {ERROR("wrong type for second argument, expected int");}}
     }
-    if(parallelize)
-    {
+
+    if(parallelize) {
+
       for(i=1; i<=size(arguments); i++)
       {
         if(typeof(arguments[i][1])=="list") //input is list of lists
           {arguments[i] = list(arguments[i],1);}
       }
-      return(parallelWaitAll("pfd",arguments));
-    }
-    else
-    {
+      return (parallelWaitAll("pfd",arguments));
+
+    } else {
+
       list results;
-      for(i=1; i<=size(arguments); i++)
-      {
-        if(typeof(arguments[i][1])=="list") //input is list of lists
-          {results[i] = pfd(arguments[i],0);}
-        else
-        {
+      for(i=1; i<=size(arguments); i++) {
+        if(typeof(arguments[i][1])=="list") {
+          // input is list of lists
+          results[i] = pfd(arguments[i],0);
+
+        } else {
+
           if(size(arguments[i])==2)
             {results[i] = pfd(arguments[i][1],arguments[i][2]);}
           else{if(size(arguments[i])==3)
             {results[i] = pfd(arguments[i][1],arguments[i][2],arguments[i][3]);}
           else {ERROR("wrong number of arguments, expected 2 or 3");}}
+
         }
       }
       return(results);
     }
   }
+
+ // pfd(f,g[,debug]);   f,g poly, debug int
+ // OR
+ // pfd(f,g[,debug]);   f poly, g list, debug int
+
   poly f = #[1];
-  if(typeof(#[2])=="list")
-  {
+  if(typeof(#[2])=="list") {
     list g=#[2];
-  }
-  else
-  {
+  } else {
     poly g=#[2];
   }
 
-  int debug=0; link l=":w ";
-  if(size(#)>3) {ERROR("wrong number of arguments, expected 2 or 3");}
+  if(size(#)>3) {
+    ERROR("wrong number of arguments, expected 2 or 3");
+  }
+
+  int debug=0;
+  link l=":w ";
+
   if(size(#)==3)
   {
     debug=#[3];
@@ -180,18 +196,18 @@ EXAMPLE:  example pfd; shows an example"
                size(string(f)), size(string(g)), 0);
   }
 
-  if(f==0)
-  {
+  if(f==0) {
+    // trivial case
     list dec = list(ideal(),list(list(poly(0),intvec(0:0),intvec(0:0))));
     if(debug)
       {fprintf(l,"%ntotal: 0 ms (numerator was 0)",0); close(l);}
     if(voice<=printlevel) {displaypfd(dec);}
     return(dec);
   }
-  if(typeof(g)=="poly")
-  {
-    if(deg(g)==0)
-    {
+
+  if(typeof(g)=="poly") {
+    if(deg(g)==0) {
+      // trivial degree for g
       list dec = list(ideal(),list(list(f/g,intvec(0:0),intvec(0:0))));
       if(debug)
         {fprintf(l,"%ntotal: 0 ms (denominator was constant)",0); close(l);}
@@ -200,24 +216,20 @@ EXAMPLE:  example pfd; shows an example"
     }
 
     // (1) factorization of the denominator ////////////////////////////////////
-    if(debug) {t1 = rtimer; write(l,"factorizing ");}
-    list factor = factorize(g);
-    number lcoeff;
-    for(i=2; i<=size(factor[1]); i++)
-    {
-      lcoeff = leadcoef(factor[1][i]);
-      factor[1][i] = factor[1][i]/lcoeff;
-      factor[1][1] = factor[1][1]*(lcoeff^factor[2][i]); // polynomial is monic (thus unique)
-      lcoeff = content(factor[1][i]);
-      factor[1][i] = factor[1][i]/lcoeff;
-      factor[1][1] = factor[1][1]*(lcoeff^factor[2][i]); // polynomial has nice coefficients
+    // prepare f, q, e, m
+    if (debug) {
+      t1 = rtimer;
+      write(l,"factorizing ");
     }
-    ideal q = factor[1];
-    f = f/q[1];
-    q=delete(q,1);
-    intvec e = factor[2]; e=delete(e,1);
-    int m = size(q);
-    if(debug) {t1 = rtimer-t1; fprintf(l,"done! (%s ms)", t1);}
+
+    // TODO: Test prepare_fqem_gpoly
+    list fqem = prepare_fqem_gpoly(f, g);
+
+    if(debug) {
+      t1 = rtimer-t1;
+      fprintf(l,"done! (%s ms)", t1);
+    }
+
   }
   else{if(typeof(g)=="list")
   {
@@ -230,68 +242,29 @@ EXAMPLE:  example pfd; shows an example"
       return(dec);
     }
 
-    // denominator is already factorized
-    for(i=1;i<=size(g[1]);i++)
-    {
-      if(size(factorize(g[1][i])[1])>2)
-        {ERROR("factors should be irreducible");}
-    }
+    list fqem = prepare_fqem_glist(f, g, l);
 
-    ideal q = g[1];
-    intvec e = g[2];
-    int m = size(q);
   }
   else
   {ERROR("wrong type for second argument, expected poly or list(ideal,intvec)");}}
 
-  list terms = list(list(poly(f),1..m,e));
+  f = fqem[1];
+  ideal q = fqem[2];
+  intvec e = fqem[3];
+  int m = fqem[4];
 
-  int counter,tt,ttt;
+  if(debug) {int t = rtimer; write(l,"Start PFD functional unit");}
 
-  int imax;
-  list newterms,result;
-  // (2) Nullstellensatz decomposition /////////////////////////////////////////
-  if(debug)
-    {int t2 = rtimer; write(l,"Nullstellensatz decomposition ");}
+  list dec = pfd_functional_unit(f, q, e, m, debug, l);
 
-  terms = generic_dec_loop("NSSdecompStep", "size", terms, q, debug, l);
+  if(debug) {
+    t = rtimer-t;
+    fprintf(l,"PFD functional unit done! (%s ms, %s terms)", t, size(dec));
+  }
 
-  if(debug)
-    {t2 = rtimer-t2; fprintf(l,"done! (%s ms, %s terms)", t2, size(terms));}
+  if(debug) {fprintf(l,"%ntotal: %s ms", t1 + t); close(l);}
 
-  // (3) short numerator decomposition /////////////////////////////////////////
-  if(debug)
-    {int t3 = rtimer; write(l,"short numerator decompositions "); counter=0;}
-
-  terms = generic_dec_loop("shortNumeratorDecompStep", "index", terms, q, debug, l);
-
-  if(debug)
-    {t3 = rtimer-t3; fprintf(l,"done! (%s ms, %s terms)", t3, size(terms));}
-
-  // (4) algebraic dependence decomposition ////////////////////////////////////
-  if(debug)
-    {int t4 = rtimer; write(l,"algebraic dependence decomposition "); counter=0;}
-
-  terms = generic_dec_loop("algDependDecompStep", "size", terms, q, debug, l);
-
-  if(debug)
-    {t4 = rtimer-t4; fprintf(l,"done! (%s ms, %s terms)", t4, size(terms));}
-
-  // (5) numerator decomposition ///////////////////////////////////////////////
-  if(debug)
-    {int t5 = rtimer; write(l,"numerator decompositions "); counter=0;}
-
-  list dec = generic_dec_loop("numeratorDecompStep", "index", terms, q, debug, l);
-
-  if(debug)
-    {t5 = rtimer-t5; fprintf(l,"done! (%s ms, %s terms)", t5, size(dec));}
-
-  if(size(dec)==1) {if(dec[1][1]==0) {dec = list();}}
-  dec = list(q,dec);
-  if(debug) {fprintf(l,"%ntotal: %s ms", t1+t2+t3+t4+t5+t6); close(l);}
-
-  if(voice<=printlevel) {displaypfd(dec);}
-  return(dec);
+  return (dec);
 }
 example
 {
@@ -371,13 +344,113 @@ example
   size(getStringpfd(dec));
 }
 
-proc generic_dec_loop(string decomp, string mergetype, list terms, ideal q, int debug, link l) {
+proc pfd_functional_unit(poly f, ideal q, intvec e, int m, list #)
+{
+  int counter,tt,ttt;
+  list dec;
+  list terms = list(list(poly(f),1..m,e));
+
+  int debug = 0;
+  if (size(#) > 0) {
+    debug = #[1];
+    link l = #[2];
+  }
+
+  int t1, t2, t3, t4;
+
+  // (1) Nullstellensatz decomposition /////////////////////////////////////////
+  if(debug)
+    {t1 = rtimer; write(l,"Nullstellensatz decomposition ");}
+  terms = generic_dec_loop("NSSdecompStep", "size", terms, q, debug, l);
+  if(debug)
+    {t1 = rtimer-t1; fprintf(l,"done! (%s ms, %s terms)", t1, size(terms));}
+
+  // (2) short numerator decomposition /////////////////////////////////////////
+  if(debug)
+    {t2 = rtimer; write(l,"short numerator decompositions "); counter=0;}
+  terms = generic_dec_loop("shortNumeratorDecompStep", "index", terms, q, debug, l);
+  if(debug)
+    {t2 = rtimer-t2; fprintf(l,"done! (%s ms, %s terms)", t2, size(terms));}
+
+  // (3) algebraic dependence decomposition ////////////////////////////////////
+  if(debug)
+    {t3 = rtimer; write(l,"algebraic dependence decomposition "); counter=0;}
+  terms = generic_dec_loop("algDependDecompStep", "size", terms, q, debug, l);
+  if(debug)
+    {t3 = rtimer-t3; fprintf(l,"done! (%s ms, %s terms)", t3, size(terms));}
+
+  // (4) numerator decomposition ///////////////////////////////////////////////
+  if(debug)
+    {t4 = rtimer; write(l,"numerator decompositions "); counter=0;}
+  dec = generic_dec_loop("numeratorDecompStep", "index", terms, q, debug, l);
+  if(debug)
+    {t4 = rtimer-t4; fprintf(l,"done! (%s ms, %s terms)", t4, size(dec));}
+
+
+  if(size(dec)==1) {if(dec[1][1]==0) {dec = list();}}
+  dec = list(q,dec);
+  if(debug) {fprintf(l,"%ntotal: %s ms", t1+t2+t3+t4); close(l);}
+
+  if(voice<=printlevel) {displaypfd(dec);}
+
+  return(dec);
+}
+
+proc prepare_fqem_gpoly (poly f, poly g)
+{
+  int i;
+  list factor = factorize(g);
+  number lcoeff;
+  for(i=2; i<=size(factor[1]); i++) {
+      lcoeff = leadcoef(factor[1][i]);
+      factor[1][i] = factor[1][i]/lcoeff;
+      factor[1][1] = factor[1][1]*(lcoeff^factor[2][i]); // polynomial is monic (thus unique)
+
+      lcoeff = content(factor[1][i]);
+      factor[1][i] = factor[1][i]/lcoeff;
+      factor[1][1] = factor[1][1]*(lcoeff^factor[2][i]); // polynomial has nice coefficients
+  }
+  ideal q = factor[1];
+  f = f/q[1];
+  q=delete(q,1);
+  intvec e = factor[2]; e=delete(e,1);
+  int m = size(q);
+
+  return (list(f, q, e, m));
+}
+
+proc prepare_fqem_glist (poly f, list g, link l)
+{
+  int i;
+  // denominator is already factorized
+    for(i=1;i<=size(g[1]);i++)
+    {
+      if(size(factorize(g[1][i])[1])>2)
+        {ERROR("factors should be irreducible");}
+    }
+
+    ideal q = g[1];
+    intvec e = g[2];
+    int m = size(q);
+
+  return (list(f, q, e, m));
+}
+
+//proc generic_dec_loop(string decomp, string mergetype, list terms, ideal q, int debug, link l)
+proc generic_dec_loop(string decomp, string mergetype, list terms, ideal q, list #)
+{
   list dec,newterms,result;
   int imax;
   int i;
   int counter,tt,ttt;
   string command;
   list merged;
+  int debug = 0;
+
+  if (size(#) > 0) {
+    debug = #[1];
+    link l  = #[2];
+  }
 
   while(size(terms)>0) {
     if(debug) {tt = rtimer; counter++;}
@@ -385,12 +458,11 @@ proc generic_dec_loop(string decomp, string mergetype, list terms, ideal q, int 
     newterms = list();
 
     for(i=1; i<=imax; i++) {
-      command = "result = " + decomp + "(terms[i],q,debug,l);";
+      command = "result = " + decomp + "(terms[i],q,#);";
       execute(command);
 
       if(debug) {ttt = rtimer;}
-      command = "merged = merge_by_" + mergetype + "(newterms, dec, result);";
-      execute(command);
+      merged = general_merge_step(mergetype, newterms, dec, result);
       dec = merged[1];
       newterms = merged[2];
       if(debug)
@@ -405,20 +477,33 @@ proc generic_dec_loop(string decomp, string mergetype, list terms, ideal q, int 
   return(dec);
 }
 
-proc merge_by_size(newterms, dec, result)
+proc general_merge_step(string mergetype, list newterms, list dec, list result)
+{
+  list merged;
+
+  if (mergetype == "size") {
+    return (merge_by_size(newterms, dec, result));
+  }
+  if (mergetype == "index") {
+    return (merge_by_index(newterms, dec, result));
+  }
+  return (list());
+}
+
+proc merge_by_size(list newterms, list dec, list result)
 {
   if(size(result)>1) {newterms = mergepfd(newterms, result);}
   else                    {dec = mergepfd(dec,      result);}
 
-  return(dec, newterms);
+  return (dec, newterms);
 }
 
-proc merge_by_index(newterms, dec, result)
+proc merge_by_index(list newterms, list dec, list result)
 {
   newterms = mergepfd(newterms, result[1]);
   dec = mergepfd(dec, result[2]);
 
-  return(dec, newterms);
+  return (dec, newterms);
 }
 
 static proc NSSdecompStep(list l, ideal q, list #)
@@ -2637,12 +2722,13 @@ SEE ALSO: pfdMat, pfdSingleEntrySSI
   int ignore_nonlin=1;
   if(size(#)>2) {ignore_nonlin = #[3];}
 
-  if(file_exists(to_dir+"resources_"+filename+".txt")) {return();}
 
   int i,j,k;
   list fraction;
   i = find(filename,".");
   if(i>0) {filename = filename[1,i-1];} // remove file ending if given
+
+  if(file_exists(to_dir+"resources_"+filename+".txt")) {return();}
 
   if(file_exists(from_dir+filename+".ssi"))
   {
