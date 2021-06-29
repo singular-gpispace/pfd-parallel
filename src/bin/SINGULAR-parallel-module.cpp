@@ -8,6 +8,8 @@
 #include <drts/drts.hpp>
 #include <drts/scoped_rifd.hpp>
 
+#include <we/type/value/poke.hpp>
+
 #include <util-generic/executable_path.hpp>
 #include <util-generic/print_exception.hpp>
 #include <util-generic/read_lines.hpp>
@@ -259,7 +261,9 @@ namespace
 
   int get_num_tasks(leftv args, lists arg_list, std::string graph_type)
   {
-    if ((graph_type == "list_all") || (graph_type == "list_first")) {
+    if ((graph_type == "list_all") ||
+      (graph_type == "list_first") ||
+      (graph_type == "pfd"))  {
       return arg_list->nr + 1;
     } else if ((graph_type == "tree_all") || (graph_type == "rgraph_all")) {
       return (int)require_argument<13, long>
@@ -279,6 +283,8 @@ namespace
       base_filename = tmpdir + "/sggspc_tree";
     } else if (graph_type == "rgraph_all") {
       base_filename = tmpdir + "/sggspc_rgraph";
+    } else if (graph_type == "pfd") {
+        base_filename = tmpdir + "/sggspc_pfd";
     } else {
       throw std::runtime_error( std::string("Bad graph type as argument")
                               + "while determining base filename");
@@ -314,6 +320,7 @@ std::optional<std::multimap<std::string, pnet::type::value::value_type>>
 /*** Library function declarations ***/
 BOOLEAN sggspc_wait_all (leftv res, leftv args);
 BOOLEAN sggspc_wait_first (leftv res, leftv args);
+BOOLEAN sggspc_pfd (leftv res, leftv args);
 
 /*** General helper function implementation ***/
 
@@ -338,7 +345,12 @@ std::optional<std::multimap<std::string, pnet::type::value::value_type>>
     get_values_on_ports(ArgumentState const &as,
                         boost::filesystem::path const implementation)
 {
-  if ((as.graphType() == "list_all") || (as.graphType() == "list_first")) {
+  using pnet::type::value::value_type;
+  using pnet::type::value::poke;
+
+  if ((as.graphType() == "list_all") ||
+      (as.graphType() == "list_first")
+      ) {
     std::multimap<std::string, pnet::type::value::value_type> values_on_ports
       ( { {"implementation", implementation.string()}
         , {"path_to_libsingular", fhg::util::executable_path (&siInit)
@@ -376,6 +388,30 @@ std::optional<std::multimap<std::string, pnet::type::value::value_type>>
         , {"needed_library", as.neededLibrary()}
         , {"max_count", static_cast<unsigned long> (as.numTasks())}
         , {"initial_task_list", l}
+        }
+      );
+    return values_on_ports;
+  } else if (as.graphType() == "pfd") {
+    value_type problem_token_type;
+    poke( "function_name", problem_token_type, as.functionName());
+    poke( "needed_library", problem_token_type, as.neededLibrary());
+    poke( "in_struct_name", problem_token_type, as.inStructName());
+    poke( "in_struct_desc", problem_token_type, as.inStructDesc());
+    poke( "out_struct_name", problem_token_type, as.outStructName());
+    poke( "out_struct_desc", problem_token_type, as.outStructDesc());
+
+    value_type config;
+    poke( "path_to_libsingular"
+        , config
+        , fhg::util::executable_path (&siInit)
+                     .string());
+    poke( "base_filename", config, as.baseFileName());
+    poke( "implementation", config, implementation.string());
+    poke( "task_count", config, static_cast<unsigned int> (as.numTasks()));
+
+    std::multimap<std::string, value_type> values_on_ports
+      ( { {"config", config}
+        , {"global_options", problem_token_type}
         }
       );
     return values_on_ports;
@@ -541,6 +577,10 @@ extern "C" int mod_init (SModulFunctions* psModulFunctions)
     ((currPack->libname ? currPack->libname : ""),
       "sggspc_wait_first", FALSE, sggspc_wait_first);
 
+  psModulFunctions->iiAddCproc
+    ((currPack->libname ? currPack->libname : ""),
+      "sggspc_pfd", FALSE, sggspc_pfd);
+
   return MAX_TOK;
 }
 
@@ -589,6 +629,64 @@ catch (...)
   sggspc_print_current_exception (std::string ("in sggspc_wait_all"));
   return TRUE;
 }
+
+
+
+
+
+
+
+
+BOOLEAN sggspc_pfd (leftv res, leftv args)
+try {
+
+  std::cout << "Starting sggspc_pfd\n";
+  ArgumentState as (args, "pfd");
+
+  auto result = gpis_launch_with_workflow (as.singPI().workflow_pfd(), as);
+  if (!result.has_value()) {
+    res->rtyp = NONE;
+    return FALSE;
+  }
+
+  std::multimap<std::string, pnet::type::value::value_type>::const_iterator
+    sm_result_it (result.value().find ("output"));
+  if (sm_result_it == result.value().end())
+  {
+    throw std::runtime_error ("Petri net has not finished correctly");
+  }
+
+  lists out_list = static_cast<lists> (omAlloc0Bin (slists_bin));
+  out_list->Init (as.numTasks());
+
+  for (std::size_t i = 0; i < as.numTasks(); i++)
+  {
+    si_link l = ssi_open_for_read(get_out_struct_filename(as.baseFileName(), i));
+    // later consider case of "wrong" output (and do not throw)
+    lists entry = ssi_read_newstruct (l, as.outStructName());
+    ssi_close_and_remove (l);
+    out_list->m[i].rtyp = as.outToken();
+    out_list->m[i].data = entry;
+  }
+
+
+  res->rtyp = LIST_CMD;
+  res->data = out_list;
+
+  return FALSE;
+}
+catch (...)
+{
+  // need to check which resources must be tidied up
+  sggspc_print_current_exception (std::string ("in sggspc_pfd"));
+  return TRUE;
+}
+
+
+
+
+
+
 
 BOOLEAN sggspc_wait_first (leftv res, leftv args)
 try

@@ -87,7 +87,9 @@ proc get_tmpdir(configToken gc)
 
 proc get_parallel_launch_command(string ret_name, string tmpdir, string pnet_id)
 {
-  if ((pnet_id == "wait_all") || (pnet_id == "wait_first")) {
+  if ((pnet_id == "wait_all") ||
+      (pnet_id == "wait_first") ||
+      (pnet_id == "pfd")) {
     string s_command = "def " + ret_name + " = sggspc_" +
                                     pnet_id +
                                     "(l, " +
@@ -108,7 +110,9 @@ proc get_parallel_launch_command(string ret_name, string tmpdir, string pnet_id)
 
 proc check_for_valid_pnet_id(string pnet_id)
 {
-  if ((pnet_id != "wait_all") && (pnet_id != "wait_first")) {
+  if ((pnet_id != "wait_all") &&
+    (pnet_id != "wait_first") &&
+    (pnet_id != "pfd")) {
     ERROR("Unknown function '" + pnet_id + ",' please give correct option");
   }
 }
@@ -179,6 +183,11 @@ proc parallel_waitfirst(list l, configToken gc, configToken pc)
 proc parallel_waitall(list l, configToken gc, configToken pc)
 {
   return(parallel_wait(l, gc, pc, "wait_all"));
+}
+
+proc parallel_waitpfd(list l, configToken gc, configToken pc)
+{
+  return(parallel_wait(l, gc, pc, "pfd"));
 }
 
 /*** PFD functions ***/
@@ -284,7 +293,7 @@ PURPOSE:  apply @code{pfd} in parallel to the rational function saved in the
       l[i] = ins;
   }
 
-  def re_all = parallel_waitall(l,gc,pc);
+  def re_all = parallel_waitpfd(l,gc,pc);
 
   if (size(#) < 1) {
     system("sh", "rm -rv " + gc.options.tmpdir);
@@ -315,7 +324,7 @@ proc parallel_companion ( string rootdir
                         , list file_indices
                         , list #
                         )
-"USAGE:   parallel_pfd(rootdir, file_indices[, gc]), rootdir string,  file_indicies list, gc configToken
+"USAGE:   parallel_companion(rootdir, file_indices[, gc]), rootdir string,  file_indicies list, gc configToken
 PURPOSE:  apply @code{companion} in parallel to the data saved in the
           files identified by the file_indices.
           @code{rootdir} is the path to the directory relative to which the

@@ -20,6 +20,7 @@ namespace singular_parallel
 
     boost::filesystem::path workflow_all() const;
     boost::filesystem::path workflow_first() const;
+    boost::filesystem::path workflow_pfd() const;
     boost::filesystem::path workflow_dir() const;
     gspc::installation gspc_installation
       (boost::program_options::variables_map&) const;

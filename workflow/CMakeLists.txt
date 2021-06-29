@@ -1,9 +1,8 @@
 # Note: Does _NOT_ track external dependencies!
-
 function(add_petrinet in out module_name)
   add_custom_command (
-    OUTPUT "${CMAKE_BINARY_DIR}/parallel_${module_name}.pnet"
-           "${CMAKE_BINARY_DIR}/gen_${out}/pnetc/op/libsingular_parallel_${module_name}.so"
+    OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${module_name}.pnet"
+           "${CMAKE_CURRENT_BINARY_DIR}/gen_${module_name}/pnetc/op/libsingular_${module_name}.so"
     COMMAND "${GSPC_HOME}/bin/pnetc"
             --gen-cxxflags=-O3
             --gen-cxxflags=-std=c++17
@@ -18,34 +17,42 @@ function(add_petrinet in out module_name)
             --gen-ldflags="-Wl,-rpath='${GSPC_HOME}/lib'"
             --gen-ldflags="-Wl,-rpath='${GSPC_HOME}/external/boost/lib'"
             --force-overwrite-file=true
-            --input="${CMAKE_SOURCE_DIR}/workflow/${in}"
-            --output="${CMAKE_BINARY_DIR}/${out}"
-            --path-to-cpp="${CMAKE_BINARY_DIR}/gen_${out}"
+            --input="${CMAKE_CURRENT_SOURCE_DIR}/${in}"
+            --output="${CMAKE_CURRENT_BINARY_DIR}/${out}"
+            --path-to-cpp="${CMAKE_CURRENT_BINARY_DIR}/gen_${module_name}"
             --Wbackup-file=OFF
             --Woverwrite-file=OFF
             &&
-            make -C "${CMAKE_BINARY_DIR}/gen_${out}"
+            make -C "${CMAKE_CURRENT_BINARY_DIR}/gen_${module_name}"
     DEPENDS "${in}"
+            ${ARGN}
   )
-  add_custom_target ("${out}_and_wrapper-library"
+  add_custom_target ("${module_name}_and_wrapper-library"
     ALL
-    DEPENDS "${CMAKE_BINARY_DIR}/gen_${out}/pnetc/op/libsingular_parallel_${module_name}.so"
-            "${CMAKE_BINARY_DIR}/${out}"
+    DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/gen_${module_name}/pnetc/op/libsingular_${module_name}.so"
+            "${CMAKE_CURRENT_BINARY_DIR}/${out}"
   )
-
 endfunction()
 
-add_petrinet(parallel_all.xpnet parallel_all.pnet all)
-add_petrinet(parallel_first.xpnet parallel_first.pnet first)
+function(addinstall_pnet module_name)
+  # note, optional arguments are assumed to be dependencies
+  add_petrinet(${module_name}.xpnet
+               ${module_name}.pnet
+               ${module_name}
+               types.xpnet
+               ${ARGN}
+               )
+  install (FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/${module_name}.pnet"
+    DESTINATION libexec/workflow
+  )
+  install (FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/gen_${module_name}/pnetc/op/libsingular_${module_name}.so"
+    DESTINATION libexec/workflow
+  )
+endfunction()
 
-install (FILES
-  "${CMAKE_BINARY_DIR}/parallel_all.pnet"
-  "${CMAKE_BINARY_DIR}/parallel_first.pnet"
-  DESTINATION libexec/workflow
-)
+addinstall_pnet(parallel_all)
+addinstall_pnet(parallel_first)
+addinstall_pnet(parallel_allpfd pfd_compute.xpnet)
 
-install (FILES
-  "${CMAKE_BINARY_DIR}/gen_parallel_all.pnet/pnetc/op/libsingular_parallel_all.so"
-  "${CMAKE_BINARY_DIR}/gen_parallel_first.pnet/pnetc/op/libsingular_parallel_first.so"
-  DESTINATION libexec/workflow
-)

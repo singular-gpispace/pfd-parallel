@@ -1,0 +1,118 @@
+<defun name="parallel_allpfd">
+
+  <include-structs href="types.xpnet"/>
+
+  <in name="config" type="config_type" place="config"/>
+  <in name="global_options" type="option_type" place="global_options"/>
+  <out name="output" type="string" place="output"/>
+  <net>
+    <place name="initiated" type="unsigned int">
+      <token><value>0U</value></token>
+    </place>
+
+    <place name="config" type="config_type"/>
+    <place name="global_options" type="option_type"/>
+    <place name="extract_control" type="unsigned int"/>
+    <place name="control" type="unsigned int"/>
+    <place name="tasks" type="task_type"/>
+    <place name="results" type="task_type"/>
+    <place name="output" type="string"/>
+
+    <transition name="initialize">
+      <defun>
+        <in name="config" type="config_type"/>
+        <inout name="initiated" type="unsigned int"/>
+        <out name="ecount" type="unsigned int"/>
+        <out name="control" type="unsigned int"/>
+
+        <condition>
+          ${initiated} :eq: 0U
+        </condition>
+
+        <expression>
+          ${ecount} := ${config.task_count};
+          ${control} := ${config.task_count};
+          ${initiated} := 1U;
+        </expression>
+      </defun>
+      <connect-read port="config" place="config"/>
+      <connect-inout port="initiated" place="initiated"/>
+      <connect-out port="ecount" place="extract_control"/>
+      <connect-out port="control" place="control"/>
+    </transition>
+
+    <transition name="extract">
+      <defun>
+        <inout name="ecount" type="unsigned int"/>
+        <in name="config" type="config_type"/>
+        <out name="task" type="task_type"/>
+        <condition>
+          ${ecount} :gt: 0U
+        </condition>
+        <expression>
+          ${task.base_filename} := ${config.base_filename};
+          ${task.id} := ${config.task_count} - ${ecount};
+          ${ecount} := ${ecount} - 1U;
+        </expression>
+      </defun>
+      <connect-inout port="ecount" place="extract_control"/>
+      <connect-read port="config" place="config"/>
+      <connect-out port="task" place="tasks"/>
+    </transition>
+
+    <transition name="done_extract">
+      <defun>
+        <in name="ecount" type="unsigned int"/>
+        <condition>
+          ${ecount} :eq: 0U
+        </condition>
+        <expression>
+        </expression>
+      </defun>
+      <connect-in port="ecount" place="extract_control"/>
+    </transition>
+
+    <transition name="compute">
+      <include-function href="pfd_compute.xpnet"/>
+      <connect-in port="in" place="tasks"/>
+      <connect-read port="config" place="config"/>
+      <connect-read port="options" place="global_options"/>
+      <connect-out port="out" place="results"/>
+    </transition>
+
+    <transition name="collect">
+      <defun>
+        <in name="result" type="task_type"/>
+        <inout name="control" type="unsigned int"/>
+        <condition>
+          ${control} :gt: 0U
+        </condition>
+        <expression>
+          ${control} := ${control} - 1U;
+        </expression>
+      </defun>
+      <connect-in port="result" place="results"/>
+      <connect-inout port="control" place="control"/>
+    </transition>
+
+    <transition name="finish">
+      <defun>
+        <in name="control" type="unsigned int"/>
+        <in name="options" type="option_type"/>
+        <in name="config" type="config_type"/>
+        <out name="output" type="string"/>
+        <condition>
+          ${control} :eq: 0U
+        </condition>
+        <expression>
+          ${output} := "DONE";
+        </expression>
+      </defun>
+      <connect-in port="control" place="control"/>
+      <connect-in port="options" place="global_options"/>
+      <connect-in port="config" place="config"/>
+      <connect-out port="output" place="output"/>
+    </transition>
+
+  </net>
+</defun>

@@ -63,6 +63,12 @@ namespace singular_parallel
       // TODO: to sth. about several nets
       return workflow_path (installation_path) / "parallel_all.pnet";
     }
+    boost::filesystem::path workflow_pfd_file
+      (boost::filesystem::path const& installation_path)
+    {
+      // TODO: to sth. about several nets
+      return workflow_path (installation_path) / "parallel_allpfd.pnet";
+    }
     boost::filesystem::path workflow_first_file
       (boost::filesystem::path const& installation_path)
     {
@@ -92,11 +98,16 @@ namespace singular_parallel
     check_is_directory (workflow_path (_path));
     check_is_file (workflow_all());
     check_is_file (workflow_first());
+    check_is_file (workflow_pfd());
   }
 
   boost::filesystem::path installation::workflow_all() const
   {
     return workflow_all_file (_path);
+  }
+  boost::filesystem::path installation::workflow_pfd() const
+  {
+    return workflow_pfd_file (_path);
   }
   boost::filesystem::path installation::workflow_first() const
   {

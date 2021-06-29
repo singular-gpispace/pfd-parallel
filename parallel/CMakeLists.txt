@@ -8,7 +8,9 @@ extended_add_library (NAME parallel_implementation
   INCLUDE_DIRECTORIES PRIVATE "${CMAKE_BINARY_DIR}" "${CMAKE_BINARY_DIR}/gen"
   COMPILE_DEFINITIONS SING_NDEBUG OM_NDEBUG
   LIBRARIES GPISpace::workflow_development Singular
-  DEPENDS parallel_all.pnet_and_wrapper-library parallel_first.pnet_and_wrapper-library
+  DEPENDS parallel_all_and_wrapper-library
+          parallel_first_and_wrapper-library
+          parallel_allpfd_and_wrapper-library
   INSTALL INSTALL_DESTINATION "libexec/workflow"
 )
 set_target_properties (parallel_implementation
