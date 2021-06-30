@@ -53,6 +53,7 @@ export COMPILE_ROOT=$SOFTWARE_ROOT
 # GPI-Space dependencies:
 export BOOST_ROOT=$INSTALL_ROOT/boost
 export Libssh2_ROOT=$INSTALL_ROOT/libssh
+export Libssh2_BUILD_DIR=$COMPILE_ROOT/libssh/build
 export LD_LIBRARY_PATH="${Libssh2_ROOT}/lib"${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
 export GASPI_ROOT=$INSTALL_ROOT/gpi2
 export cpu_arch=$(getconf LONG_BIT)
@@ -205,7 +206,7 @@ cmake -D CRYPTO_BACKEND=OpenSSL                                   \
       -D CMAKE_INSTALL_PREFIX="${Libssh2_ROOT}"                   \
       -D ENABLE_ZLIB_COMPRESSION=ON                               \
       -D BUILD_SHARED_LIBS=ON                                     \
-      -B libssh2/build                                            \
+      -B $Libssh2_BUILD_DIR                                       \
       -S libssh2
 
 cmake --build libssh2/build                                       \
@@ -419,12 +420,16 @@ make install
 
 ### 4ti2
 ```bash
+mkdir -p $COMPILE_ROOT/4ti2/build
+
 cd $SING_ROOT
 mkdir 4ti2 && cd 4ti2
 wget http://www.4ti2.de/version_1.6/4ti2-1.6.tar.gz
 tar xvfz 4ti2-1.6.tar.gz
-cd 4ti2-1.6
-./configure --prefix=$DEP_LIBS
+
+cd $COMPILE_ROOT/4ti2/build
+$SING_ROOT/4ti2/4ti2-1.6/configure --prefix=$DEP_LIBS
+
 make -j $(nproc)
 make install
 
