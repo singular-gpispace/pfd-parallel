@@ -438,12 +438,16 @@ make install
 ### cddlib
 
 ```bash
+mkdir -p $COMPILE_ROOT/cddlib/build
+
 cd $SING_ROOT
 mkdir cddlib && cd cddlib
 wget https://github.com/cddlib/cddlib/releases/download/0.94j/cddlib-0.94j.tar.gz
 tar -xvf cddlib-0.94j.tar.gz
-cd cddlib-0.94j
-./configure --prefix=$DEP_LIBS
+
+cd $COMPILE_ROOT/cddlib/build
+$SING_ROOT/cddlib/cddlib-0.94j/configure --prefix=$DEP_LIBS
+
 make -j $(nproc)
 make install
 
