@@ -519,8 +519,9 @@ cmake -D CMAKE_INSTALL_PREFIX=$PFD_INSTALL_DIR   \
       -B ${PFD_BUILD_DIR}                        \
       -S ${PFD_REPO}
 
-make -j $(nproc)
-make -j $(nproc) install
+cmake --build ${PFD_BUILD_DIR}                   \
+      --target install                           \
+      -j $(nproc)
 
 ```
 ## Example to run PFD
