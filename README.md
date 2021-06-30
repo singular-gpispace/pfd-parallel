@@ -101,6 +101,7 @@ Ensure that the compile and install roots exist:
 ```bash
 mkdir -p $SOFTWARE_ROOT
 mkdir -p $INSTALL_ROOT
+mkdir -p $COMPILE_ROOT
 
 ```
 ## GPI-Space
