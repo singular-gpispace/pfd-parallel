@@ -290,7 +290,7 @@ build_tests variable.
 ```bash
 export build_tests="-DBUILD_TESTING=on
 -DSHARED_DIRECTORY_FOR_TESTS=$SHARED_DIRECTORY_FOR_TESTS"
-mkdir $SHARED_DIRECTORY_FOR_TESTS
+mkdir -p $SHARED_DIRECTORY_FOR_TESTS
 ```
 
 To build GPI-Space, run
