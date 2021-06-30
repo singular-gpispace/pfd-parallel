@@ -57,12 +57,17 @@ export LD_LIBRARY_PATH="${Libssh2_ROOT}/lib"${LD_LIBRARY_PATH:+:${LD_LIBRARY_PAT
 export GASPI_ROOT=$INSTALL_ROOT/gpi2
 export cpu_arch=$(getconf LONG_BIT)
 export PKG_CONFIG_PATH="${GASPI_ROOT}/lib${cpu_arch}/pkgconfig"${PKG_CONFIG_PATH:+:${PKG_CONFIG_PATH}}
+export PKG_CONFIG_PATH="${Libssh2_ROOT}/lib/pkgconfig:${Libssh2_ROOT}/lib64/pkgconfig"${PKG_CONFIG_PATH:+:${PKG_CONFIG_PATH}}
+
 
 # GPI-Space:
 export GPI_ROOT_DIR=$SOFTWARE_ROOT
 export GPISPACE_REPO=$GPI_ROOT_DIR/gpispace/gpispace
 export GPISPACE_BUILD_DIR=$COMPILE_ROOT/gpispace/build
 export GPISPACE_INSTALL_DIR=$INSTALL_ROOT/gpispace
+export GPISpace_ROOT=$GPISPACE_INSTALL_DIR # expected by cmake
+export GSPC_HOME=$GPISPACE_INSTALL_DIR # Set mostly for legacy reasons
+export SHARED_DIRECTORY_FOR_TESTS=$GPISPACE_BUILD_DIR/tests
 
 # Singular:
 export SING_ROOT=$SOFTWARE_ROOT/Singular
@@ -228,17 +233,17 @@ If Infiniband support is required, the `--with-ethernet` option can be omitted.
 cd $GPI_ROOT_DIR
 mkdir gpi2 && cd gpi2
 
-gpi2_version=1.3.2                                                            \
- && git clone                                                                 \
-        --depth 1                                                             \
-        --branch v${gpi2_version}                                             \
-        https://github.com/cc-hpc-itwm/GPI-2.git                              \
-        GPI-2                                                                 \
- && cd GPI-2                                                                  \
- && grep "^CC\s*=\s*gcc$" . -lR                                               \
-    | xargs sed -i'' -e '/^CC\s*=\s*gcc$/d'                                   \
- && ./install.sh -p "${GASPI_ROOT}"                                           \
-                 --with-fortran=false                                         \
+gpi2_version=1.3.2                                                \
+ && git clone                                                     \
+        --depth 1                                                 \
+        --branch v${gpi2_version}                                 \
+        https://github.com/cc-hpc-itwm/GPI-2.git                  \
+        GPI-2                                                     \
+ && cd GPI-2                                                      \
+ && grep "^CC\s*=\s*gcc$" . -lR                                   \
+    | xargs sed -i'' -e '/^CC\s*=\s*gcc$/d'                       \
+ && ./install.sh -p "${GASPI_ROOT}"                               \
+                 --with-fortran=false                             \
                  --with-ethernet
 
 ```
@@ -269,34 +274,33 @@ Start by cloning gpi-space:
 ```bash
 cd $GPI_ROOT_DIR
 mkdir gpispace && cd gpispace
-git clone git@github.com:cc-hpc-itwm/gpispace.git
+git clone                                                         \
+    --depth 1                                                     \
+    --branch v21.03                                               \
+    https://github.com/cc-hpc-itwm/gpispace.git                   \
+    gpispace
 
 ```
 
-> ---
-> **NOTE:**
->
-> Until version 21.03 of GPI-Space is realeased, the following patch is required:
->
-> ---
+Should you want to build the tests, run the following command.  Note, the tests
+significantly increase build time, so an experienced user who has built
+gpi-space on a given machine before might opt not to run to define the
+build_tests variable.
+
 ```bash
-cd $GPISPACE_REPO
-sed -i 's/INSTALL_RPATH_USE_LINK_PATH false/INSTALL_RPATH_USE_LINK_PATH ${INSTALL_DO_NOT_BUNDLE}/' cmake/add_macros.cmake
-
+export build_tests="-DBUILD_TESTING=on
+-DSHARED_DIRECTORY_FOR_TESTS=$SHARED_DIRECTORY_FOR_TESTS"
+mkdir $SHARED_DIRECTORY_FOR_TESTS
 ```
-> ---
->
-> After version 21.03 and above, this `sed` step can be omitted.
->
-> ---
 
+To build GPI-Space, run
 ```bash
 mkdir -p "${GPISPACE_BUILD_DIR}"
 
-cmake -C ${GPISPACE_REPO}/config.cmake                            \
-      -D CMAKE_INSTALL_PREFIX=${GPISPACE_INSTALL_DIR}             \
+cmake -D CMAKE_INSTALL_PREFIX=${GPISPACE_INSTALL_DIR}             \
       -B ${GPISPACE_BUILD_DIR}                                    \
-      -S ${GPISPACE_REPO}
+      -S ${GPISPACE_REPO}                                         \
+      ${build_tests:-}
 
 cmake --build ${GPISPACE_BUILD_DIR}                               \
       --target install                                            \
@@ -314,13 +318,44 @@ cmake --build ${GPISPACE_BUILD_DIR}                               \
 > ---
 
 ### Test GPI-Space
-This step may be omitted, but is recommended, especially for first time
-installations.
+
+> ---
+> **NOTE:**
+>
+> GPI-Space requires a working SSH environment with a password-less
+> SSH-key when using the SSH RIF strategy, the default for most
+> applications.
+>
+> By default, `${HOME}/.ssh/id_rsa` is used for authentication. If no
+> such key exists,
+>
+> ```bash
+> ssh-keygen -t rsa -b 4096 -N '' -f "${HOME}/.ssh/id_rsa"
+> ssh-copy-id -f -i "${HOME}/.ssh/id_rsa" "${HOSTNAME}"
+> ```
+> can be used to create and register one.
+>
+> ---
+
+The following is a simple self test, that should be sufficient for most users.
+```bash
+# to test with multiple nodes, set GSPC_NODEFILE_FOR_TESTS
+#   Slurm: export GSPC_NODEFILE_FOR_TESTS="$(generate_pbs_nodefile)"
+#   PBS/Torque: export GSPC_NODEFILE_FOR_TESTS="${PBS_NODEFILE}"
+# and SWH_INSTALL_DIR:
+#   export SWH_INSTALL_DIR=<a-shared-directory-visible-on-all-nodes>
+
+"${GPISpace_ROOT}/share/gspc/example/stochastic_with_heureka/selftest"
+```
+
+If GPI-Space has been built with testing enabled, then `ctest` can be
+used to execute the unit- and system tests. It can be ommitted, but is
+recommended for first time installations.
 
 ```bash
 cd "${GPISPACE_BUILD_DIR}"
 
-export GPISPACE_TEST_DIR=<test-directory> # any empty test directoy should be good
+export GPISPACE_TEST_DIR=$SHARED_DIRECTORY_FOR_TESTS # any empty test directoy should be good
 
 hostname > nodefile
 export GSPC_NODEFILE_FOR_TESTS="${PWD}/nodefile"
@@ -329,12 +364,12 @@ export GSPC_NODEFILE_FOR_TESTS="${PWD}/nodefile"
 # PBS/Torque: export GSPC_NODEFILE_FOR_TESTS="${PBS_NODEFILE}"
 
 ctest --output-on-failure                                         \
-      --tests-regex share_selftest
+      -j $(nproc)
 
 ```
 
-Some of these tests take a long time, and there are 286 tests in the suite at
-the time of writing this document.
+Some of these tests take a long time (811 seconds on Intel i7), and there are
+294 tests in the suite at the time of writing this document.
 
 ## Singular
 
@@ -428,9 +463,9 @@ Singular may now be compiled against the libraries compiled and installed above.
 
 ```bash
 cd $SING_ROOT
-git clone                                                \
-    --depth 1                                            \
-    git@github.com:Singular/Singular.git                 \
+git clone                                                         \
+    --depth 1                                                     \
+    https://github.com/Singular/Singular.git                      \
     Sources
 
 cd Sources
@@ -438,12 +473,12 @@ cd Sources
 
 mkdir -p $SINGULAR_BUILD_DIR && cd $SINGULAR_BUILD_DIR
 
-CPPFLAGS="-I$DEP_LIBS/include" \
-LDFLAGS="-L$DEP_LIBS/lib" \
-${SING_ROOT}/Sources/configure \
-    --prefix=${SINGULAR_INSTALL_DIR} \
-    --with-flint=$DEP_LIBS \
-    --with-ntl=$DEP_LIBS \
+CPPFLAGS="-I$DEP_LIBS/include"                                    \
+LDFLAGS="-L$DEP_LIBS/lib"                                         \
+${SING_ROOT}/Sources/configure                                    \
+    --prefix=${SINGULAR_INSTALL_DIR}                              \
+    --with-flint=$DEP_LIBS                                        \
+    --with-ntl=$DEP_LIBS                                          \
     --enable-gfanlib
 make -j $(nproc)
 make install
@@ -466,11 +501,11 @@ The following environment variables must be set:
 - `${PFD_INSTALL_DIR}` The path to where the PFD project should be installed.
 
 ```bash
-cd $PFD_ROOT
+mkdir -p $PFD_ROOT && cd $PFD_ROOT
 
-git clone                                                \
-    --depth 1                                            \
-    git@github.com:singular-gpispace/PFD.git             \
+git clone                                                         \
+    --depth 1                                                     \
+    https://github.com/singular-gpispace/PFD.git                  \
     pfd
 
 mkdir -p $PFD_BUILD_DIR
@@ -572,7 +607,6 @@ chmod a+x shell_expand_script.sh
 
 ```
 
-
 Next, if you wish to start a monitor, this may be done as follows:
 ```bash
 cat > start_monitor.sh << "EOF"
@@ -614,8 +648,8 @@ popd
 Finally, the test may be started with
 ```bash
 cat > run_pfd_example.sh << "EOF"
-SINGULARPATH="$PFD_INSTALL_DIR/LIB"                           \
-        $SINGULAR_INSTALL_DIR/bin/Singular                    \
+SINGULARPATH="$PFD_INSTALL_DIR/LIB"                               \
+        $SINGULAR_INSTALL_DIR/bin/Singular                        \
         test_pfd.sing
 EOF
 chmod a+x run_pfd_example.sh
@@ -665,6 +699,8 @@ Note that the following requires root privileges. If you do not have root access
   ```bash
   sudo apt-get install libgmp-dev libmpfr-dev libcdd-dev libntl-dev
   ```
+  Note, in the above guide, we only assume libmpfr and libgmp is installed, and
+  libcdd and libntl is built locally from sources.
 
 * Library required by to build libssh:
   ```bash
