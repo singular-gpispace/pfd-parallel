@@ -34,49 +34,53 @@ computation nodes to be used for running the system.
 
 ```bash
 cat > env_vars_pfd.txt << "EOF"
-export PFD_PROJECT_COMPILE_ROOT=<compile-root>
+export SOFTWARE_ROOT=<software-root>
 # Some fast location in local system for hosting build directories,
-# for example, something like /tmpbig/$USER/pfd or /dev/shm/$USER/pfd
-# (note that the latter stores purely in memory, thus the contents of this
-# location will be lost after reboot), or just $HOME/pfd if the user has a
+# for example, something like /tmpbig/$USER/pfd or just $HOME/pfd if the user has a
 # fast home directory.
 
-export PFD_PROJECT_INSTALL_ROOT=<install-root>
+export INSTALL_ROOT=<install-root>
 # The install root is recommended to be some network (nfs) mountpoint, where
 # each node of the cluster should be able to read from, for example
 # something like /scratch/$USER/pfd
 
+export COMPILE_ROOT=$SOFTWARE_ROOT
+# Optionally, this might be set to something like /dev/shm/$USER/pfd that
+# stores files purely in memory, thus the contents of this
+# location will be lost after reboot.  It can speed up the computation times, as
+# all disk io becomes memory io.
+
 # GPI-Space dependencies:
-export BOOST_ROOT=$PFD_PROJECT_INSTALL_ROOT/boost/install
-export Libssh2_ROOT=$PFD_PROJECT_INSTALL_ROOT/libssh/install
+export BOOST_ROOT=$INSTALL_ROOT/boost
+export Libssh2_ROOT=$INSTALL_ROOT/libssh
 export LD_LIBRARY_PATH="${Libssh2_ROOT}/lib"${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
-export GASPI_ROOT=$PFD_PROJECT_INSTALL_ROOT/gpi2/install
+export GASPI_ROOT=$INSTALL_ROOT/gpi2
 export cpu_arch=$(getconf LONG_BIT)
 export PKG_CONFIG_PATH="${GASPI_ROOT}/lib${cpu_arch}/pkgconfig"${PKG_CONFIG_PATH:+:${PKG_CONFIG_PATH}}
 
 # GPI-Space:
-export GPI_ROOT_DIR=$PFD_PROJECT_COMPILE_ROOT
+export GPI_ROOT_DIR=$SOFTWARE_ROOT
 export GPISPACE_REPO=$GPI_ROOT_DIR/gpispace/gpispace
-export GPISPACE_BUILD_DIR=$GPI_ROOT_DIR/gpispace/build
-export GPISPACE_INSTALL_DIR=$PFD_PROJECT_INSTALL_ROOT/gpispace/install
+export GPISPACE_BUILD_DIR=$COMPILE_ROOT/gpispace/build
+export GPISPACE_INSTALL_DIR=$INSTALL_ROOT/gpispace
 
 # Singular:
-export SING_ROOT=$PFD_PROJECT_COMPILE_ROOT/Singular
-export DEP_LIBS=$PFD_PROJECT_INSTALL_ROOT/sing_dep_libs
+export SING_ROOT=$SOFTWARE_ROOT/Singular
+export DEP_LIBS=$INSTALL_ROOT/sing_dep_libs
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$DEP_LIBS/lib
-export SINGULAR_INSTALL_DIR=$PFD_PROJECT_INSTALL_ROOT/Singular/install
-export SINGULAR_BUILD_DIR=$SING_ROOT/build
+export SINGULAR_INSTALL_DIR=$INSTALL_ROOT/Singular
+export SINGULAR_BUILD_DIR=$COMPILE_ROOT/Singular/build
 
 # PFD:
-export PFD_ROOT=$PFD_PROJECT_COMPILE_ROOT/pfd
+export PFD_ROOT=$SOFTWARE_ROOT/pfd
 export PFD_REPO=$PFD_ROOT/pfd
-export PFD_INSTALL_DIR=$PFD_PROJECT_INSTALL_ROOT/pfd/install
+export PFD_INSTALL_DIR=$INSTALL_ROOT/pfd
 export PFD_BUILD_DIR=$PFD_ROOT/build
 EOF
 
 ```
 
-As it is currently structured, the user needs only fill in the `<compile-root>`
+As it is currently structured, the user needs only fill in the `<software-root>`
 and the `<install-root>`, then all other veriables are set relative to these.
 The above structure can of course be altered to suite the compiler's setup,
 as long as the scripts in this REAME are altered accordingly, since they assume
@@ -90,8 +94,8 @@ source env_vars_pfd.txt
 
 Ensure that the compile and install roots exist:
 ```bash
-mkdir -p $PFD_PROJECT_COMPILE_ROOT
-mkdir -p $PFD_PROJECT_INSTALL_ROOT
+mkdir -p $SOFTWARE_ROOT
+mkdir -p $INSTALL_ROOT
 
 ```
 ## GPI-Space
@@ -287,7 +291,7 @@ sed -i 's/INSTALL_RPATH_USE_LINK_PATH false/INSTALL_RPATH_USE_LINK_PATH ${INSTAL
 > ---
 
 ```bash
-mkdir -p "${GPISPACE_BUILD_DIR}" && cd "${GPISPACE_BUILD_DIR}"
+mkdir -p "${GPISPACE_BUILD_DIR}"
 
 cmake -C ${GPISPACE_REPO}/config.cmake                            \
       -D CMAKE_INSTALL_PREFIX=${GPISPACE_INSTALL_DIR}             \
@@ -469,14 +473,15 @@ git clone                                                \
     git@github.com:singular-gpispace/PFD.git             \
     pfd
 
-mkdir -p $PFD_BUILD_DIR && cd $PFD_BUILD_DIR
-cmake -DCMAKE_INSTALL_PREFIX=$PFD_INSTALL_DIR   \
-      -DCMAKE_BUILD_TYPE=Release                \
-      -DGSPC_HOME=$GPISPACE_INSTALL_DIR         \
-      -DALLOW_ANY_GPISPACE_VERSION=true         \
-      -DGPISPACE_REPO=$GPISPACE_REPO            \
-      -DSINGULAR_HOME=$SINGULAR_INSTALL_DIR     \
-      $PFD_REPO
+mkdir -p $PFD_BUILD_DIR
+cmake -D CMAKE_INSTALL_PREFIX=$PFD_INSTALL_DIR   \
+      -D CMAKE_BUILD_TYPE=Release                \
+      -D GSPC_HOME=$GPISPACE_INSTALL_DIR         \
+      -D ALLOW_ANY_GPISPACE_VERSION=true         \
+      -D GPISPACE_REPO=$GPISPACE_REPO            \
+      -D SINGULAR_HOME=$SINGULAR_INSTALL_DIR     \
+      -B ${PFD_BUILD_DIR}                        \
+      -S ${PFD_REPO}
 
 make -j $(nproc)
 make -j $(nproc) install
