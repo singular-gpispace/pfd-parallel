@@ -2717,6 +2717,8 @@ SEE ALSO: pfdMat, pfdSingleEntrySSI
 {
   system("--ticks-per-sec",1000);
   short = 0;
+
+  // Set up to and from directories
   if(size(#)>0)
   {
     string from_dir = #[1]; // read file from this
@@ -2733,78 +2735,28 @@ SEE ALSO: pfdMat, pfdSingleEntrySSI
   if(size(#)>2) {ignore_nonlin = #[3];}
 
 
-  int i,j,k;
-  list fraction;
-  i = find(filename,".");
+
+
+  int i = find(filename,".");
   if(i>0) {filename = filename[1,i-1];} // remove file ending if given
 
-  if(file_exists(to_dir+"resources_"+filename+".txt")) {return();}
+  if (file_exists(to_dir + "resources_" + filename + ".txt")) { return(); }
 
-  if(file_exists(from_dir+filename+".ssi"))
-  {
-    fraction = read("ssi:r "+from_dir+filename+".ssi");
-  }
-  else
-  {
-    string s = read(":r "+from_dir+filename+".txt");
-    if(!defined(basering))
-      {ERROR("Please set a basering, that matches the variable names used in "
-                                       + "the input file ("+filename+".txt).");}
-    string s1,s2;
-    j = find(s,"/(");
-    if(j==0) // no denominator
-    {
-      fraction = list(string_to_poly(s), poly(1));
-    }
-    else
-    {
-      s1 = s[1,j-1];
-      s2 = s[j+1,size(s)-j];
-      fraction = list(string_to_poly(s1), string_to_poly(s2));
-    }
+  prepareSingleEntryFraction(filename, from_dir, to_dir, ignore_nonlin);
 
-    list fact = factorize(fraction[2]);
 
-    number lcoeff;
-    number constant = number(fact[1][1])^fact[2][1];
-    fact[1] = delete(fact[1],1);
-    fact[2] = delete(fact[2],1);
-    for(k=1; k<=size(fact[1]); k++)
-    {
-      lcoeff = leadcoef(fact[1][k]);
-      fact[1][k] = fact[1][k]/lcoeff;
-      constant = constant*(lcoeff^fact[2][k]); // polynomial is monic (thus unique)
-      lcoeff = content(fact[1][k]);
-      fact[1][k] = fact[1][k]/lcoeff;
-      constant = constant*(lcoeff^fact[2][k]); // polynomial has nice coefficients
-    }
 
-    fraction[1] = fraction[1] * (1/constant);
-    fraction[2] = fact;
 
-    write("ssi:w "+from_dir+filename+".ssi", fraction);
-  }
-
-  list nonlin = list(list(),list());
-  if(ignore_nonlin)
-  {
-    i = 1;
-    for(k=1; k<=size(fraction[2][1]); k++) // move nonlinear factors into nonlin
-    {
-      if(deg(fraction[2][1][k])>1)
-      {
-        nonlin[1][i] = fraction[2][1][k];
-        nonlin[2][i] = fraction[2][2][k];
-        fraction[2][1] = delete(fraction[2][1],k);
-        fraction[2][2] = delete(fraction[2][2],k);
-        i++;
-      }
-    }
-  }
-
+  link interl = "ssi:r " + to_dir+ "prepared_" + filename+".ssi";
+  list fraction = read(interl);
+  list nonlin = read(interl);
   int t = rtimer;
+
   list result = pfd(fraction);
+
   t = rtimer-t;
+  write(":w "+to_dir+"resources_"+filename+".txt",
+        sprintf("Time: %s ms,  Memory: %s Bytes",t,memory(2)));
 
   // output as Singular objects
   if(ignore_nonlin)
@@ -2812,7 +2764,22 @@ SEE ALSO: pfdMat, pfdSingleEntrySSI
   else
     {write("ssi:w "+to_dir+"result_"+filename+".ssi",result);}
 
+  write_pfd_as_txt(to_dir, to_dir, filename, ignore_nonlin);
+
+}
+
+proc write_pfd_as_txt(string from_dir, string to_dir, string filename, int ignore_nonlin)
+{
+  list result = read("ssi:r "+from_dir+"result_"+filename+".ssi");
+  list nonlin = list(list(),list());
+
+  if (ignore_nonlin) {
+    list nonlin = result[1];
+    result = result[2];
+  }
+
   //output as txt:
+  int i,j,k;
   string dec;
   string nonlin_fact;
   k = size(nonlin[1]);
@@ -2860,8 +2827,79 @@ SEE ALSO: pfdMat, pfdSingleEntrySSI
     denom_fact = denom_fact + "q" + string(i) + " = " + string(q[i]) + "%n";
   }
   fprintf(":w "+to_dir+"result_denominator_factors_"+filename+".txt", denom_fact,0);
+}
 
-  write(":w "+to_dir+"resources_"+filename+".txt",sprintf("Time: %s ms,  Memory: %s Bytes",t,memory(2)));
+proc prepareSingleEntryFraction(string filename,
+                                string from_dir,
+                                string to_dir,
+                                int ignore_nonlin)
+{
+  list fraction;
+  if (file_exists(from_dir + filename + ".ssi"))
+  {
+    fraction = read("ssi:r " + from_dir + filename + ".ssi");
+  }
+  else
+  {
+    string s = read(":r " + from_dir + filename + ".txt");
+    if (!defined(basering)) {
+      ERROR("Please set a basering, that matches the variable names used in "
+            + "the input file (" + filename + ".txt).");
+    }
+    string s1,s2;
+    j = find(s, "/(");
+    if (j==0) {
+      // no denominator
+      fraction = list(string_to_poly(s), poly(1));
+    } else {
+      s1 = s[1,j-1];
+      s2 = s[j+1,size(s)-j];
+      fraction = list(string_to_poly(s1), string_to_poly(s2));
+    }
+
+    list fact = factorize(fraction[2]);
+
+    number lcoeff;
+    number constant = number(fact[1][1])^fact[2][1];
+    fact[1] = delete(fact[1], 1);
+    fact[2] = delete(fact[2], 1);
+    for (k=1; k<=size(fact[1]); k++) {
+      lcoeff = leadcoef(fact[1][k]);
+      fact[1][k] = fact[1][k] / lcoeff;
+      constant = constant * (lcoeff^fact[2][k]); // polynomial is monic (thus unique)
+      lcoeff = content(fact[1][k]);
+      fact[1][k] = fact[1][k]/lcoeff;
+      constant = constant * (lcoeff^fact[2][k]); // polynomial has nice coefficients
+    }
+
+    fraction[1] = fraction[1] * (1/constant);
+    fraction[2] = fact;
+
+    write("ssi:w "+from_dir+filename+".ssi", fraction);
+  }
+
+
+  list nonlin = list(list(),list());
+  int i, k;
+  if(ignore_nonlin)
+  {
+    i = 1;
+    for(k=1; k<=size(fraction[2][1]); k++) // move nonlinear factors into nonlin
+    {
+      if(deg(fraction[2][1][k])>1)
+      {
+        nonlin[1][i] = fraction[2][1][k];
+        nonlin[2][i] = fraction[2][2][k];
+        fraction[2][1] = delete(fraction[2][1],k);
+        fraction[2][2] = delete(fraction[2][2],k);
+        i++;
+      }
+    }
+  }
+  link l = "ssi:w "+to_dir+ "prepared_" + filename+".ssi";
+  write(l, fraction);
+  write(l, nonlin);
+  close(l);
 }
 
 
