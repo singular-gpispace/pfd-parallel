@@ -427,11 +427,13 @@ mkdir 4ti2 && cd 4ti2
 wget http://www.4ti2.de/version_1.6/4ti2-1.6.tar.gz
 tar xvfz 4ti2-1.6.tar.gz
 
-cd $COMPILE_ROOT/4ti2/build
-$SING_ROOT/4ti2/4ti2-1.6/configure --prefix=$DEP_LIBS
+pushd $COMPILE_ROOT/4ti2/build
 
+$SING_ROOT/4ti2/4ti2-1.6/configure --prefix=$DEP_LIBS
 make -j $(nproc)
 make install
+
+popd
 
 ```
 
@@ -445,11 +447,13 @@ mkdir cddlib && cd cddlib
 wget https://github.com/cddlib/cddlib/releases/download/0.94j/cddlib-0.94j.tar.gz
 tar -xvf cddlib-0.94j.tar.gz
 
-cd $COMPILE_ROOT/cddlib/build
-$SING_ROOT/cddlib/cddlib-0.94j/configure --prefix=$DEP_LIBS
+pushd $COMPILE_ROOT/cddlib/build
 
+$SING_ROOT/cddlib/cddlib-0.94j/configure --prefix=$DEP_LIBS
 make -j $(nproc)
 make install
+
+popd
 
 ```
 
@@ -481,7 +485,7 @@ git clone                                                         \
 cd Sources
 ./autogen.sh
 
-mkdir -p $SINGULAR_BUILD_DIR && cd $SINGULAR_BUILD_DIR
+mkdir -p $SINGULAR_BUILD_DIR && pushd $SINGULAR_BUILD_DIR
 
 CPPFLAGS="-I$DEP_LIBS/include"                                    \
 LDFLAGS="-L$DEP_LIBS/lib"                                         \
@@ -492,6 +496,8 @@ ${SING_ROOT}/Sources/configure                                    \
     --enable-gfanlib
 make -j $(nproc)
 make install
+
+popd
 
 ```
 ## Compile PFD
