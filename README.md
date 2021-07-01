@@ -209,7 +209,7 @@ cmake -D CRYPTO_BACKEND=OpenSSL                                   \
       -B $Libssh2_BUILD_DIR                                       \
       -S libssh2
 
-cmake --build libssh2/build                                       \
+cmake --build $Libssh2_BUILD_DIR                                  \
       --target install                                            \
       -j $(nproc)
 
