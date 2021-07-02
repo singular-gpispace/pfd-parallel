@@ -30,7 +30,7 @@
                                    options,
                                    in,
                                    out)">
-          <cinclude href="share/include/interface.hpp"/>
+          <cinclude href="interface/singular_pnet-interface.hpp"/>
           <cinclude href="util-generic/dynamic_linking.hpp"/>
           <cinclude href="iostream"/>
           <code><![CDATA[

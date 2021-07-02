@@ -3,7 +3,7 @@
 #define NO_NAME_MANGLING extern "C"
 
 #include <string>
-#include <share/include/type_aliases.hpp>
+#include <interface/type_aliases.hpp>
 
 NO_NAME_MANGLING
 void singular_parallel_compute ( std::string const&

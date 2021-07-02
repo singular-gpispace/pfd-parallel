@@ -14,10 +14,10 @@
 #include <util-generic/print_exception.hpp>
 #include <util-generic/read_lines.hpp>
 
-#include "Singular/libsingular.h"
+#include <Singular/libsingular.h>
 
-#include "parallel/singular_functions.hpp"
-#include <share/include/type_aliases.hpp>
+#include <interface/singular_functions.hpp>
+#include <interface/type_aliases.hpp>
 
 #define get_singular_string_argument(A,B,C) \
     require_argument<B, char*> (A,STRING_CMD,"string",C)

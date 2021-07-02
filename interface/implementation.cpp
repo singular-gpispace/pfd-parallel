@@ -1,6 +1,6 @@
 #include <Singular/libsingular.h>
 
-#include <share/include/interface.hpp>
+#include <interface/singular_pnet-interface.hpp>
 
 #include <iostream>
 #include <stdexcept>
@@ -63,7 +63,7 @@ BOOLEAN check_integers_equal(int const& a,
 }
 
 
-/*** Interface functions (declared in share/include/interface.hpp) ***/
+/*** Interface functions (declared in interface/singular_pnet-interface.hpp) ***/
 
 NO_NAME_MANGLING
 void singular_parallel_compute ( std::string const& path_to_libsingular

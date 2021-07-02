@@ -107,7 +107,7 @@
         <module name="singular_parallel_first" function="compute (implementation,
           path_to_libsingular, options, in, out)" eureka-group="wait_first"
           pass_context="true">
-          <cinclude href="share/include/interface.hpp"/>
+          <cinclude href="interface/singular_pnet-interface.hpp"/>
           <cinclude href="util-generic/dynamic_linking.hpp"/>
           <cinclude href="iostream"/>
           <code><![CDATA[

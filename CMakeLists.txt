@@ -63,7 +63,7 @@ bundle_GPISpace_add_rpath (TARGET SINGULAR-parallel-installation INSTALL_DIRECTO
 extended_add_library (NAME module
   TYPE SHARED
   NAMESPACE SINGULAR-parallel
-  SOURCES "src/bin/SINGULAR-parallel-module.cpp" "parallel/singular_functions.cpp"
+  SOURCES "src/bin/SINGULAR-parallel-module.cpp" "interface/singular_functions.cpp"
   COMPILE_DEFINITIONS SING_NDEBUG OM_NDEBUG
   LIBRARIES SINGULAR-parallel::installation
             Util::Generic
@@ -81,7 +81,7 @@ set_target_properties (SINGULAR-parallel-module
 )
 bundle_GPISpace_add_rpath (TARGET SINGULAR-parallel-module INSTALL_DIRECTORY "LIB")
 
-add_subdirectory (parallel)
+add_subdirectory (interface)
 add_subdirectory (workflow)
 add_subdirectory (singular)
 
