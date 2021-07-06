@@ -111,6 +111,51 @@ void singular_parallel_compute ( std::string const& path_to_libsingular
 }
 
 NO_NAME_MANGLING
+void pfd_parallel_compute ( std::string const& path_to_libsingular
+                               , std::string const& base_filename
+                               , unsigned int const& id
+                               , std::string const& function_name
+                               , std::string const& needed_library
+                               , std::string const& in_struct_name
+                               , std::string const& in_struct_desc
+                               , std::string const& out_struct_name
+                               , std::string const& out_struct_desc
+                               )
+{
+  std::string ids = get_id_string();
+  //std::cout << ids << " in singular_..._compute" << std::endl;
+  init_singular (path_to_libsingular);
+
+  safely_register_sing_struct(in_struct_name, in_struct_desc, ids);
+  safely_register_sing_struct(out_struct_name, out_struct_desc, ids);
+
+  int in_type, out_type;
+  blackboxIsCmd (in_struct_name.c_str(), in_type);
+  blackboxIsCmd (out_struct_name.c_str(), out_type);
+
+  lists in_lst = ssi_read_newstruct(base_filename + ".i" + std::to_string (id),
+                     in_struct_name);
+
+  load_singular_library (needed_library);
+  std::pair<int, lists> out = call_user_proc (function_name,
+                                              needed_library,
+                                              in_type,
+                                              in_lst);
+  check_integers_equal(out.first, out_type, ids +
+                       " - singular_parallel_compute: incorrect return types" );
+
+
+  ssi_write_newstruct ( get_out_struct_filename(base_filename, id)
+                      , out_struct_name
+                      , out.second);
+  //std::cout << ids << ": A" << std::endl;
+  //in_lst->Clean(); // TODO needs repairing
+  //std::cout << ids << ": B" << std::endl;
+  //out.second->Clean(); // TODO needs repairing
+  //std::cout << ids << ": end of singular_..._compute" << std::endl;
+}
+
+NO_NAME_MANGLING
 singular_parallel::pnet_list sp_extract_neighbours
                                ( std::string const& path_to_libsingular
                                , std::string const& base_filename

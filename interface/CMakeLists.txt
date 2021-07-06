@@ -4,7 +4,7 @@ find_package (Singular REQUIRED)
 
 extended_add_library (NAME parallel_implementation
   TYPE MODULE
-  SOURCES "implementation.cpp" "singular_functions.cpp"
+  SOURCES "singular_pnet-interface.cpp" "singular_functions.cpp"
   INCLUDE_DIRECTORIES PRIVATE "${CMAKE_BINARY_DIR}" "${CMAKE_BINARY_DIR}/gen"
   COMPILE_DEFINITIONS SING_NDEBUG OM_NDEBUG
   LIBRARIES GPISpace::workflow_development Singular

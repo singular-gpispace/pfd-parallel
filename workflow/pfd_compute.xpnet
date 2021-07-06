@@ -37,7 +37,7 @@
             std::cout << "pfd computation " << in.id << " starting\n";
             fhg::util::scoped_dlhandle
               (config.implementation, RTLD_GLOBAL | RTLD_NOW | RTLD_DEEPBIND)
-              .sym<decltype (singular_parallel_compute)> ("singular_parallel_compute")
+              .sym<decltype (pfd_parallel_compute)> ("pfd_parallel_compute")
               ( config.path_to_libsingular, config.base_filename, in.id
               , options.function_name, options.needed_library
               , options.in_struct_name, options.in_struct_desc

@@ -5,16 +5,35 @@
 #include <string>
 #include <interface/type_aliases.hpp>
 
+#define RESOLVE_INTERFACE_FUNCTION(function) \
+      (fhg::util::scoped_dlhandle \
+      (config::feynmanInterfaceLibrary(), \
+      RTLD_GLOBAL | RTLD_NOW | RTLD_DEEPBIND) \
+  .sym<decltype(function)>(BOOST_PP_STRINGIZE(function)))
+
+
 NO_NAME_MANGLING
-void singular_parallel_compute ( std::string const&
-                               , std::string const&
-                               , unsigned int const&
-                               , std::string const&
-                               , std::string const&
-                               , std::string const&
-                               , std::string const&
-                               , std::string const&
-                               , std::string const&
+void singular_parallel_compute ( std::string const& path_to_libsingular
+                               , std::string const& base_filename
+                               , unsigned int const& id
+                               , std::string const& function_name
+                               , std::string const& needed_library
+                               , std::string const& in_struct_name
+                               , std::string const& in_struct_desc
+                               , std::string const& out_struct_name
+                               , std::string const& out_struct_desc
+                               );
+
+NO_NAME_MANGLING
+void pfd_parallel_compute ( std::string const& path_to_libsingular
+                               , std::string const& base_filename
+                               , unsigned int const& id
+                               , std::string const& function_name
+                               , std::string const& needed_library
+                               , std::string const& in_struct_name
+                               , std::string const& in_struct_desc
+                               , std::string const& out_struct_name
+                               , std::string const& out_struct_desc
                                );
 
 NO_NAME_MANGLING
