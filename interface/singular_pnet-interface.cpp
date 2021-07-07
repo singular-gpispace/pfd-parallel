@@ -9,6 +9,7 @@
 #include <boost/filesystem.hpp>
 
 #include "singular_functions.hpp"
+#include <config.hpp>
 
 namespace singular_parallel
 {
@@ -71,7 +72,7 @@ namespace singular_parallel
     NO_NAME_MANGLING
       void singular_parallel_compute
       (
-       std::string const& base_filename
+       std::string const& tmpdir
        , unsigned int const& id
        , std::string const& function_name
        , std::string const& needed_library
@@ -92,8 +93,12 @@ namespace singular_parallel
         blackboxIsCmd (in_struct_name.c_str(), in_type);
         blackboxIsCmd (out_struct_name.c_str(), out_type);
 
-        lists in_lst = ssi_read_newstruct(get_in_struct_filename(base_filename, id),
-            in_struct_name);
+        lists in_lst = ssi_read_newstruct(
+            get_in_struct_filename( tmpdir
+                                  , config::parallel_list_base_name()
+                                  , id)
+            , in_struct_name
+            );
 
         load_singular_library (needed_library);
         std::pair<int, lists> out = call_user_proc (function_name,
@@ -104,25 +109,18 @@ namespace singular_parallel
             " - singular_parallel_compute: incorrect return types" );
 
 
-        ssi_write_newstruct ( get_out_struct_filename(base_filename, id)
+        ssi_write_newstruct
+            ( get_out_struct_filename( tmpdir
+                                     , config::parallel_list_base_name()
+                                     , id)
             , out_struct_name
             , out.second);
       }
 
     NO_NAME_MANGLING
       void pfd_parallel_compute
-      (
-       std::string const& base_filename
-       , unsigned int const& id
+      (  unsigned int const& id
        , const singular_parallel::pnet_options& options
-       /*
-       , std::string const& function_name
-       , std::string const& needed_library
-       , std::string const& in_struct_name
-       , std::string const& in_struct_desc
-       , std::string const& out_struct_name
-       , std::string const& out_struct_desc
-       */
       )
       {
         std::string ids = get_id_string();
@@ -140,8 +138,12 @@ namespace singular_parallel
         blackboxIsCmd (options.in_struct_name.c_str(), in_type);
         blackboxIsCmd (options.out_struct_name.c_str(), out_type);
 
-        lists in_lst = ssi_read_newstruct(get_in_struct_filename(base_filename, id),
-            options.in_struct_name);
+        lists in_lst = ssi_read_newstruct
+            ( get_in_struct_filename( options.tmpdir
+                                    , config::parallel_pfd_base_name()
+                                    , id)
+            , options.in_struct_name
+            );
 
         load_singular_library (options.needed_library);
         std::pair<int, lists> out = call_user_proc (options.function_name,
@@ -152,7 +154,10 @@ namespace singular_parallel
             " - singular_parallel_compute: incorrect return types" );
 
 
-        ssi_write_newstruct ( get_out_struct_filename(base_filename, id)
+        ssi_write_newstruct
+            ( get_out_struct_filename( options.tmpdir
+                                     , config::parallel_pfd_base_name()
+                                     , id)
             , options.out_struct_name
             , out.second);
       }

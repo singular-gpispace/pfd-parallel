@@ -45,18 +45,20 @@
       <defun>
         <inout name="ecount" type="unsigned int"/>
         <in name="config" type="config_type"/>
+        <in name="options" type="option_type"/>
         <out name="task" type="task_type"/>
         <condition>
           ${ecount} :gt: 0U
         </condition>
         <expression>
-          ${task.base_filename} := ${config.base_filename};
+          ${task.tmpdir} := ${options.tmpdir};
           ${task.id} := ${config.task_count} - ${ecount};
           ${ecount} := ${ecount} - 1U;
         </expression>
       </defun>
       <connect-inout port="ecount" place="extract_control"/>
       <connect-read port="config" place="config"/>
+      <connect-read port="options" place="global_options"/>
       <connect-out port="task" place="tasks"/>
     </transition>
 
@@ -75,7 +77,9 @@
     <transition name="compute">
       <include-function href="pfd_compute.xpnet"/>
       <connect-in port="in" place="tasks"/>
+      <!--
       <connect-read port="config" place="config"/>
+      -->
       <connect-read port="options" place="global_options"/>
       <connect-out port="out" place="results"/>
     </transition>

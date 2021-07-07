@@ -26,6 +26,18 @@ namespace config
     return library;
   }
 
+  inline std::string const& parallel_list_base_name()
+  {
+    static std::string const list_base_name("sggspc_list");
+    return list_base_name;
+  }
+
+  inline std::string const& parallel_pfd_base_name()
+  {
+    static std::string const pfd_base_name("sggspc_pfd");
+    return pfd_base_name;
+  }
+
 /*
   inline boost::filesystem::path const& feynmanInterpreterLibrary()
   {

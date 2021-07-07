@@ -20,7 +20,7 @@ namespace singular_parallel
   {
     NO_NAME_MANGLING
       void singular_parallel_compute
-          ( std::string const& base_filename
+          ( std::string const& tmpdir
           , unsigned int const& id
           , std::string const& function_name
           , std::string const& needed_library
@@ -32,9 +32,7 @@ namespace singular_parallel
 
     NO_NAME_MANGLING
       void pfd_parallel_compute
-      (
-       std::string const& base_filename
-       , unsigned int const& id
+       ( unsigned int const& id
        , const pnet_options& options
        /*
        , std::string const& function_name
@@ -48,7 +46,7 @@ namespace singular_parallel
 
     NO_NAME_MANGLING
       singular_parallel::pnet_list sp_extract_neighbours
-      ( std::string const& base_filename
+      ( std::string const& tmpdir
         , std::string const& in_struct_name
         , std::string const& in_struct_desc
         , std::string const& needed_library
@@ -58,7 +56,7 @@ namespace singular_parallel
 
     NO_NAME_MANGLING
       singular_parallel::pnet_list sp_graph_extract_neighbours
-      ( std::string const& base_filename
+      ( std::string const& tmpdir
         , std::string const& in_struct_name
         , std::string const& in_struct_desc
         , std::string const& needed_library
@@ -70,6 +68,6 @@ namespace singular_parallel
 
     NO_NAME_MANGLING
       singular_parallel::pnet_set create_initial_hashset(singular_parallel::pnet_list init_list
-          , std::string base_filename);
+          , std::string tmpdir);
   }
 }

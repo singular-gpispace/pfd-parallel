@@ -6,20 +6,20 @@
     <field name="in_struct_desc" type="string"/>
     <field name="out_struct_name" type="string"/>
     <field name="out_struct_desc" type="string"/>
+    <field name="tmpdir" type="string"/>
   </struct>
 
   <struct name="config_type">
-    <field name="base_filename" type="string"/>
     <field name="task_count" type="unsigned int"/>
   </struct>
 
   <struct name="task_type">
-    <field name="base_filename" type="string"/>
+    <field name="tmpdir" type="string"/>
     <field name="id" type="unsigned int"/>
   </struct>
 
   <struct name="generator_type">
-    <field name="base_filename" type="string"/>
+    <field name="tmpdir" type="string"/>
     <field name="current_count" type="unsigned int"/>
     <field name="total_count" type="unsigned int"/>
   </struct>

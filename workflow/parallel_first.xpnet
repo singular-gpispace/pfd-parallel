@@ -2,7 +2,7 @@
 
   <include-structs href="types.xpnet"/>
 
-  <in name="base_filename" type="string" place="base_filename"/>
+  <in name="tmpdir" type="string" place="tmpdir"/>
   <in name="function_name" type="string" place="function_name"/>
   <in name="needed_library" type="string" place="needed_library"/>
   <in name="in_struct_name" type="string" place="in_struct_name"/>
@@ -12,7 +12,7 @@
   <in name="task_count" type="unsigned int" place="task_count"/>
   <out name="output" type="unsigned int" place="output"/>
   <net>
-    <place name="base_filename" type="string"/>
+    <place name="tmpdir" type="string"/>
     <place name="function_name" type="string"/>
     <place name="needed_library" type="string"/>
     <place name="in_struct_name" type="string"/>
@@ -29,7 +29,7 @@
 
     <transition name="initialize">
       <defun>
-        <in name="base_filename" type="string"/>
+        <in name="tmpdir" type="string"/>
         <in name="task_count" type="unsigned int"/>
         <in name="function_name" type="string"/>
         <in name="needed_library" type="string"/>
@@ -40,7 +40,7 @@
         <out name="state" type="generator_type"/>
         <out name="options" type="option_type"/>
         <expression>
-          ${state.base_filename} := ${base_filename};
+          ${state.tmpdir} := ${tmpdir};
           ${state.current_count} := 0U;
           ${state.total_count} := ${task_count};
           ${options.function_name} := ${function_name};
@@ -49,9 +49,10 @@
           ${options.in_struct_desc} := ${in_struct_desc};
           ${options.out_struct_name} := ${out_struct_name};
           ${options.out_struct_desc} := ${out_struct_desc};
+          ${options.tmpdir} := ${tmpdir};
         </expression>
       </defun>
-      <connect-in port="base_filename" place="base_filename"/>
+      <connect-in port="tmpdir" place="tmpdir"/>
       <connect-in port="task_count" place="task_count"/>
       <connect-in port="function_name" place="function_name"/>
       <connect-in port="needed_library" place="needed_library"/>
@@ -71,7 +72,7 @@
           ${state.current_count} :lt: ${state.total_count}
         </condition>
         <expression>
-          ${task.base_filename} := ${state.base_filename};
+          ${task.tmpdir} := ${state.tmpdir};
           ${task.id} := ${state.current_count};
           ${state.current_count} := ${state.current_count} + 1U;
         </expression>
@@ -112,7 +113,7 @@
               ( [in, options]()
                 {
                   RESOLVE_INTERFACE_FUNCTION(singular_parallel_compute)
-                      ( in.base_filename, in.id
+                      ( in.tmpdir, in.id
                       , options.function_name, options.needed_library
                       , options.in_struct_name, options.in_struct_desc
                       , options.out_struct_name, options.out_struct_desc

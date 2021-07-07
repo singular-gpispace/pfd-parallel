@@ -49,25 +49,31 @@ std::pair<int, lists> call_user_proc
   (std::string const&, std::string const&, int, lists);
 
 
-std::string get_in_struct_filename( std::string base_filename
+std::string get_in_struct_filename( std::string const& root
+                                  , std::string const& basename
                                   , unsigned long const& id);
-std::string get_out_struct_filename( std::string base_filename
+std::string get_out_struct_filename( std::string const& root
+                                   , std::string const& basename
                                    , unsigned long const& id);
-std::string get_temp_struct_filename( std::string base_filename
+std::string get_temp_struct_filename( std::string const& root
+                                    , std::string const& basename
                                     , unsigned long const& id);
 
 void write_struct_to_file ( sleftv const& m
                           , int const& in_token
                           , std::string const& filename);
 void write_in_structs_to_file( lists const& struct_list
-                             , std::string const& base_filename
+                             , std::string const& root
+                             , std::string const& basename
                              , int const& in_token);
 void write_in_structs_to_file_from_index( lists const& struct_list
                                         , int const& index
-                                        , std::string const& base_filename
+                                        , std::string const& root
+                                        , std::string const& basename
                                         , int const& in_token);
 void write_temp_structs_to_file( lists const& struct_list
-                               , std::string const& base_filename
+                               , std::string const& root
+                               , std::string const& basename
                                , int const& in_token);
 
 std::string calculate_file_sha1_hash(std::string const& disk_filename);

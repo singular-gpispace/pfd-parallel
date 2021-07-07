@@ -5,13 +5,11 @@
   <require key="worker" mandatory="true"/>
 
   <in name="in" type="task_type" place="intask"/>
-  <in name="config" type="config_type" place="readconfig"/>
   <in name="options" type="option_type"place="readoptions"/>
   <out name="out" type="task_type" place="out"/>
 
   <net>
     <place name="intask" type="task_type"/>
-    <place name="readconfig" type="config_type"/>
     <place name="readoptions" type="option_type"/>
     <place name="out" type="task_type"/>
 
@@ -19,15 +17,13 @@
       <defun>
         <require key="worker" mandatory="true"/>
         <in name="in" type="task_type"/>
-        <in name="config" type="config_type"/>
         <in name="options" type="option_type"/>
         <out name="out" type="task_type"/>
 
         <module name="singular_parallel_allpfd"
                 require_function_unloads_without_rest="false"
                 function="compute
-                            ( config
-                            , options
+                            ( options
                             , in
                             , out
                             )">
@@ -38,7 +34,7 @@
             std::cout << "pfd computation " << in.id << " starting\n";
 
             RESOLVE_INTERFACE_FUNCTION (pfd_parallel_compute)
-              ( config.base_filename, in.id, options );
+              ( in.id, options );
             out = in;
 
             std::cout << "pfd computation " << in.id << " done\n";
@@ -46,7 +42,6 @@
         </module>
       </defun>
       <connect-in port="in" place="intask"/>
-      <connect-read port="config" place="readconfig"/>
       <connect-read port="options" place="readoptions"/>
       <connect-out port="out" place="out"/>
     </transition>

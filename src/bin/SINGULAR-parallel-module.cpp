@@ -18,6 +18,7 @@
 
 #include <interface/singular_functions.hpp>
 #include <interface/type_aliases.hpp>
+#include <config.hpp>
 
 #define get_singular_string_argument(A,B,C) \
     require_argument<B, char*> (A,STRING_CMD,"string",C)
@@ -102,7 +103,6 @@ namespace
       std::string tmpDir() const;
       std::string nodeFile() const;
       std::string showStrategy() const;
-      std::string baseFileName() const;
       std::string inStructName() const;
       std::string inStructDesc() const;
       std::string outStructName() const;
@@ -137,7 +137,6 @@ namespace
       /* derived variables */
       std::size_t num_tasks;
       int out_token;
-      std::string base_filename;
 
       singular_parallel::installation singular_parallel_installation;
   };
@@ -145,8 +144,6 @@ namespace
   /*** private function declarations ***/
   int fetch_token_value_from_sing_scope (std::string token_s);
   int get_num_tasks(lists arg_list, std::string graph_type);
-  std::string get_base_filename(std::string const& graph_type,
-                                std::string const& tmpdir);
 
   /*** ArgumentState implementations ***/
   int ArgumentState::outToken() const {
@@ -171,10 +168,6 @@ namespace
 
   std::string ArgumentState::showStrategy() const {
     return strategy;
-  }
-
-  std::string ArgumentState::baseFileName() const {
-    return base_filename;
   }
 
   std::string ArgumentState::inStructName() const {
@@ -233,7 +226,6 @@ namespace
   , graph_type (graph_type)
   , num_tasks (get_num_tasks(arg_list, graph_type))
   , out_token (fetch_token_value_from_sing_scope (outstructname))
-  , base_filename (get_base_filename(graph_type, tmpdir))
   , singular_parallel_installation ()
   {
     if (out_token == 0)
@@ -261,24 +253,6 @@ namespace
       return 0;
     }
   }
-
-  std::string get_base_filename(std::string const& graph_type,
-                                std::string const& tmpdir)
-  {
-    std::string base_filename;
-    if ((graph_type == "list_all") || (graph_type == "list_first")) {
-      base_filename = tmpdir + "/sggspc_list";
-    } else if (graph_type == "pfd") {
-        base_filename = tmpdir + "/sggspc_pfd";
-    } else {
-      throw std::runtime_error(std::string("Bad graph type as argument ")
-                              + "while determining base filename");
-    }
-
-    return base_filename;
-  }
-
-
 }
 
 /*** General helper function declarations ***/
@@ -290,6 +264,8 @@ std::optional<std::multimap<std::string, pnet::type::value::value_type>>
 std::optional<std::multimap<std::string, pnet::type::value::value_type>>
     gpis_launch_with_workflow (boost::filesystem::path workflow,
                                ArgumentState const &as);
+
+std::string get_base_file_name(std::string graph_type);
 
 /*** Library function declarations ***/
 BOOLEAN sggspc_wait_all (leftv res, leftv args);
@@ -326,7 +302,7 @@ std::optional<std::multimap<std::string, pnet::type::value::value_type>>
       ) {
     std::multimap<std::string, pnet::type::value::value_type> values_on_ports
       ( {
-          {"base_filename", as.baseFileName()}
+          {"tmpdir", as.tmpDir()}
         , {"function_name", as.functionName()}
         , {"in_struct_name", as.inStructName()}
         , {"in_struct_desc", as.inStructDesc()}
@@ -345,9 +321,9 @@ std::optional<std::multimap<std::string, pnet::type::value::value_type>>
     poke( "in_struct_desc", problem_token_type, as.inStructDesc());
     poke( "out_struct_name", problem_token_type, as.outStructName());
     poke( "out_struct_desc", problem_token_type, as.outStructDesc());
+    poke( "tmpdir", problem_token_type, as.tmpDir());
 
     value_type config;
-    poke( "base_filename", config, as.baseFileName());
     poke( "task_count", config, static_cast<unsigned int> (as.numTasks()));
 
     std::multimap<std::string, value_type> values_on_ports
@@ -403,8 +379,11 @@ try
     throw std::invalid_argument ("struct does not exist");
   }
 
+  std::string basename = get_base_file_name(as.graphType());
+
   write_in_structs_to_file( as.argList()
-                          , as.baseFileName()
+                          , as.tmpDir()
+                          , basename
                           , in_token
                           );
 
@@ -496,6 +475,21 @@ catch (...)
   return std::nullopt;
 }
 
+
+std::string get_base_file_name(std::string graph_type) {
+  std::string basename;
+  if ((graph_type == "list_all") || (graph_type == "list_first")) {
+    basename = config::parallel_list_base_name();
+  } else if (graph_type == "pfd") {
+    basename = config::parallel_pfd_base_name();
+  } else {
+    throw std::runtime_error(std::string("Bad graph type as argument ")
+        + "while determining base filename");
+  }
+
+  return basename;
+}
+
 /*** Module initialization ***/
 
 extern "C" int mod_init (SModulFunctions* psModulFunctions)
@@ -542,9 +536,13 @@ try {
   lists out_list = static_cast<lists> (omAlloc0Bin (slists_bin));
   out_list->Init (as.numTasks());
 
+  std::string basename = get_base_file_name(as.graphType());
+
   for (std::size_t i = 0; i < as.numTasks(); i++)
   {
-    si_link l = ssi_open_for_read(get_out_struct_filename(as.baseFileName(), i));
+    si_link l = ssi_open_for_read(get_out_struct_filename(as.tmpDir(),
+                                                          basename,
+                                                          i));
     // later consider case of "wrong" output (and do not throw)
     lists entry = ssi_read_newstruct (l, as.outStructName());
     ssi_close_and_remove (l);
@@ -594,9 +592,12 @@ try {
   lists out_list = static_cast<lists> (omAlloc0Bin (slists_bin));
   out_list->Init (as.numTasks());
 
+  std::string basename = get_base_file_name(as.graphType());
   for (std::size_t i = 0; i < as.numTasks(); i++)
   {
-    si_link l = ssi_open_for_read(get_out_struct_filename(as.baseFileName(), i));
+    si_link l = ssi_open_for_read(get_out_struct_filename( as.tmpDir()
+                                                         , basename
+                                                         , i));
     // later consider case of "wrong" output (and do not throw)
     lists entry = ssi_read_newstruct (l, as.outStructName());
     ssi_close_and_remove (l);
@@ -642,9 +643,10 @@ try
   }
   unsigned int i = boost::get<unsigned int> (sm_result_it->second);
 
-  si_link l = ssi_open_for_read (as.baseFileName() +
-                                 ".o" +
-                                 std::to_string (i));
+  std::string basename = get_base_file_name(as.graphType());
+  si_link l = ssi_open_for_read (get_out_struct_filename(as.tmpDir(),
+                                                          basename,
+                                                          i));
 
   lists entry = ssi_read_newstruct (l, as.outStructName());
   ssi_close_and_remove (l);

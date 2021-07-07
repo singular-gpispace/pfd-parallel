@@ -381,60 +381,72 @@ std::pair<int, lists> call_user_proc (std::string const& function_name,
   return proc<lists> (symbol (needed_library, function_name), arg);
 }
 
-std::string get_struct_filename( std::string base_filename
-                               , std::string postfix
+std::string get_struct_filename( std::string const& root
+                               , std::string const& basename
+                               , std::string const& postfix
                                , unsigned long const& id);
 
 
-std::string get_struct_filename( std::string base_filename
-                               , std::string postfix
+std::string get_struct_filename( std::string const& root
+                               , std::string const& basename
+                               , std::string const& postfix
                                , unsigned long const& id)
 {
-  return base_filename + "." + postfix + std::to_string(id);
+  return root + "/" + basename + "." + postfix + std::to_string(id);
 }
 
-std::string get_in_struct_filename( std::string base_filename
+std::string get_in_struct_filename( std::string const& root
+                                  , std::string const& basename
                                   , unsigned long const& id)
 {
-  return get_struct_filename( base_filename
+  return get_struct_filename( root
+                            , basename
                             , "i"
                             , id);
 }
 
-std::string get_out_struct_filename( std::string base_filename
+std::string get_out_struct_filename( std::string const& root
+                                   , std::string const& basename
                                    , unsigned long const& id)
 {
-  return get_struct_filename( base_filename
+  return get_struct_filename( root
+                            , basename
                             , "o"
                             , id);
 }
 
-std::string get_temp_struct_filename( std::string base_filename
+std::string get_temp_struct_filename( std::string const& root
+                                    , std::string const& basename
                                     , unsigned long const& id)
 {
-  return get_struct_filename( base_filename
+  return get_struct_filename( root
+                            , basename
                             , "t"
                             , id);
 }
 
 
 void write_in_structs_to_file( lists const& struct_list
-                             , std::string const& base_filename
+                             , std::string const& root
+                             , std::string const& basename
                              , int const& in_token)
 {
   write_in_structs_to_file_from_index( struct_list
                                      , 0
-                                     , base_filename
+                                     , root
+                                     ,basename
                                      , in_token);
 }
 
 void write_in_structs_to_file_from_index( lists const& struct_list
                                         , int const& index
-                                        , std::string const& base_filename
+                                        , std::string const& root
+                                        , std::string const& basename
                                         , int const& in_token)
 {
   for (std::size_t i = 0; i < (std::size_t)struct_list->nr + 1; i++) {
-    double_ssi_write_newstruct ( get_in_struct_filename( base_filename
+    double_ssi_write_newstruct ( get_in_struct_filename( root
+                                                       , basename
                                                        , i + index)
                                , in_token
                                , struct_list->m[i]);
@@ -442,11 +454,12 @@ void write_in_structs_to_file_from_index( lists const& struct_list
 }
 
 void write_temp_structs_to_file( lists const& struct_list
-                               , std::string const& base_filename
+                               , std::string const& root
+                               , std::string const& basename
                                , int const& in_token)
 {
   for (std::size_t i = 0; i < (std::size_t)struct_list->nr + 1; i++) {
-    double_ssi_write_newstruct ( get_temp_struct_filename(base_filename, i)
+    double_ssi_write_newstruct ( get_temp_struct_filename(root, basename, i)
                         , in_token
                         , struct_list->m[i]);
   }
