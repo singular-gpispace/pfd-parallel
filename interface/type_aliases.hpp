@@ -1,6 +1,8 @@
 #ifndef TYPE_ALIASES_H
 #define TYPE_ALIASES_H
 
+#include <pnetc/type/config_type.hpp>
+#include <pnetc/type/option_type.hpp>
 #include <we/type/value.hpp>
 
 namespace singular_parallel
@@ -9,6 +11,9 @@ namespace singular_parallel
   using pnet_list = std::list<pnet_value>;
   using pnet_set = std::set<pnet_value>;
   using pnet_map = std::map<pnet_value, pnet_value>;
+
+  using pnet_config = pnetc::type::config_type::config_type;
+  using pnet_options = pnetc::type::option_type::option_type;
 
   // Provides a non-overloaded wrapper for boost::get.
   template <typename T>

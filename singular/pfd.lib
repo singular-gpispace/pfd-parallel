@@ -62,7 +62,7 @@ static proc mod_init()
   LIB "ring.lib";
   LIB "parallel.lib";
   LIB "elim.lib";
-  LIB "polylib.lib";
+//  LIB "polylib.lib";
 //LIB "poly.lib";
   LIB "general.lib";
   LIB "matrix.lib";

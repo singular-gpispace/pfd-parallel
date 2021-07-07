@@ -16,7 +16,8 @@ char* ssiReadString(const ssiInfo *d);
 BOOLEAN newstruct_deserialize(blackbox **, void **d, si_link f);
 BOOLEAN newstruct_serialize(blackbox *b, void *d, si_link f);
 
-void init_singular (std::string const&);
+//bool init_singular (std::string const&);
+bool init_singular ();
 void load_singular_library (std::string const&);
 bool register_struct(std::string const&, std::string const&);
 si_link ssi_open_for_read (std::string const&);

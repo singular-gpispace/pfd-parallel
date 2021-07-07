@@ -8,6 +8,7 @@
 #include <iomanip>
 #include <boost/uuid/sha1.hpp>
 #include <boost/filesystem.hpp>
+#include <src/config.hpp>
 
 /*** Private function declarations ***/
 
@@ -100,17 +101,26 @@ template<typename R> std::pair<int, R> proc (idhdl h, scoped_leftv const& arg)
   return std::make_pair (i, r);
 }
 
-void init_singular (std::string const& library_path)
+static void error_callback(const char* msg)
+{
+  throw std::runtime_error("Singular error: " + std::string(msg));
+}
+
+bool init_singular ()
 {
   if (currPack == NULL) // use this to check if this instance has already been
                         // initializied
   {
     mp_set_memory_functions (omMallocFunc, omReallocSizeFunc, omFreeSizeFunc);
-    siInit (const_cast<char*> (library_path.c_str()));
+    siInit (const_cast<char*> (config::singularLibrary().string().c_str()));
     currentVoice = feInitStdin (NULL);
     errorreported = 0;
     myynest = 1;
+    WerrorS_callback=error_callback;
+
+    return true;
   }
+  return false;
 }
 
 void load_singular_library (std::string const& library_name)

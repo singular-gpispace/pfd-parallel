@@ -1,9 +1,7 @@
 <defun name="parallel_first">
 
   <include-structs href="types.xpnet"/>
-  
-  <in name="implementation" type="string" place="implementation"/>
-  <in name="path_to_libsingular" type="string" place="path_to_libsingular"/>
+
   <in name="base_filename" type="string" place="base_filename"/>
   <in name="function_name" type="string" place="function_name"/>
   <in name="needed_library" type="string" place="needed_library"/>
@@ -14,8 +12,6 @@
   <in name="task_count" type="unsigned int" place="task_count"/>
   <out name="output" type="unsigned int" place="output"/>
   <net>
-    <place name="implementation" type="string"/>
-    <place name="path_to_libsingular" type="string"/>
     <place name="base_filename" type="string"/>
     <place name="function_name" type="string"/>
     <place name="needed_library" type="string"/>
@@ -100,12 +96,10 @@
       <defun>
         <require key="worker" mandatory="true"/>
         <in name="in" type="task_type"/>
-        <in name="implementation" type="string"/>
-        <in name="path_to_libsingular" type="string"/>
         <in name="options" type="option_type"/>
         <out name="out" type="task_type"/>
-        <module name="singular_parallel_first" function="compute (implementation,
-          path_to_libsingular, options, in, out)" eureka-group="wait_first"
+        <module name="singular_parallel_first" function="compute (
+          options, in, out)" eureka-group="wait_first"
           pass_context="true">
           <cinclude href="interface/singular_pnet-interface.hpp"/>
           <cinclude href="util-generic/dynamic_linking.hpp"/>
@@ -115,12 +109,10 @@
           try
           {
             _pnetc_context->execute_and_kill_on_cancel_DO_NOT_OUTPUT_TO_STANDARD_STREAMS_FROM_WITHIN
-              ( [implementation, path_to_libsingular, in, options]()
+              ( [in, options]()
                 {
-                  fhg::util::scoped_dlhandle
-                    (implementation, RTLD_GLOBAL | RTLD_NOW | RTLD_DEEPBIND)
-                    .sym<decltype (singular_parallel_compute)> ("singular_parallel_compute")
-                      ( path_to_libsingular, in.base_filename, in.id
+                  RESOLVE_INTERFACE_FUNCTION(singular_parallel_compute)
+                      ( in.base_filename, in.id
                       , options.function_name, options.needed_library
                       , options.in_struct_name, options.in_struct_desc
                       , options.out_struct_name, options.out_struct_desc
@@ -147,8 +139,6 @@
         </module>
       </defun>
       <connect-in port="in" place="tasks"/>
-      <connect-read port="implementation" place="implementation"/>
-      <connect-read port="path_to_libsingular" place="path_to_libsingular"/>
       <connect-read port="options" place="global_options"/>
       <connect-out port="out" place="result_before"/>
     </transition>
@@ -172,8 +162,6 @@
       <defun>
         <in name="result_after" type="task_type"/>
         <in name="options" type="option_type"/>
-        <in name="implementation" type="string"/>
-        <in name="path_to_libsingular" type="string"/>
         <out name="output" type="unsigned int"/>
         <expression>
           ${output} := ${result_after.id};
@@ -181,8 +169,6 @@
       </defun>
       <connect-in port="result_after" place="result_after"/>
       <connect-in port="options" place="global_options"/>
-      <connect-in port="implementation" place="implementation"/>
-      <connect-in port="path_to_libsingular" place="path_to_libsingular"/>
       <connect-out port="output" place="output"/>
     </transition>
 

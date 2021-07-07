@@ -249,7 +249,7 @@ PURPOSE:  apply @code{pfd} in parallel to the rational function saved in the
 "
 {
   configToken gc, pc;
-  int i;
+  int i, parallelize;
   list l;
   string todir, suffix;
 
@@ -275,6 +275,11 @@ PURPOSE:  apply @code{pfd} in parallel to the rational function saved in the
   } else {
     suffix = "txt";
   }
+  if (size(#) >= 4) {
+    parallelize = #[4];
+  } else {
+    parallelize = 0; // false
+  }
 
   pc = pfd_structs_config();
 
@@ -294,7 +299,11 @@ PURPOSE:  apply @code{pfd} in parallel to the rational function saved in the
       l[i] = ins;
   }
 
-  def re_all = parallel_waitpfd(l,gc,pc);
+  if (parallelize) {
+    def re_all = parallel_waitpfd(l,gc,pc);
+  } else {
+    def re_all = parallel_waitall(l,gc,pc);
+  }
 
   if (size(#) < 1) {
     system("sh", "rm -rv " + gc.options.tmpdir);

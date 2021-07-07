@@ -7,11 +7,9 @@
     <field name="out_struct_name" type="string"/>
     <field name="out_struct_desc" type="string"/>
   </struct>
-  
+
   <struct name="config_type">
-    <field name="path_to_libsingular" type="string"/>
     <field name="base_filename" type="string"/>
-    <field name="implementation" type="string"/>
     <field name="task_count" type="unsigned int"/>
   </struct>
 

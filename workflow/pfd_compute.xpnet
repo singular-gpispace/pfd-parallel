@@ -1,4 +1,4 @@
-<defun name="pfd_copmpute">
+<defun name="pfd_compute">
 
   <include-structs href="types.xpnet"/>
 
@@ -25,25 +25,22 @@
 
         <module name="singular_parallel_allpfd"
                 require_function_unloads_without_rest="false"
-                function="compute (
-                                   config,
-                                   options,
-                                   in,
-                                   out)">
+                function="compute
+                            ( config
+                            , options
+                            , in
+                            , out
+                            )">
           <cinclude href="interface/singular_pnet-interface.hpp"/>
           <cinclude href="util-generic/dynamic_linking.hpp"/>
           <cinclude href="iostream"/>
           <code><![CDATA[
             std::cout << "pfd computation " << in.id << " starting\n";
-            fhg::util::scoped_dlhandle
-              (config.implementation, RTLD_GLOBAL | RTLD_NOW | RTLD_DEEPBIND)
-              .sym<decltype (pfd_parallel_compute)> ("pfd_parallel_compute")
-              ( config.path_to_libsingular, config.base_filename, in.id
-              , options.function_name, options.needed_library
-              , options.in_struct_name, options.in_struct_desc
-              , options.out_struct_name, options.out_struct_desc
-              );
+
+            RESOLVE_INTERFACE_FUNCTION (pfd_parallel_compute)
+              ( config.base_filename, in.id, options );
             out = in;
+
             std::cout << "pfd computation " << in.id << " done\n";
           ]]></code>
         </module>

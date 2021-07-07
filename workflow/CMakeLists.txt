@@ -1,14 +1,22 @@
 # Note: Does _NOT_ track external dependencies!
 function(add_petrinet in out module_name)
+  set(gen_type_op_sources
+    "${CMAKE_CURRENT_BINARY_DIR}/gen_${module_name}/pnetc/type/option_type/op.cpp"
+    "${CMAKE_CURRENT_BINARY_DIR}/gen_${module_name}/pnetc/type/config_type/op.cpp"
+    "${CMAKE_CURRENT_BINARY_DIR}/gen_${module_name}/pnetc/type/task_type/op.cpp"
+    "${CMAKE_CURRENT_BINARY_DIR}/gen_${module_name}/pnetc/type/generator_type/op.cpp"
+  )
   add_custom_command (
     OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${module_name}.pnet"
            "${CMAKE_CURRENT_BINARY_DIR}/gen_${module_name}/pnetc/op/libsingular_${module_name}.so"
+           ${gen_type_op_sources}
     COMMAND "${GSPC_HOME}/bin/pnetc"
             --gen-cxxflags=-O3
             --gen-cxxflags=-std=c++17
             --gen-cxxflags=-I"${CMAKE_BINARY_DIR}"
             --gen-cxxflags=-I"${CMAKE_SOURCE_DIR}"
             --gen-cxxflags=-I"${CMAKE_SOURCE_DIR}/src"
+            --gen-cxxflags=-I"${CMAKE_BINARY_DIR}/src"
             --gen-cxxflags=-I"${GSPC_HOME}/include"
             --gen-cxxflags=-I"${GSPC_HOME}/external/boost/include"
             --gen-ldflags="-L${CMAKE_BINARY_DIR}"
@@ -30,7 +38,19 @@ function(add_petrinet in out module_name)
     ALL
     DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/gen_${module_name}/pnetc/op/libsingular_${module_name}.so"
             "${CMAKE_CURRENT_BINARY_DIR}/${out}"
+            ${gen_type_op_sources}
   )
+  extended_add_library (
+    NAME partial_static_${module_name}_wrapper
+    TYPE STATIC
+    SOURCES ${gen_type_op_sources}
+    INCLUDE_DIRECTORIES PUBLIC "${CMAKE_BINARY_DIR}/workflow/gen_${module_name}"
+    LIBRARIES GPISpace::workflow_development
+              GPISpace::execution
+    DEPENDS ${module_name}_and_wrapper-library
+    POSITION_INDEPENDENT
+  )
+
 endfunction()
 
 function(addinstall_pnet module_name)
