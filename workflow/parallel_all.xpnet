@@ -110,6 +110,7 @@
     <transition name="finish">
       <defun>
         <in name="control" type="unsigned int"/>
+        <in name="initiated" type="unsigned int"/>
         <in name="options" type="options_type"/>
         <out name="output" type="string"/>
         <condition>
@@ -120,6 +121,7 @@
         </expression>
       </defun>
       <connect-in port="control" place="control"/>
+      <connect-in port="initiated" place="initiated"/>
       <connect-in port="options" place="global_options"/>
       <connect-out port="output" place="output"/>
     </transition>

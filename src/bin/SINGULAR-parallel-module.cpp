@@ -310,11 +310,8 @@ std::optional<std::multimap<std::string, pnet::type::value::value_type>>
     poke( "tmpdir", problem_token_type, as.tmpDir());
     poke( "task_count", problem_token_type, static_cast<unsigned int> (as.numTasks()));
 
-    //value_type config;
-    //poke( "task_count", config, static_cast<unsigned int> (as.numTasks()));
-
     std::multimap<std::string, value_type> values_on_ports
-      ( { //{"config", config},
+      ( {
           {"global_options", problem_token_type}
         }
       );
@@ -549,11 +546,6 @@ catch (...)
   sggspc_print_current_exception (std::string ("in sggspc_wait_all"));
   return TRUE;
 }
-
-
-
-
-
 
 
 

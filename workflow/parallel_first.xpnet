@@ -128,6 +128,7 @@
     <transition name="finish">
       <defun>
         <in name="result_after" type="unsigned int"/>
+        <in name="initiated" type="unsigned int"/>
         <in name="options" type="options_type"/>
         <out name="output" type="unsigned int"/>
         <expression>
@@ -135,6 +136,7 @@
         </expression>
       </defun>
       <connect-in port="result_after" place="result_after"/>
+      <connect-in port="initiated" place="initiated"/>
       <connect-in port="options" place="global_options"/>
       <connect-out port="output" place="output"/>
     </transition>
