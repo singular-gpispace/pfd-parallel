@@ -297,23 +297,9 @@ std::optional<std::multimap<std::string, pnet::type::value::value_type>>
   using pnet::type::value::value_type;
   using pnet::type::value::poke;
 
-  if ((as.graphType() == "list_all") ||
-      (as.graphType() == "list_first")
-      ) {
-    std::multimap<std::string, pnet::type::value::value_type> values_on_ports
-      ( {
-          {"tmpdir", as.tmpDir()}
-        , {"function_name", as.functionName()}
-        , {"in_struct_name", as.inStructName()}
-        , {"in_struct_desc", as.inStructDesc()}
-        , {"out_struct_name", as.outStructName()}
-        , {"out_struct_desc", as.outStructDesc()}
-        , {"needed_library", as.neededLibrary()}
-        , {"task_count", static_cast<unsigned int> (as.numTasks())}
-        }
-      );
-    return values_on_ports;
-  } else if (as.graphType() == "pfd") {
+  if ((as.graphType() == "pfd") ||
+    (as.graphType() == "list_all") ||
+    (as.graphType() == "list_first")) {
     value_type problem_token_type;
     poke( "function_name", problem_token_type, as.functionName());
     poke( "needed_library", problem_token_type, as.neededLibrary());
@@ -322,13 +308,14 @@ std::optional<std::multimap<std::string, pnet::type::value::value_type>>
     poke( "out_struct_name", problem_token_type, as.outStructName());
     poke( "out_struct_desc", problem_token_type, as.outStructDesc());
     poke( "tmpdir", problem_token_type, as.tmpDir());
+    poke( "task_count", problem_token_type, static_cast<unsigned int> (as.numTasks()));
 
-    value_type config;
-    poke( "task_count", config, static_cast<unsigned int> (as.numTasks()));
+    //value_type config;
+    //poke( "task_count", config, static_cast<unsigned int> (as.numTasks()));
 
     std::multimap<std::string, value_type> values_on_ports
-      ( { {"config", config}
-        , {"global_options", problem_token_type}
+      ( { //{"config", config},
+          {"global_options", problem_token_type}
         }
       );
     return values_on_ports;

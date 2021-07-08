@@ -2,109 +2,77 @@
 
   <include-structs href="types.xpnet"/>
 
-  <in name="tmpdir" type="string" place="tmpdir"/>
-  <in name="function_name" type="string" place="function_name"/>
-  <in name="needed_library" type="string" place="needed_library"/>
-  <in name="in_struct_name" type="string" place="in_struct_name"/>
-  <in name="in_struct_desc" type="string" place="in_struct_desc"/>
-  <in name="out_struct_name" type="string" place="out_struct_name"/>
-  <in name="out_struct_desc" type="string" place="out_struct_desc"/>
-  <in name="task_count" type="unsigned int" place="task_count"/>
+  <in name="global_options" type="options_type" place="global_options"/>
   <out name="output" type="string" place="output"/>
 
   <net>
-    <place name="tmpdir" type="string"/>
-    <place name="function_name" type="string"/>
-    <place name="needed_library" type="string"/>
-    <place name="in_struct_name" type="string"/>
-    <place name="in_struct_desc" type="string"/>
-    <place name="out_struct_name" type="string"/>
-    <place name="out_struct_desc" type="string"/>
-    <place name="task_count" type="unsigned int"/>
-    <place name="global_options" type="option_type"/>
-    <place name="generator_state" type="generator_type"/>
-    <place name="collector_state" type="generator_type"/>
-    <place name="tasks" type="task_type"/>
-    <place name="results" type="task_type"/>
+    <place name="initiated" type="unsigned int">
+      <token><value>0U</value></token>
+    </place>
+    <place name="global_options" type="options_type"/>
+    <place name="extract_control" type="unsigned int"/>
+    <place name="control" type="unsigned int"/>
+    <place name="tasks" type="unsigned int"/>
+    <place name="results" type="unsigned int"/>
     <place name="output" type="string"/>
 
     <transition name="initialize">
       <defun>
-        <in name="tmpdir" type="string"/>
-        <in name="task_count" type="unsigned int"/>
-        <in name="function_name" type="string"/>
-        <in name="needed_library" type="string"/>
-        <in name="in_struct_name" type="string"/>
-        <in name="in_struct_desc" type="string"/>
-        <in name="out_struct_name" type="string"/>
-        <in name="out_struct_desc" type="string"/>
-        <out name="state" type="generator_type"/>
-        <out name="cstate" type="generator_type"/>
-        <out name="options" type="option_type"/>
+        <in name="options" type="options_type"/>
+        <inout name="initiated" type="unsigned int"/>
+        <out name="extract_control" type="unsigned int"/>
+        <out name="control" type="unsigned int"/>
+
+        <condition>
+          ${initiated} :eq: 0U
+        </condition>
+
         <expression>
-          ${state.tmpdir} := ${tmpdir};
-          ${state.current_count} := 0U;
-          ${state.total_count} := ${task_count};
-          ${options.function_name} := ${function_name};
-          ${options.needed_library} := ${needed_library};
-          ${options.in_struct_name} := ${in_struct_name};
-          ${options.in_struct_desc} := ${in_struct_desc};
-          ${options.out_struct_name} := ${out_struct_name};
-          ${options.out_struct_desc} := ${out_struct_desc};
-          ${options.tmpdir} := ${tmpdir};
-          ${cstate.tmpdir} := ${tmpdir};
-          ${cstate.current_count} := 0U;
-          ${cstate.total_count} := ${task_count};
+          ${extract_control} := ${options.task_count};
+          ${control} := ${options.task_count};
+          ${initiated} := 1U;
         </expression>
       </defun>
-      <connect-in port="tmpdir" place="tmpdir"/>
-      <connect-in port="task_count" place="task_count"/>
-      <connect-in port="function_name" place="function_name"/>
-      <connect-in port="needed_library" place="needed_library"/>
-      <connect-in port="in_struct_name" place="in_struct_name"/>
-      <connect-in port="in_struct_desc" place="in_struct_desc"/>
-      <connect-in port="out_struct_name" place="out_struct_name"/>
-      <connect-in port="out_struct_desc" place="out_struct_desc"/>
-      <connect-out port="state" place="generator_state"/>
-      <connect-out port="cstate" place="collector_state"/>
-      <connect-out port="options" place="global_options"/>
+      <connect-read port="options" place="global_options"/>
+      <connect-inout port="initiated" place="initiated"/>
+      <connect-out port="extract_control" place="extract_control"/>
+      <connect-out port="control" place="control"/>
     </transition>
 
     <transition name="extract">
       <defun>
-        <inout name="state" type="generator_type"/>
-        <out name="task" type="task_type"/>
+        <inout name="extract_control" type="unsigned int"/>
+        <out name="task" type="unsigned int"/>
         <condition>
-          ${state.current_count} :lt: ${state.total_count}
+          ${extract_control} :gt: 0U
         </condition>
         <expression>
-          ${task.tmpdir} := ${state.tmpdir};
-          ${task.id} := ${state.current_count};
-          ${state.current_count} := ${state.current_count} + 1U;
+          ${task} := ${extract_control} - 1U;
+          ${extract_control} := ${extract_control} - 1U;
         </expression>
       </defun>
-      <connect-inout port="state" place="generator_state"/>
+      <connect-inout port="extract_control" place="extract_control"/>
       <connect-out port="task" place="tasks"/>
     </transition>
 
     <transition name="done_extract">
       <defun>
-        <in name="state" type="generator_type"/>
+        <in name="extract_control" type="unsigned int"/>
         <condition>
-          ${state.current_count} :eq: ${state.total_count}
+          ${extract_control} :eq: 0U
         </condition>
         <expression>
         </expression>
       </defun>
-      <connect-in port="state" place="generator_state"/>
+      <connect-in port="extract_control" place="extract_control"/>
     </transition>
 
     <transition name="compute">
       <defun>
         <require key="worker" mandatory="true"/>
-        <in name="in" type="task_type"/>
-        <in name="options" type="option_type"/>
-        <out name="out" type="task_type"/>
+        <in name="in" type="unsigned int"/>
+        <in name="options" type="options_type"/>
+        <out name="out" type="unsigned int"/>
         <module name="singular_parallel_all"
                 require_function_unloads_without_rest="false"
                 function="compute (options,
@@ -114,11 +82,7 @@
           <cinclude href="util-generic/dynamic_linking.hpp"/>
           <code><![CDATA[
           RESOLVE_INTERFACE_FUNCTION(singular_parallel_compute)
-              ( in.tmpdir, in.id
-              , options.function_name, options.needed_library
-              , options.in_struct_name, options.in_struct_desc
-              , options.out_struct_name, options.out_struct_desc
-              );
+                                    (in, options);
           out = in;
           ]]></code>
         </module>
@@ -130,32 +94,32 @@
 
     <transition name="collect">
       <defun>
-        <in name="result" type="task_type"/>
-        <inout name="cstate" type="generator_type"/>
+        <in name="result" type="unsigned int"/>
+        <inout name="control" type="unsigned int"/>
         <condition>
-          ${cstate.current_count} :lt: ${cstate.total_count}
+          ${control} :gt: 0U
         </condition>
         <expression>
-          ${cstate.current_count} := ${cstate.current_count} + 1U;
+          ${control} := ${control} - 1U;
         </expression>
       </defun>
       <connect-in port="result" place="results"/>
-      <connect-inout port="cstate" place="collector_state"/>
+      <connect-inout port="control" place="control"/>
     </transition>
 
     <transition name="finish">
       <defun>
-        <in name="cstate" type="generator_type"/>
-        <in name="options" type="option_type"/>
+        <in name="control" type="unsigned int"/>
+        <in name="options" type="options_type"/>
         <out name="output" type="string"/>
         <condition>
-          ${cstate.current_count} :eq: ${cstate.total_count}
+          ${control} :eq: 0U
         </condition>
         <expression>
           ${output} := "DONE";
         </expression>
       </defun>
-      <connect-in port="cstate" place="collector_state"/>
+      <connect-in port="control" place="control"/>
       <connect-in port="options" place="global_options"/>
       <connect-out port="output" place="output"/>
     </transition>

@@ -4,21 +4,21 @@
 
   <require key="worker" mandatory="true"/>
 
-  <in name="in" type="task_type" place="intask"/>
-  <in name="options" type="option_type"place="readoptions"/>
-  <out name="out" type="task_type" place="out"/>
+  <in name="in" type="unsigned int" place="intask"/>
+  <in name="options" type="options_type"place="readoptions"/>
+  <out name="out" type="unsigned int" place="out"/>
 
   <net>
-    <place name="intask" type="task_type"/>
-    <place name="readoptions" type="option_type"/>
-    <place name="out" type="task_type"/>
+    <place name="intask" type="unsigned int"/>
+    <place name="readoptions" type="options_type"/>
+    <place name="out" type="unsigned int"/>
 
     <transition name="compute">
       <defun>
         <require key="worker" mandatory="true"/>
-        <in name="in" type="task_type"/>
-        <in name="options" type="option_type"/>
-        <out name="out" type="task_type"/>
+        <in name="in" type="unsigned int"/>
+        <in name="options" type="options_type"/>
+        <out name="out" type="unsigned int"/>
 
         <module name="singular_parallel_allpfd"
                 require_function_unloads_without_rest="false"
@@ -31,13 +31,13 @@
           <cinclude href="util-generic/dynamic_linking.hpp"/>
           <cinclude href="iostream"/>
           <code><![CDATA[
-            std::cout << "pfd computation " << in.id << " starting\n";
+            std::cout << "pfd computation " << in << " starting\n";
 
             RESOLVE_INTERFACE_FUNCTION (pfd_parallel_compute)
-              ( in.id, options );
+              ( in, options );
             out = in;
 
-            std::cout << "pfd computation " << in.id << " done\n";
+            std::cout << "pfd computation " << in << " done\n";
           ]]></code>
         </module>
       </defun>

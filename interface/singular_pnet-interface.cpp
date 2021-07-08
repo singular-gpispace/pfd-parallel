@@ -71,49 +71,52 @@ namespace singular_parallel
 
     NO_NAME_MANGLING
       void singular_parallel_compute
-      (
-       std::string const& tmpdir
-       , unsigned int const& id
-       , std::string const& function_name
-       , std::string const& needed_library
-       , std::string const& in_struct_name
-       , std::string const& in_struct_desc
-       , std::string const& out_struct_name
-       , std::string const& out_struct_desc
+      ( unsigned int const& id
+        , const pnet_options& options
       )
       {
         std::string ids = get_id_string();
 
         init_singular ();
 
-        safely_register_sing_struct(in_struct_name, in_struct_desc, ids);
-        safely_register_sing_struct(out_struct_name, out_struct_desc, ids);
+        safely_register_sing_struct( options.in_struct_name
+                                   , options.in_struct_desc
+                                   , ids
+                                   );
+        safely_register_sing_struct( options.out_struct_name
+                                   , options.out_struct_desc
+                                   , ids
+                                   );
 
         int in_type, out_type;
-        blackboxIsCmd (in_struct_name.c_str(), in_type);
-        blackboxIsCmd (out_struct_name.c_str(), out_type);
+        blackboxIsCmd (options.in_struct_name.c_str(), in_type);
+        blackboxIsCmd (options.out_struct_name.c_str(), out_type);
 
         lists in_lst = ssi_read_newstruct(
-            get_in_struct_filename( tmpdir
+            get_in_struct_filename( options.tmpdir
                                   , config::parallel_list_base_name()
                                   , id)
-            , in_struct_name
+            , options.in_struct_name
             );
 
-        load_singular_library (needed_library);
-        std::pair<int, lists> out = call_user_proc (function_name,
-            needed_library,
-            in_type,
-            in_lst);
-        check_integers_equal(out.first, out_type, ids +
-            " - singular_parallel_compute: incorrect return types" );
+        load_singular_library (options.needed_library);
+        std::pair<int, lists> out = call_user_proc ( options.function_name
+                                                   , options.needed_library
+                                                   , in_type
+                                                   , in_lst
+                                                   );
+        check_integers_equal( out.first
+                            , out_type
+                            , ids + " - singular_parallel_compute: " +
+                                    "incorrect return types"
+                            );
 
 
         ssi_write_newstruct
-            ( get_out_struct_filename( tmpdir
+            ( get_out_struct_filename( options.tmpdir
                                      , config::parallel_list_base_name()
                                      , id)
-            , out_struct_name
+            , options.out_struct_name
             , out.second);
       }
 

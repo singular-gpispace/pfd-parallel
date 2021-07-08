@@ -1,7 +1,7 @@
 # Note: Does _NOT_ track external dependencies!
 function(add_petrinet in out module_name)
   set(gen_type_op_sources
-    "${CMAKE_CURRENT_BINARY_DIR}/gen_${module_name}/pnetc/type/option_type/op.cpp"
+    "${CMAKE_CURRENT_BINARY_DIR}/gen_${module_name}/pnetc/type/options_type/op.cpp"
     "${CMAKE_CURRENT_BINARY_DIR}/gen_${module_name}/pnetc/type/config_type/op.cpp"
     "${CMAKE_CURRENT_BINARY_DIR}/gen_${module_name}/pnetc/type/task_type/op.cpp"
     "${CMAKE_CURRENT_BINARY_DIR}/gen_${module_name}/pnetc/type/generator_type/op.cpp"
@@ -31,13 +31,15 @@ function(add_petrinet in out module_name)
             --Woverwrite-file=OFF
             &&
             make -C "${CMAKE_CURRENT_BINARY_DIR}/gen_${module_name}"
-    DEPENDS "${in}"
+    DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/${in}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/types.xpnet"
             ${ARGN}
   )
   add_custom_target ("${module_name}_and_wrapper-library"
     ALL
     DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/gen_${module_name}/pnetc/op/libsingular_${module_name}.so"
             "${CMAKE_CURRENT_BINARY_DIR}/${out}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/types.xpnet"
             ${gen_type_op_sources}
   )
   extended_add_library (
@@ -58,7 +60,6 @@ function(addinstall_pnet module_name)
   add_petrinet(${module_name}.xpnet
                ${module_name}.pnet
                ${module_name}
-               types.xpnet
                ${ARGN}
                )
   install (FILES
