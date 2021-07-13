@@ -25,6 +25,15 @@ proc pfd_gspc_compute (in_struct input)
   return(output);
 }
 
+proc pfd_foo(int x)
+{
+  write(":w /u/h/heymann/PFD/write" + string(x) + ".txt", string(x));
+  //out_struct output;
+  //output.result = "success!";
+  //return(output);
+  return(x);
+}
+
 proc mod_init() {
   // TODO: change to installed pfd library
   LIB "@PFD_SING_LIB_PATH@/pfd.lib";

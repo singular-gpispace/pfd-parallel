@@ -72,97 +72,51 @@ namespace singular_parallel
     NO_NAME_MANGLING
       void singular_parallel_compute
       ( unsigned int const& id
-        , const pnet_options& options
+      , const pnet_options& options
       )
       {
-        std::string ids = get_id_string();
-
         init_singular ();
 
-        safely_register_sing_struct( options.in_struct_name
-                                   , options.in_struct_desc
-                                   , ids
-                                   );
-        safely_register_sing_struct( options.out_struct_name
-                                   , options.out_struct_desc
-                                   , ids
-                                   );
-
-        int in_type, out_type;
-        blackboxIsCmd (options.in_struct_name.c_str(), in_type);
-        blackboxIsCmd (options.out_struct_name.c_str(), out_type);
-
-        lists in_lst = ssi_read_newstruct(
-            get_in_struct_filename( options.tmpdir
-                                  , config::parallel_list_base_name()
-                                  , id)
-            , options.in_struct_name
-            );
-
-        load_singular_library (options.needed_library);
-        std::pair<int, lists> out = call_user_proc ( options.function_name
-                                                   , options.needed_library
-                                                   , in_type
-                                                   , in_lst
-                                                   );
-        check_integers_equal( out.first
-                            , out_type
-                            , ids + " - singular_parallel_compute: " +
-                                    "incorrect return types"
-                            );
-
-
-        ssi_write_newstruct
-            ( get_out_struct_filename( options.tmpdir
-                                     , config::parallel_list_base_name()
-                                     , id)
-            , options.out_struct_name
-            , out.second);
+        singular::register_struct(options.in_struct_name,
+                                  options.in_struct_desc);
+        singular::register_struct(options.out_struct_name,
+                                  options.out_struct_desc);
+        singular::load_library (options.needed_library);
+        singular::load_ssi("input", get_in_struct_filename( options.tmpdir
+                                        , config::parallel_list_base_name()
+                                        , id));
+        singular::call_and_discard("out_struct output = " +
+                                    options.function_name +
+                                    "(input);");
+        singular::write_ssi("output", get_out_struct_filename( options.tmpdir
+                                            , config::parallel_list_base_name()
+                                            , id)
+                                            );
       }
 
     NO_NAME_MANGLING
       void pfd_parallel_compute
       (  unsigned int const& id
-       , const singular_parallel::pnet_options& options
+      , const singular_parallel::pnet_options& options
       )
       {
-        std::string ids = get_id_string();
-        //std::cout << ids << " in singular_..._compute" << std::endl;
         init_singular ();
 
-        safely_register_sing_struct(options.in_struct_name,
-                                    options.in_struct_desc,
-                                    ids);
-        safely_register_sing_struct(options.out_struct_name,
-                                    options.out_struct_desc,
-                                    ids);
-
-        int in_type, out_type;
-        blackboxIsCmd (options.in_struct_name.c_str(), in_type);
-        blackboxIsCmd (options.out_struct_name.c_str(), out_type);
-
-        lists in_lst = ssi_read_newstruct
-            ( get_in_struct_filename( options.tmpdir
-                                    , config::parallel_pfd_base_name()
-                                    , id)
-            , options.in_struct_name
-            );
-
-        load_singular_library (options.needed_library);
-        std::pair<int, lists> out = call_user_proc (options.function_name,
-            options.needed_library,
-            in_type,
-            in_lst);
-        check_integers_equal(out.first, out_type, ids +
-            " - singular_parallel_compute: incorrect return types" );
-
-
-        ssi_write_newstruct
-            ( get_out_struct_filename( options.tmpdir
-                                     , config::parallel_pfd_base_name()
-                                     , id)
-            , options.out_struct_name
-            , out.second);
+        singular::register_struct(options.in_struct_name,
+                                  options.in_struct_desc);
+        singular::register_struct(options.out_struct_name,
+                                  options.out_struct_desc);
+        singular::load_library (options.needed_library);
+        singular::load_ssi("input", get_in_struct_filename( options.tmpdir
+                                        , config::parallel_pfd_base_name()
+                                        , id));
+        singular::call_and_discard("out_struct output = " +
+                                    options.function_name +
+                                    "(input);");
+        singular::write_ssi("output", get_out_struct_filename( options.tmpdir
+                                            , config::parallel_pfd_base_name()
+                                            , id)
+                                            );
       }
 
   }

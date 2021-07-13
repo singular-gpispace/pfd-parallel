@@ -9,6 +9,7 @@
 #include <boost/uuid/sha1.hpp>
 #include <boost/filesystem.hpp>
 #include <src/config.hpp>
+#include <util-generic/finally.hpp>
 
 /*** Private function declarations ***/
 
@@ -52,39 +53,35 @@ idhdl symbol (std::string const& lib, std::string const& fun)
   return h;
 }
 
-struct scoped_leftv
+
+ScopedLeftv::ScopedLeftv (int c, void* data)
+: _ (static_cast<leftv> (omAlloc0Bin (sleftv_bin))) // TODO check result
 {
-  scoped_leftv (int c, void* data)
-   : _ (static_cast<leftv> (omAlloc0Bin (sleftv_bin))) // TODO check result
-  {
-    _->rtyp = c;
-    _->data = data;
+  _->rtyp = c;
+  _->data = data;
+}
+  ScopedLeftv::ScopedLeftv (ScopedLeftv& parent, int c, void* data)
+: ScopedLeftv (c, data)
+{
+  chained = true;
+  parent._->next = _;
+}
+ScopedLeftv::~ScopedLeftv()
+{
+  if (!chained) {
+    _->CleanUp();
+    omFreeBin (_, sleftv_bin);
   }
-  scoped_leftv (scoped_leftv& parent, int c, void* data)
-   : scoped_leftv (c, data)
-  {
-    chained = true;
-    parent._->next = _;
-  }
-  ~scoped_leftv()
-  {
-    if (!chained)
-    {
-      _->CleanUp();
-      omFreeBin (_, sleftv_bin);
-    }
-  };
-  scoped_leftv (scoped_leftv const&) = delete;
-  scoped_leftv (scoped_leftv&&) = delete;
-  scoped_leftv& operator= (scoped_leftv const&) = delete;
-  scoped_leftv& operator= (scoped_leftv&&) = delete;
-  leftv _;
-  bool chained = false;
 };
 
-template<typename R> std::pair<int, R> proc (idhdl h, scoped_leftv const& arg)
+leftv ScopedLeftv::leftV() const
 {
-  BOOLEAN const res (iiMake_proc (h, NULL, arg._));
+  return _;
+}
+
+template<typename R> std::pair<int, R> proc (idhdl h, ScopedLeftv const& arg)
+{
+  BOOLEAN const res (iiMake_proc (h, NULL, arg.leftV()));
 
   if (res)
   {
@@ -377,9 +374,214 @@ lists ssi_read_newstruct (si_link l, std::string const& struct_name)
 std::pair<int, lists> call_user_proc (std::string const& function_name,
   std::string const& needed_library, int in_type, lists in_lst)
 {
-  scoped_leftv arg (in_type, lCopy (in_lst));
+  ScopedLeftv arg (in_type, lCopy (in_lst));
   return proc<lists> (symbol (needed_library, function_name), arg);
 }
+
+std::pair<int, lists> call_user_proc (std::string const& function_name,
+  std::string const& needed_library, ScopedLeftv& u_arg)
+{
+  return proc<lists> (symbol (needed_library, function_name), u_arg);
+}
+
+
+
+namespace singular {
+
+  void call (std::string const& command)
+  {
+    int err = iiAllStart
+      (NULL, const_cast<char*> ((command + " return();").c_str()), BT_proc, 0);
+      if (err) {
+        errorreported = 0;
+        throw std::runtime_error (
+          "Singular returned an error at \"" + command + "\"");
+      }
+  }
+
+  void call_and_discard (std::string const& command)
+  {
+    SPrintStart();
+    call (command);
+    char* result_ptr = SPrintEnd();
+    omFree (result_ptr);
+  }
+
+  std::string get_result (std::string const& command)
+  {
+    SPrintStart();
+    call (command);
+    char* result_ptr = SPrintEnd();
+    std::string result (result_ptr);
+    omFree (result_ptr);
+    if (result.size() > 0)
+    {
+      result.pop_back();
+    }
+    return result;
+  }
+
+  void register_struct(std::string struct_name, std::string struct_desc)
+  {
+    call_and_discard("newstruct(\"" +
+                     struct_name +
+                     "\", \"" +
+                     struct_desc +
+                     "\");");
+  }
+
+
+
+  void load_library
+    ( std::string const& library_name
+    , bool enforce_reload
+    )
+  {
+    bool load = enforce_reload;
+    if (!load) {
+      char *plib = iiConvName(library_name.c_str());
+      FHG_UTIL_FINALLY([=] { omFree((ADDRESS)plib); });
+      idhdl pl = basePack->idroot->get(plib,0);
+      load = !((pl!=NULL)
+          && IDTYP(pl)==PACKAGE_CMD
+          && IDPACKAGE(pl)->language == LANG_SINGULAR);
+    }
+    if (load){
+        call_and_discard ("LIB \"" + library_name + "\";");
+    }
+  }
+
+
+  void load_ssi_no_def( const std::string& symbol_name
+      , const std::string& file)
+  {
+      call_and_discard(symbol_name + " = read(\"ssi:r " +
+          file + "\");");
+  }
+
+  void load_ssi_no_def( const std::string& symbol_name
+      , const singular_parallel::pnet_value& files)
+  {
+    if (files.type() == typeid(singular_parallel::pnet_list))
+    {
+      call_and_discard(symbol_name + " = list();");
+      int i = 1;
+      for ( const singular_parallel::pnet_value& elem
+          : singular_parallel::as<singular_parallel::pnet_list>(files)
+          )
+      {
+        load_ssi_no_def(symbol_name + "[" + std::to_string(i) + "]", elem);
+        i++;
+      }
+    }
+    /*
+    else if (files.type() == typeid(pnet::type::value::structured_type))
+    {
+      const singular_parallel::pnet_file file = pnetc::type::file::from_value(files);
+      call_and_discard(symbol_name + " = read(\"ssi:r " + file.path + "\");");
+    }
+    */
+    else if (files.type() == typeid(std::string))
+    {
+      //call_and_discard(symbol_name + " = read(\"ssi:r "
+      //    + singular_parallel::as<std::string>(files) + "\");");
+      load_ssi_no_def(symbol_name, singular_parallel::as<std::string>(files));
+    } else {
+      throw std::runtime_error("Loading ssi files from nested pnet_lists "
+          "containing other leaves than pnet_file or string is not supported.");
+    }
+  }
+
+
+  void load_ssi
+    ( const std::string& symbol_name
+      , const std::string& file
+    )
+  {
+    call_and_discard("def " + symbol_name + ";");
+    load_ssi_no_def(symbol_name, file);
+  }
+
+  void load_ssi
+    ( const std::string& symbol_name
+      , const ::singular_parallel::pnet_value& files
+    )
+  {
+    call_and_discard("def " + symbol_name + ";");
+    load_ssi_no_def(symbol_name, files);
+  }
+
+  void load_ssi_if_not_defined
+    ( const std::string& symbol_name
+    , const ::singular_parallel::pnet_value& files
+    )
+  {
+    if (!symbol_exists(symbol_name))
+    {
+      load_ssi(symbol_name, files);
+    }
+
+  }
+
+  void write_ssi (const std::string& symbol_name, std::string const& file_name)
+  {
+    call_and_discard ("link l = \"ssi:w " + file_name + "\"; write(l,"
+      + symbol_name + "); close(l); kill l;");
+  }
+
+  bool symbol_exists(const std::string& symbol_name)
+  {
+    return ggetid(symbol_name.c_str()) != NULL;
+  }
+
+  intvec* getIntvec(const std::string& symbol)
+  {
+    idhdl h = ggetid(symbol.c_str());
+    if (IDTYP(h) == INTVEC_CMD)
+    {
+      return IDINTVEC(h);
+    }
+    else
+    {
+      throw std::runtime_error(
+          "Symbol " + symbol + " does not represent an intvec.");
+    }
+  }
+
+  lists getList(const std::string& symbol)
+  {
+    idhdl h = ggetid(symbol.c_str());
+    if (IDTYP(h) != LIST_CMD)
+    {
+      throw std::runtime_error( 
+          "Symbol " + symbol + " does not represent a list.");
+    }
+    else
+    {
+      return IDLIST(h);
+    }
+
+  }
+
+  void put(const std::string& symbol, lists list)
+  {
+    idhdl handle = enterid(symbol.c_str(), 1, LIST_CMD, &IDROOT, FALSE);
+    IDLIST(handle) = list;
+  }
+
+  void put(const std::string& symbol, intvec* iv)
+  {
+    idhdl handle = enterid(symbol.c_str(), 1, INTVEC_CMD, &IDROOT, FALSE);
+    IDINTVEC(handle) = iv;
+  }
+
+  template<typename T, typename... Args>
+    void kill(const T& t, Args&&... args);
+
+
+}
+
+
 
 std::string get_struct_filename( std::string const& root
                                , std::string const& basename

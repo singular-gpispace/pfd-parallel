@@ -577,11 +577,18 @@ try {
     si_link l = ssi_open_for_read(get_out_struct_filename( as.tmpDir()
                                                          , basename
                                                          , i));
-    // later consider case of "wrong" output (and do not throw)
+    // later consider case of "wrong" output (and do not throw) 
+    /*
+    */
     lists entry = ssi_read_newstruct (l, as.outStructName());
     ssi_close_and_remove (l);
     out_list->m[i].rtyp = as.outToken();
     out_list->m[i].data = entry;
+
+    //lists entry = ssi_read_newstruct (l, "int");
+    //ssi_close_and_remove (l);
+    //out_list->m[i].rtyp = INT_CMD;
+    //out_list->m[i].data = entry;
   }
 
 
