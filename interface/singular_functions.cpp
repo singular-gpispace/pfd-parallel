@@ -553,12 +553,27 @@ namespace singular {
     idhdl h = ggetid(symbol.c_str());
     if (IDTYP(h) != LIST_CMD)
     {
-      throw std::runtime_error( 
+      throw std::runtime_error(
           "Symbol " + symbol + " does not represent a list.");
     }
     else
     {
       return IDLIST(h);
+    }
+
+  }
+
+  int getInt(const std::string& symbol)
+  {
+    idhdl h = ggetid(symbol.c_str());
+    if (IDTYP(h) != INT_CMD)
+    {
+      throw std::runtime_error(
+          "Symbol " + symbol + " does not represent an int.");
+    }
+    else
+    {
+      return IDINT(h);
     }
 
   }

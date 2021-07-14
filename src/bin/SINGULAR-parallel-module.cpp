@@ -572,23 +572,25 @@ try {
   out_list->Init (as.numTasks());
 
   std::string basename = get_base_file_name(as.graphType());
+
+  singular::call_and_discard("def internal_placeholder;"); 
   for (std::size_t i = 0; i < as.numTasks(); i++)
   {
     si_link l = ssi_open_for_read(get_out_struct_filename( as.tmpDir()
                                                          , basename
                                                          , i));
     // later consider case of "wrong" output (and do not throw) 
-    /*
-    */
     lists entry = ssi_read_newstruct (l, as.outStructName());
     ssi_close_and_remove (l);
     out_list->m[i].rtyp = as.outToken();
     out_list->m[i].data = entry;
 
-    //lists entry = ssi_read_newstruct (l, "int");
-    //ssi_close_and_remove (l);
-    //out_list->m[i].rtyp = INT_CMD;
-    //out_list->m[i].data = entry;
+    remove((get_out_struct_filename( as.tmpDir()
+                                     , basename
+                                     , i)).c_str() );
+    remove((get_in_struct_filename( as.tmpDir()
+                                    , basename
+                                    , i)).c_str() );
   }
 
 

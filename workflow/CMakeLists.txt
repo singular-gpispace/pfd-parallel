@@ -2,9 +2,8 @@
 function(add_petrinet in out module_name)
   set(gen_type_op_sources
     "${CMAKE_CURRENT_BINARY_DIR}/gen_${module_name}/pnetc/type/options_type/op.cpp"
-    "${CMAKE_CURRENT_BINARY_DIR}/gen_${module_name}/pnetc/type/config_type/op.cpp"
-    "${CMAKE_CURRENT_BINARY_DIR}/gen_${module_name}/pnetc/type/task_type/op.cpp"
-    "${CMAKE_CURRENT_BINARY_DIR}/gen_${module_name}/pnetc/type/generator_type/op.cpp"
+    #"${CMAKE_CURRENT_BINARY_DIR}/gen_parallel_allpfd/pnetc/type/term_type/op.cpp"
+    "${CMAKE_CURRENT_BINARY_DIR}/gen_${module_name}/pnetc/type/term_count_type/op.cpp"
   )
   add_custom_command (
     OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${module_name}.pnet"

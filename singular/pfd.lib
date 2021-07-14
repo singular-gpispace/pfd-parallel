@@ -446,7 +446,6 @@ proc prepare_fqem_glist (poly f, list g, link l)
   return (list(f, q, e, m));
 }
 
-//proc generic_dec_loop(string decomp, string mergetype, list terms, ideal q, int debug, link l)
 proc generic_dec_loop(string decomp, string mergetype, list terms, ideal q, list #)
 {
   list dec,newterms,result;
@@ -2676,7 +2675,7 @@ static proc readQfileTXT(string filename__)
 
 // Test ////////////////////////////////////////////////////////////////////////
 
-static proc file_exists(string file)
+proc file_exists(string file)
 {
   return(status(":r "+file,"exists","yes"));
 }
@@ -2718,38 +2717,23 @@ SEE ALSO: pfdMat, pfdSingleEntrySSI
   system("--ticks-per-sec",1000);
   short = 0;
 
-  // Set up to and from directories
-  if(size(#)>0)
-  {
-    string from_dir = #[1]; // read file from this
-    if(from_dir[size(from_dir)]!="/") {from_dir = from_dir + "/";}
-  }
-  else {string from_dir = "";}
-  if(size(#)>1)
-  {
-    string to_dir = #[2];
-    if(to_dir[size(to_dir)]!="/") {to_dir = to_dir + "/";}
-  }
-  else {string to_dir = "";}
-  int ignore_nonlin=1;
-  if(size(#)>2) {ignore_nonlin = #[3];}
-
-
-
+  list args = parsePfdSingleEntryArgs(#);
+  string from_dir = args[1];
+  string to_dir = args[2];
+  int ignore_nonlin = args[3];
 
   int i = find(filename,".");
   if(i>0) {filename = filename[1,i-1];} // remove file ending if given
 
   if (file_exists(to_dir + "resources_" + filename + ".txt")) { return(); }
 
-  prepareSingleEntryFraction(filename, from_dir, to_dir, ignore_nonlin);
+  prepareSingleEntryFraction(filename,
+                             from_dir,
+                             //to_dir,
+                             ignore_nonlin);
+  list fraction = read("ssi:r " + from_dir + filename + ".ssi");
+  list nonlin = prepareNonLin(fraction, ignore_nonlin);
 
-
-
-
-  link interl = "ssi:r " + to_dir+ "prepared_" + filename+".ssi";
-  list fraction = read(interl);
-  list nonlin = read(interl);
   int t = rtimer;
 
   list result = pfd(fraction);
@@ -2764,19 +2748,49 @@ SEE ALSO: pfdMat, pfdSingleEntrySSI
   else
     {write("ssi:w "+to_dir+"result_"+filename+".ssi",result);}
 
-  write_pfd_as_txt(to_dir, to_dir, filename, ignore_nonlin);
+  if (ignore_nonlin) {
+    write_pfd_as_txt(result, to_dir, filename, nonlin);
+  } else {
+    write_pfd_as_txt(result, to_dir, filename, list(list(),list()));
+  }
 
 }
 
-proc write_pfd_as_txt(string from_dir, string to_dir, string filename, int ignore_nonlin)
+proc parsePfdSingleEntryArgs(list #)
 {
-  list result = read("ssi:r "+from_dir+"result_"+filename+".ssi");
-  list nonlin = list(list(),list());
+  // Set up to and from directories
+  if(size(#)>0) {
 
-  if (ignore_nonlin) {
-    list nonlin = result[1];
-    result = result[2];
+    string from_dir = #[1]; // read file from this
+    if(from_dir[size(from_dir)]!="/") {from_dir = from_dir + "/";}
+
+  } else {
+
+    string from_dir = "";
   }
+
+  if(size(#)>1) {
+
+    string to_dir = #[2];
+    if(to_dir[size(to_dir)]!="/") {to_dir = to_dir + "/";}
+
+  } else {
+
+    string to_dir = "";
+
+  }
+
+  int ignore_nonlin=1;
+  if (size(#)>2) {
+    ignore_nonlin = #[3];
+  }
+
+  return (list(from_dir, to_dir, ignore_nonlin));
+
+}
+
+proc write_pfd_as_txt(list result, string to_dir, string filename, list nonlin)
+{
 
   //output as txt:
   int i,j,k;
@@ -2829,15 +2843,39 @@ proc write_pfd_as_txt(string from_dir, string to_dir, string filename, int ignor
   fprintf(":w "+to_dir+"result_denominator_factors_"+filename+".txt", denom_fact,0);
 }
 
+proc prepareNonLin(list fraction, int ignore_nonlin)
+{
+  list nonlin = list(list(),list());
+  int i, k;
+  if(ignore_nonlin)
+  {
+    i = 1;
+    for(k=1; k<=size(fraction[2][1]); k++) // move nonlinear factors into nonlin
+    {
+      if(deg(fraction[2][1][k])>1)
+      {
+        nonlin[1][i] = fraction[2][1][k];
+        nonlin[2][i] = fraction[2][2][k];
+        fraction[2][1] = delete(fraction[2][1],k);
+        fraction[2][2] = delete(fraction[2][2],k);
+        i++;
+      }
+    }
+  }
+  return (nonlin);
+
+}
+
 proc prepareSingleEntryFraction(string filename,
                                 string from_dir,
-                                string to_dir,
+                                //string to_dir,
                                 int ignore_nonlin)
 {
   list fraction;
   if (file_exists(from_dir + filename + ".ssi"))
   {
-    fraction = read("ssi:r " + from_dir + filename + ".ssi");
+    //fraction = read("ssi:r " + from_dir + filename + ".ssi");
+    return();
   }
   else
   {
@@ -2878,28 +2916,10 @@ proc prepareSingleEntryFraction(string filename,
     write("ssi:w "+from_dir+filename+".ssi", fraction);
   }
 
-
-  list nonlin = list(list(),list());
-  int i, k;
-  if(ignore_nonlin)
-  {
-    i = 1;
-    for(k=1; k<=size(fraction[2][1]); k++) // move nonlinear factors into nonlin
-    {
-      if(deg(fraction[2][1][k])>1)
-      {
-        nonlin[1][i] = fraction[2][1][k];
-        nonlin[2][i] = fraction[2][2][k];
-        fraction[2][1] = delete(fraction[2][1],k);
-        fraction[2][2] = delete(fraction[2][2],k);
-        i++;
-      }
-    }
-  }
-  link l = "ssi:w "+to_dir+ "prepared_" + filename+".ssi";
-  write(l, fraction);
-  write(l, nonlin);
-  close(l);
+  //link l = "ssi:w "+to_dir+ "prepared_" + filename+".ssi";
+  //write(l, fraction);
+  //write(l, nonlin);
+  //close(l);
 }
 
 

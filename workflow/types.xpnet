@@ -1,4 +1,5 @@
 <structs>
+
   <struct name="options_type">
     <field name="function_name" type="string"/>
     <field name="needed_library" type="string"/>
@@ -9,4 +10,22 @@
     <field name="tmpdir" type="string"/>
     <field name="task_count" type="unsigned int"/>
   </struct>
+
+  <struct name="task_status">
+    <field name="id" type="unsigned int"/>
+    <field name="status" type="unsigned int"/>
+  </struct>
+
+  <!--
+  <struct name="term_type">
+    <field name="id" type="unsigned int"/>
+    <field name="term_id" type="unsigned int"/>
+  </struct>
+  -->
+
+  <struct name="term_count_type">
+    <field name="local" type="unsigned int"/>
+    <field name="global" type="unsigned int"/>
+  </struct>
+
 </structs>

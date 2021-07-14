@@ -113,6 +113,9 @@ namespace singular {
     );
 
 
+
+  void load_ssi_no_def( const std::string& symbol_name
+      , const std::string& file);
   void load_ssi
     ( const std::string& symbol_name
     , const ::singular_parallel::pnet_value& files
@@ -127,6 +130,7 @@ namespace singular {
   , const ::singular_parallel::pnet_value& files
   );
 
+
   void write_ssi (const std::string& symbol_name, std::string const& file_name);
 
   bool symbol_exists(const std::string& symbol_name);
@@ -134,6 +138,8 @@ namespace singular {
   intvec* getIntvec(const std::string& symbol);
 
   lists getList(const std::string& symbol);
+
+  int getInt(const std::string& symbol);
 
   void put(const std::string& symbol, lists list);
 
