@@ -551,7 +551,7 @@ static proc NSSdecompStep(list l, ideal q, list #)
   }
 }
 
-static proc shortNumeratorDecompStep(list l, ideal q, list #)
+proc shortNumeratorDecompStep(list l, ideal q, list #)
 {
   int debug=0;
   if(size(#)>0) {debug=#[1]; link ll=#[2];}
@@ -3010,3 +3010,9 @@ SEE ALSO: pfdMat, pfdSingleEntry
     }
   }
 }
+
+proc test_my_proc(list l, ideal q, list #) {
+    print ("hi!");
+
+    return (list());
+  }

@@ -222,11 +222,12 @@ proc get_loop_strat(string step) {
 
 }
 
-proc pfd_gspc_compute_step (string step,
-                            int id,
-                            string tmpdir,
-                            string from_terms,
-                            string to_terms)
+proc pfd_gspc_compute_step ( int id
+                           , string step
+                           , string from_terms
+                           , string to_terms
+                           , string tmpdir
+                           )
 {
   system("--ticks-per-sec",1000);
   short = 0;
@@ -296,7 +297,8 @@ proc pfd_gspc_write_result (int id, string tmpdir)
 
 // while loop functions
 
-proc pfd_loop_split_terms(int id, string in_filename, string out_filename, string tmpdir) {
+proc pfd_loop_split_terms(int id, string in_filename, string out_filename, string tmpdir)
+{
   list terms = read("ssi:r " + tmpdir + "/" + in_filename + "_" + string(id) + ".ssi");
   int term_count = size(terms);
   int i;
@@ -309,12 +311,47 @@ proc pfd_loop_split_terms(int id, string in_filename, string out_filename, strin
   return (term_count);
 }
 
-proc pfd_loop_merge(int id, int term_id, string filename, string tmpdir, string step) {
+proc pfd_loop_compute_term( int id
+                          , int term_id
+                          , string step
+                          , string in_filename
+                          , string out_filename
+                          , string tmpdir
+                          , list #
+                          )
+{
+  list terms = read("ssi:r " + tmpdir + "/" + in_filename + "_" +
+          string(id) + "_" + string(term_id) + ".ssi");
+  list input = read("ssi:r " + tmpdir + "/input_" + string(id) + ".ssi");
+  ideal q = input[1];
+
+  if ((size(terms) > 1) or (size(terms) < 1)) {
+    ERROR("Expected exactly one term, got " + string(size(terms)) +
+          " instead.  Check for error in term split process.");
+  }
+  
+  string command = "list result = " + step + "(terms[1],q,#);";
+  print (command);
+  execute(command);
+
+  write("ssi:w " + tmpdir + 
+                   "/" + out_filename + "_" + 
+                   string(id) + "_" + string(term_id) +
+                   ".ssi", result);
+}
+
+proc pfd_loop_merge( int id
+                   , int term_id
+                   , string step
+                   , string filename
+                   , string tmpdir
+                   )
+{
   list dec = read("ssi:r " + tmpdir + 
                              "/" + filename + "_dec_" + 
                              string(id) +
                              ".ssi");
-  list new_count = read("ssi:r " + tmpdir + 
+  list new_terms = read("ssi:r " + tmpdir + 
                                    "/" + filename + "_new_terms_" + 
                                    string(id) + 
                                    ".ssi");
@@ -322,11 +359,21 @@ proc pfd_loop_merge(int id, int term_id, string filename, string tmpdir, string 
                                 "/" + filename + "_result_" + 
                                 string(id) + "_" + string(term_id) +
                                 ".ssi");
+  int new_count_before = size(new_terms);
   string strat = get_loop_strat(step);
+
   list merged = general_merge_step(strat, new_terms, dec, result);
+
   dec = merged[1];
   new_terms = merged[2];
-  new_count = size(new_terms) - new_count;
+  int new_count = size(new_terms) - new_count_before;
+
+/*
+  if (new_count < 0) {
+    ERROR("number of new terms should not decrease in merge: before " +
+          string(new_count_before) + ", after " + string(size(new_terms)));
+  }
+  */
 
   write( "ssi:w " + tmpdir + 
                     "/" + filename + "_dec_" + 
@@ -338,7 +385,7 @@ proc pfd_loop_merge(int id, int term_id, string filename, string tmpdir, string 
                     string(id) +
                     ".ssi"
        , new_terms);
-  return new_count;
+  return (new_count);
 }
 
 proc mod_init() {

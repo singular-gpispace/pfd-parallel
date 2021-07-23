@@ -74,20 +74,20 @@ namespace singular_parallel
       );
 
     NO_NAME_MANGLING
-      singular_parallel::pnet_list pfd_init_loop
+      singular_parallel::pnet_list pfd_loop_init
       //unsigned long pfd_init_loop
       ( unsigned int const& id
       , const pnet_options& options
       , const std::string& step
       );
 
-    /*
     NO_NAME_MANGLING
-      void pfd_compute_short_numerator_for_term
-      ( pnet_term_type const& in
+      void pfd_loop_compute_term
+      ( const unsigned int& id
+      , const unsigned int& term_id
       , const pnet_options& options
+      , const std::string step
       );
-     */
 
     NO_NAME_MANGLING
       int pfd_loop_merge
@@ -104,6 +104,12 @@ namespace singular_parallel
       , const std::string& step
       );
 
+    NO_NAME_MANGLING
+      void  pfd_loop_finish
+      ( unsigned int const& id
+      , const pnet_options& options
+      , const std::string& step
+      );
 
     NO_NAME_MANGLING
       void pfd_write_result
