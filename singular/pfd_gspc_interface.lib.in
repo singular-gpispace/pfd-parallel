@@ -341,47 +341,44 @@ proc pfd_loop_compute_term( int id
 }
 
 proc pfd_loop_merge( int id
-                   , int term_id
+                   , int term_count
                    , string step
                    , string filename
                    , string tmpdir
                    )
 {
-  list dec = read("ssi:r " + tmpdir + 
-                             "/" + filename + "_dec_" + 
+  list dec = read("ssi:r " + tmpdir +
+                             "/" + filename + "_dec_" +
                              string(id) +
                              ".ssi");
-  list new_terms = read("ssi:r " + tmpdir + 
-                                   "/" + filename + "_new_terms_" + 
-                                   string(id) + 
+  list new_terms = read("ssi:r " + tmpdir +
+                                   "/" + filename + "_new_terms_" +
+                                   string(id) +
                                    ".ssi");
-  list result = read("ssi:r " + tmpdir + 
-                                "/" + filename + "_result_" + 
-                                string(id) + "_" + string(term_id) +
-                                ".ssi");
+
   int new_count_before = size(new_terms);
+  int i;
   string strat = get_loop_strat(step);
+  for (i = 1; i <= term_count; i++) {
+    list result = read("ssi:r " + tmpdir +
+                                "/" + filename + "_result_" +
+                                string(id) + "_" + string(i) +
+                                ".ssi");
 
-  list merged = general_merge_step(strat, new_terms, dec, result);
+    list merged = general_merge_step(strat, new_terms, dec, result);
+    dec = merged[1];
+    new_terms = merged[2];
+  }
 
-  dec = merged[1];
-  new_terms = merged[2];
   int new_count = size(new_terms) - new_count_before;
 
-/*
-  if (new_count < 0) {
-    ERROR("number of new terms should not decrease in merge: before " +
-          string(new_count_before) + ", after " + string(size(new_terms)));
-  }
-  */
-
-  write( "ssi:w " + tmpdir + 
-                    "/" + filename + "_dec_" + 
+  write( "ssi:w " + tmpdir +
+                    "/" + filename + "_dec_" +
                     string(id) +
                     ".ssi"
        , dec);
-  write( "ssi:w " + tmpdir + 
-                    "/" + filename + "_new_terms_" + 
+  write( "ssi:w " + tmpdir +
+                    "/" + filename + "_new_terms_" +
                     string(id) +
                     ".ssi"
        , new_terms);

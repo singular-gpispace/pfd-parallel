@@ -26,6 +26,7 @@
   <struct name="term_count_type">
     <field name="local" type="unsigned int"/>
     <field name="global" type="unsigned int"/>
+    <field name="to_merge" type="unsigned int"/>
   </struct>
 
 </structs>

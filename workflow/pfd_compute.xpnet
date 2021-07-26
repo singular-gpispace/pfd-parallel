@@ -264,12 +264,11 @@
           <place name="id" type="unsigned int"/>
           <place name="terms" type="unsigned int"/>
           <place name="decomposed_terms" type="unsigned int"/>
+          <place name="decomposed_list" type="list"/>
 
           <place name="decomposition" type="unsigned int"/>
 
           <place name="term_counts" type="term_count_type"/>
-
-
           <place name="options" type="options_type"/>
 
           <transition name="loop_init">
@@ -280,6 +279,7 @@
               <out name="out" type="list"/>
               <out name="id" type="unsigned int"/>
               <out name="counts" type="term_count_type"/>
+              <out name="decomposed_list" type="list"/>
               <module name="singular_parallel_allpfd"
                       require_function_unloads_without_rest="false"
                       function="out init_short_numerator
@@ -287,6 +287,7 @@
                                   , in
                                   , counts
                                   , id
+                                  , decomposed_list
                                   )">
                 <cinclude href="interface/singular_pnet-interface.hpp"/>
                 <cinclude href="util-generic/dynamic_linking.hpp"/>
@@ -312,7 +313,9 @@
 
                   counts.local = indices.size();
                   counts.global = indices.size();
+                  counts.to_merge = indices.size();
                   id = in;
+                  decomposed_list = singular_parallel::pnet_list();
 
                   std::cout << "Initializing loop "
                             << SHORT_NUM << " "
@@ -327,6 +330,7 @@
             <connect-out-many port="out" place="terms"/>
             <connect-out port="id" place="id"/>
             <connect-out port="counts" place="term_counts"/>
+            <connect-out port="decomposed_list" place="decomposed_list"/>
           </transition>
           <!--
           -->
@@ -373,18 +377,64 @@
             <connect-out port="out" place="decomposed_terms"/>
           </transition>
 
+          <transition name="collect_decomposed">
+            <defun>
+              <require key="worker" mandatory="true"/>
+              <in name="id" type="unsigned int"/>
+              <in name="term" type="unsigned int"/>
+              <in name="options" type="options_type"/>
+              <inout name="counts" type="term_count_type"/>
+              <inout name="term_list" type="list"/>
+
+              <module name="singular_parallel_allpfd"
+                      require_function_unloads_without_rest="false"
+                      function="collect_decomposed
+                                  ( options
+                                  , id
+                                  , term
+                                  , term_list
+                                  , counts
+                                  )">
+                <cinclude href="interface/singular_pnet-interface.hpp"/>
+                <cinclude href="util-generic/dynamic_linking.hpp"/>
+                <cinclude href="iostream"/>
+                <code><![CDATA[
+                  /*<>*/
+
+                  std::cout << "Loop collect " << SHORT_NUM << " "
+                            << id << " term " << term
+                            << "\n";
+                  term_list.push_back(term);
+                  counts.to_merge -= 1;
+                  std::cout << "Loop collect " << SHORT_NUM << " "
+                            << id << " term " << term
+                            << " done! \n";
+
+                ]]></code>
+              </module>
+            </defun>
+            <connect-in port="term" place="decomposed_terms"/>
+            <connect-read port="id" place="id"/>
+            <connect-read port="options" place="options"/>
+            <connect-inout port="counts" place="term_counts"/>
+            <connect-inout port="term_list" place="decomposed_list"/>
+          </transition>
+
           <transition name="merge">
             <defun>
               <require key="worker" mandatory="true"/>
-              <in name="term" type="unsigned int"/>
+              <in name="terms" type="list"/>
               <in name="options" type="options_type"/>
               <inout name="id" type="unsigned int"/>
               <inout name="counts" type="term_count_type"/>
+              <condition>
+                ${counts.to_merge} :eq: 0U
+              </condition>
               <module name="singular_parallel_allpfd"
                       require_function_unloads_without_rest="false"
                       function="merge_results
                                   ( options
-                                  , term
+                                  , terms
                                   , id
                                   , counts
                                   )">
@@ -396,29 +446,30 @@
 
                   std::cout << "local " << id << " before: " << counts.local << "\n";
                   std::cout << "global " << id << " before: " << counts.global << "\n";
-                  std::cout << "Merging Short Numerator "
+                  std::cout << "Merging "
+                            << terms.size()
+                            <<" terms for Short Numerator "
                             << id
-                            << " term "
-                            << term
                             << "\n";
+                  int merge_count = terms.size();
                   int new_count = RESOLVE_INTERFACE_FUNCTION
                     (pfd_loop_merge)
-                    ( id, term, options, SHORT_NUM);
-                  std::cout << "Merging Short Numerator "
+                    ( id, terms.size(), options, SHORT_NUM);
+                  std::cout << "Merging "
+                            << terms.size()
+                            <<" terms for Short Numerator "
                             << id
-                            << " term "
-                            << term
                             << " done! \n";
-
-                  counts.local -= 1;
-                  counts.global = counts.global + new_count - 1;
+                  counts.local = 0;
+                  counts.global = new_count;
+                  counts.to_merge = new_count;
                   std::cout << "local " << id << " after: " << counts.local << "\n";
                   std::cout << "global " << id << " after: " << counts.global << "\n";
 
                 ]]></code>
               </module>
             </defun>
-            <connect-in port="term" place="decomposed_terms"/>
+            <connect-in port="terms" place="decomposed_list"/>
             <connect-read port="options" place="options"/>
             <connect-inout port="id" place="id"/>
             <connect-inout port="counts" place="term_counts"/>
@@ -431,6 +482,7 @@
               <inout name="id" type="unsigned int"/>
               <inout name="counts" type="term_count_type"/>
               <out name="terms" type="list"/>
+              <out name="decomposed_list" type="list"/>
 
               <condition>
                 ${counts.local} :eq: 0U :and: ${counts.global} :gt: 0U
@@ -441,6 +493,7 @@
                                   ( options
                                   , id
                                   , counts
+                                  , decomposed_list
                                   )">
                 <cinclude href="interface/singular_pnet-interface.hpp"/>
                 <cinclude href="util-generic/dynamic_linking.hpp"/>
@@ -459,6 +512,7 @@
                             << " done! \n";
 
                   counts.local = indices.size();
+                  decomposed_list = singular_parallel::pnet_list();
 
                   return indices;
                 ]]></code>
@@ -467,6 +521,7 @@
             <connect-read port="options" place="options"/>
             <connect-inout port="id" place="id"/>
             <connect-inout port="counts" place="term_counts"/>
+            <connect-out port="decomposed_list" place="decomposed_list"/>
             <connect-out-many port="terms" place="terms"/>
           </transition>
 

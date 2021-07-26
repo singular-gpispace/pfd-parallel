@@ -412,11 +412,12 @@ namespace singular_parallel
     NO_NAME_MANGLING
       int pfd_loop_merge
       ( unsigned int const& id
-      , unsigned int const& term_id
+      , unsigned int const& term_count
       , const pnet_options& options
       , const std::string& step
       )
       {
+        unsigned int i;
         std::string file = get_from_name(step);
         init_singular ();
 
@@ -429,7 +430,7 @@ namespace singular_parallel
         boost::format command =
               boost::format("int new_count = pfd_loop_merge(%1%, %2%, %3%, %4%, %5%);")
                             % id
-                            % term_id
+                            % term_count
                             % ("\"" + step + "\"")
                             % ("\"" + file + "\"")
                             % ("\"" + options.tmpdir + "\"");
@@ -439,9 +440,12 @@ namespace singular_parallel
         int new_count = singular::getInt("new_count");
         singular::call_and_discard("kill new_count;");
 
-        remove((options.tmpdir + "/" + file + "_result_" +
-                       std::to_string(id) + "_" + std::to_string(term_id) +
+        
+        for (i = 1; i <= term_count; i++) {
+          remove((options.tmpdir + "/" + file + "_result_" +
+                       std::to_string(id) + "_" + std::to_string(i) +
                        ".ssi").c_str());
+        }
 
         return new_count;
       }

@@ -92,7 +92,7 @@ namespace singular_parallel
     NO_NAME_MANGLING
       int pfd_loop_merge
       ( unsigned int const& id
-      , unsigned int const& term_id
+      , unsigned int const& term_count
       , const pnet_options& options
       , const std::string& step
       );
