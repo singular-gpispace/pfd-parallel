@@ -73,5 +73,8 @@ endfunction()
 
 addinstall_pnet(parallel_all)
 addinstall_pnet(parallel_first)
-addinstall_pnet(parallel_allpfd pfd_compute.xpnet)
+addinstall_pnet(parallel_allpfd
+                pfd_compute.xpnet
+                pfd_split_compute_step.xpnet
+                pfd_serial_compute_step.xpnet)
 

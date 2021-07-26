@@ -771,7 +771,7 @@ static proc numeratorDecompStep(list l, ideal q, list #)
   return(list(dec,rest));
 }
 
-static proc mergepfd(list dec1, list dec2)
+proc mergepfd(list dec1, list dec2)
 {
   // Note: assumes dec1 is already sorted w.r.t. dp in the denominator exponents
   int n1=size(dec1);

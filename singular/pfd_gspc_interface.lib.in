@@ -301,17 +301,27 @@ proc pfd_loop_split_terms(int id, string in_filename, string out_filename, strin
 {
   list terms = read("ssi:r " + tmpdir + "/" + in_filename + "_" + string(id) + ".ssi");
   int term_count = size(terms);
+  int SPLIT_MAX = 8;
+  int split_count = min(SPLIT_MAX, term_count);
   int i;
 
-  for(i = 1; i <= term_count; i++) {
-    write("ssi:w " + tmpdir + "/" + out_filename + "_" +
-          string(id) + "_" + string(i) + ".ssi", list(terms[i]));
+  list term_lists = list();
+  for(i = 1; i <= split_count; i++) {
+    term_lists[i] = list();
+  }
+  for(i = 0; i < term_count; i++) {
+    term_lists[1 + i % split_count][1 + i div split_count] = terms[1 + i];
   }
 
-  return (term_count);
+  for(i = 1; i <= split_count; i++) {
+    write("ssi:w " + tmpdir + "/" + out_filename + "_" +
+          string(id) + "_" + string(i) + ".ssi", term_lists[i]);
+  }
+
+  return (split_count);
 }
 
-proc pfd_loop_compute_term( int id
+proc pfd_split_compute_term( int id
                           , int term_id
                           , string step
                           , string in_filename
@@ -319,6 +329,42 @@ proc pfd_loop_compute_term( int id
                           , string tmpdir
                           , list #
                           )
+{
+
+  system("--ticks-per-sec",1000);
+  short = 0;
+
+  int debug=0;
+  link l=":w ";
+
+  list terms = read("ssi:r " + tmpdir + "/" + in_filename + "_" +
+          string(id) + "_" + string(term_id) + ".ssi");
+  list input = read("ssi:r " + tmpdir + "/input_" + string(id) + ".ssi");
+  ideal q = input[1];
+
+  //if ((size(terms) > 1) or (size(terms) < 1)) {
+  if (size(terms) < 1) {
+    ERROR("Expected at least one term, got " + string(size(terms)) +
+          " instead.  Check for error in term split process.");
+  }
+
+  terms = generic_dec_loop(step, get_loop_strat(step), terms, q, debug, l);
+  //ERROR(step " seems to compute");
+
+  write("ssi:w " + tmpdir +
+                   "/" + out_filename + "_" +
+                   string(id) + "_" + string(term_id) +
+                   ".ssi", terms);
+}
+
+proc pfd_loop_compute_term( int id
+                           , int term_id
+                           , string step
+                           , string in_filename
+                           , string out_filename
+                           , string tmpdir
+                           , list #
+                           )
 {
   list terms = read("ssi:r " + tmpdir + "/" + in_filename + "_" +
           string(id) + "_" + string(term_id) + ".ssi");
@@ -329,13 +375,12 @@ proc pfd_loop_compute_term( int id
     ERROR("Expected exactly one term, got " + string(size(terms)) +
           " instead.  Check for error in term split process.");
   }
-  
+
   string command = "list result = " + step + "(terms[1],q,#);";
-  print (command);
   execute(command);
 
-  write("ssi:w " + tmpdir + 
-                   "/" + out_filename + "_" + 
+  write("ssi:w " + tmpdir +
+                   "/" + out_filename + "_" +
                    string(id) + "_" + string(term_id) +
                    ".ssi", result);
 }
@@ -383,6 +428,47 @@ proc pfd_loop_merge( int id
                     ".ssi"
        , new_terms);
   return (new_count);
+}
+
+proc pfd_split_merge( int id
+                   , int term_count
+                   , string step
+                   , string filename
+                   , string tmpdir
+                   )
+{
+  list dec = read("ssi:r " + tmpdir +
+                             "/" + filename + "_dec_" +
+                             string(id) +
+                             ".ssi");
+  int i;
+  string strat = get_loop_strat(step);
+  for (i = 1; i <= term_count; i++) {
+    list result = read("ssi:r " + tmpdir +
+                                "/" + filename + "_result_" +
+                                string(id) + "_" + string(i) +
+                                ".ssi");
+
+    dec = mergepfd(dec, result);
+  }
+
+  write( "ssi:w " + tmpdir +
+                    "/" + filename + "_dec_" +
+                    string(id) +
+                    ".ssi"
+       , dec);
+}
+
+proc pfd_gspc_log_duration(int id,
+                           bigint duration,
+                           string measure_name,
+                           string tmpdir)
+{
+  list input = read("ssi:r " + tmpdir + "/input_" + string(id) + ".ssi");
+  string filename = input[4];
+  string to_dir = input[5];
+    write(":a "+to_dir+"resources_"+filename+".txt",
+          sprintf(measure_name+" time: %s ms",duration));
 }
 
 proc mod_init() {

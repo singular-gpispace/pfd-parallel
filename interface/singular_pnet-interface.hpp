@@ -39,7 +39,7 @@ namespace singular_parallel
        ( unsigned int const& id
        , const pnet_options& options
        );
-       
+
     NO_NAME_MANGLING
       unsigned int pfd_already_done
        ( unsigned int const& id
@@ -75,7 +75,13 @@ namespace singular_parallel
 
     NO_NAME_MANGLING
       singular_parallel::pnet_list pfd_loop_init
-      //unsigned long pfd_init_loop
+      ( unsigned int const& id
+      , const pnet_options& options
+      , const std::string& step
+      );
+
+    NO_NAME_MANGLING
+      singular_parallel::pnet_list pfd_split_init
       ( unsigned int const& id
       , const pnet_options& options
       , const std::string& step
@@ -90,7 +96,23 @@ namespace singular_parallel
       );
 
     NO_NAME_MANGLING
+      void pfd_split_compute_term
+      ( const unsigned int& id
+      , const unsigned int& term_id
+      , const pnet_options& options
+      , const std::string step
+      );
+
+    NO_NAME_MANGLING
       int pfd_loop_merge
+      ( unsigned int const& id
+      , unsigned int const& term_count
+      , const pnet_options& options
+      , const std::string& step
+      );
+
+    NO_NAME_MANGLING
+      void pfd_split_merge
       ( unsigned int const& id
       , unsigned int const& term_count
       , const pnet_options& options
@@ -112,10 +134,40 @@ namespace singular_parallel
       );
 
     NO_NAME_MANGLING
+      void  pfd_split_finish
+      ( unsigned int const& id
+      , const pnet_options& options
+      , const std::string& step
+      );
+
+    NO_NAME_MANGLING
       void pfd_write_result
       ( unsigned int const& id
       , const pnet_options& options
       );
 
+    NO_NAME_MANGLING
+      long get_current_time_milli();
+
+    NO_NAME_MANGLING
+      void write_current_time
+      ( const unsigned int& id
+      , const std::string& measure_name
+      , const std::string& tmpdir
+      );
+
+    NO_NAME_MANGLING
+      long get_start_time
+      ( const unsigned int& id
+      , const std::string& measure_name
+      , const std::string& tmpdir
+      );
+
+    NO_NAME_MANGLING
+      void log_duration
+      ( unsigned int const& id
+      , const pnet_options& options
+      , const std::string& measure_name
+      );
   }
 }

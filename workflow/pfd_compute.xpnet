@@ -21,6 +21,19 @@
     <place name="out" type="unsigned int"/>
     <place name="readoptions" type="options_type"/>
 
+    <place name="null_step_name" type="string">
+      <token><value>"NSSdecompStep"</value></token>
+    </place>
+    <place name="short_num_name" type="string">
+      <token><value>"shortNumeratorDecompStep"</value></token>
+    </place>
+    <place name="algebraic_step_name" type="string">
+      <token><value>"algDependDecompStep"</value></token>
+    </place>
+    <place name="numerator_step_name" type="string">
+      <token><value>"numeratorDecompStep"</value></token>
+    </place>
+
     <transition name="check_if_already_done">
       <defun>
         <require key="worker" mandatory="true"/>
@@ -39,9 +52,10 @@
           <cinclude href="util-generic/dynamic_linking.hpp"/>
           <cinclude href="iostream"/>
           <code><![CDATA[
+            //<>
             std::cout << "checking if " << in << " has been precomputed\n";
 
-            unsigned int already_done = RESOLVE_INTERFACE_FUNCTION 
+            unsigned int already_done = RESOLVE_INTERFACE_FUNCTION
               (pfd_already_done)
               ( in, options );
             if (already_done) {
@@ -179,6 +193,7 @@
         <require key="worker" mandatory="true"/>
         <in name="in" type="task_status"/>
         <in name="options" type="options_type"/>
+        <in name="first_step" type="string"/>
         <out name="out" type="unsigned int"/>
 
         <condition>
@@ -191,19 +206,26 @@
                             ( options
                             , in
                             , out
+                            , first_step
                             )">
           <cinclude href="interface/singular_pnet-interface.hpp"/>
           <cinclude href="util-generic/dynamic_linking.hpp"/>
           <cinclude href="iostream"/>
           <code><![CDATA[
+          /*<>*/
 
-            std::cout << "Preparing fqem " << in.id << "\n";
-            RESOLVE_INTERFACE_FUNCTION 
+            std::cout << "Preparing input " << in.id << "\n";
+            RESOLVE_INTERFACE_FUNCTION
               (pfd_prepare_input)
               ( in.id
-              , options 
-              , NULLSTELL);
-            std::cout << "Preparing fqem " << in.id << " done!\n";
+              , options
+              , first_step);
+
+            RESOLVE_INTERFACE_FUNCTION
+              (write_current_time)
+              (in.id, "total_time", options.tmpdir);
+
+            std::cout << "Preparing input " << in.id << " done!\n";
 
             out = in.id;
 
@@ -212,446 +234,47 @@
       </defun>
       <connect-in port="in" place="triviality_status"/>
       <connect-read port="options" place="readoptions"/>
+      <connect-read port="first_step" place="null_step_name"/>
       <connect-out port="out" place="prepared_input"/>
     </transition>
 
 
     <transition name="compute_nullstellensatz">
-      <defun>
-        <require key="worker" mandatory="true"/>
-        <in name="in" type="unsigned int"/>
-        <in name="options" type="options_type"/>
-        <out name="out" type="unsigned int"/>
+      <include-function href="pfd_serial_compute_step.xpnet"/>
 
-        <module name="singular_parallel_allpfd"
-                require_function_unloads_without_rest="false"
-                function="compute_nullstellensatz
-                            ( options
-                            , in
-                            , out
-                            )">
-          <cinclude href="interface/singular_pnet-interface.hpp"/>
-          <cinclude href="util-generic/dynamic_linking.hpp"/>
-          <cinclude href="iostream"/>
-          <code><![CDATA[
-
-            std::cout << "Computing Nullstellensatz " << in << "\n";
-            RESOLVE_INTERFACE_FUNCTION 
-              (pfd_compute_step)
-              ( in, options , NULLSTELL);
-            std::cout << "Computing Nullstellensatz " << in << " done!\n";
-
-            out = in;
-
-          ]]></code>
-        </module>
-      </defun>
       <connect-in port="in" place="prepared_input"/>
       <connect-read port="options" place="readoptions"/>
+      <connect-read port="step" place="null_step_name"/>
       <connect-out port="out" place="nullstellensatz_done"/>
     </transition>
 
     <transition name="compute_short_numerator">
-      <defun>
-        <require key="worker" mandatory="true"/>
-        <in name="in" type="unsigned int" place="in"/>
-        <in name="options" type="options_type" place="options"/>
-        <out name="out" type="unsigned int" place="decomposition"/>
+      <include-function href="pfd_split_compute_step.xpnet"/>
 
-        <net>
-          <place name="in" type="unsigned int"/>
-
-          <place name="id" type="unsigned int"/>
-          <place name="terms" type="unsigned int"/>
-          <place name="decomposed_terms" type="unsigned int"/>
-          <place name="decomposed_list" type="list"/>
-
-          <place name="decomposition" type="unsigned int"/>
-
-          <place name="term_counts" type="term_count_type"/>
-          <place name="options" type="options_type"/>
-
-          <transition name="loop_init">
-            <defun>
-              <require key="worker" mandatory="true"/>
-              <in name="in" type="unsigned int"/>
-              <in name="options" type="options_type"/>
-              <out name="out" type="list"/>
-              <out name="id" type="unsigned int"/>
-              <out name="counts" type="term_count_type"/>
-              <out name="decomposed_list" type="list"/>
-              <module name="singular_parallel_allpfd"
-                      require_function_unloads_without_rest="false"
-                      function="out init_short_numerator
-                                  ( options
-                                  , in
-                                  , counts
-                                  , id
-                                  , decomposed_list
-                                  )">
-                <cinclude href="interface/singular_pnet-interface.hpp"/>
-                <cinclude href="util-generic/dynamic_linking.hpp"/>
-                <cinclude href="iostream"/>
-                <code><![CDATA[
-                  /*<>*/
-                  std::cout << "Initializing loop "
-                            << SHORT_NUM << " "
-                            << in
-                            << "\n";
-                  singular_parallel::pnet_list indices = RESOLVE_INTERFACE_FUNCTION
-                    (pfd_loop_init)
-                    ( in
-                    , options
-                    , SHORT_NUM
-                    );
-                  std::cout << SHORT_NUM
-                            << " "
-                            << in
-                            << " split into "
-                            << indices.size()
-                            << " terms.\n";
-
-                  counts.local = indices.size();
-                  counts.global = indices.size();
-                  counts.to_merge = indices.size();
-                  id = in;
-                  decomposed_list = singular_parallel::pnet_list();
-
-                  std::cout << "Initializing loop "
-                            << SHORT_NUM << " "
-                            << in
-                            << " done!\n";
-                  return indices;
-                ]]></code>
-              </module>
-            </defun>
-            <connect-in port="in" place="in"/>
-            <connect-read port="options" place="options"/>
-            <connect-out-many port="out" place="terms"/>
-            <connect-out port="id" place="id"/>
-            <connect-out port="counts" place="term_counts"/>
-            <connect-out port="decomposed_list" place="decomposed_list"/>
-          </transition>
-          <!--
-          -->
-
-          <transition name="loop_compute">
-            <defun>
-              <require key="worker" mandatory="true"/>
-              <in name="id" type="unsigned int"/>
-              <in name="term" type="unsigned int"/>
-              <in name="options" type="options_type"/>
-              <out name="out" type="unsigned int"/>
-              <module name="singular_parallel_allpfd"
-                      require_function_unloads_without_rest="false"
-                      function="loop_compute
-                                  ( options
-                                  , id
-                                  , term
-                                  , out
-                                  )">
-                <cinclude href="interface/singular_pnet-interface.hpp"/>
-                <cinclude href="util-generic/dynamic_linking.hpp"/>
-                <cinclude href="iostream"/>
-                <code><![CDATA[
-                  /*<>*/
-
-                  std::cout << "Loop compute " << SHORT_NUM << " "
-                            << id << " term " << term
-                            << "\n";
-                  RESOLVE_INTERFACE_FUNCTION
-                    (pfd_loop_compute_term)
-                    ( id, term, options , SHORT_NUM);
-                  std::cout << "Loop compute " << SHORT_NUM << " "
-                            << id << " term " << term
-                            << " done! \n";
-
-                  out = term;
-
-                ]]></code>
-              </module>
-            </defun>
-            <connect-in port="term" place="terms"/>
-            <connect-read port="id" place="id"/>
-            <connect-read port="options" place="options"/>
-            <connect-out port="out" place="decomposed_terms"/>
-          </transition>
-
-          <transition name="collect_decomposed">
-            <defun>
-              <require key="worker" mandatory="true"/>
-              <in name="id" type="unsigned int"/>
-              <in name="term" type="unsigned int"/>
-              <in name="options" type="options_type"/>
-              <inout name="counts" type="term_count_type"/>
-              <inout name="term_list" type="list"/>
-
-              <module name="singular_parallel_allpfd"
-                      require_function_unloads_without_rest="false"
-                      function="collect_decomposed
-                                  ( options
-                                  , id
-                                  , term
-                                  , term_list
-                                  , counts
-                                  )">
-                <cinclude href="interface/singular_pnet-interface.hpp"/>
-                <cinclude href="util-generic/dynamic_linking.hpp"/>
-                <cinclude href="iostream"/>
-                <code><![CDATA[
-                  /*<>*/
-
-                  std::cout << "Loop collect " << SHORT_NUM << " "
-                            << id << " term " << term
-                            << "\n";
-                  term_list.push_back(term);
-                  counts.to_merge -= 1;
-                  std::cout << "Loop collect " << SHORT_NUM << " "
-                            << id << " term " << term
-                            << " done! \n";
-
-                ]]></code>
-              </module>
-            </defun>
-            <connect-in port="term" place="decomposed_terms"/>
-            <connect-read port="id" place="id"/>
-            <connect-read port="options" place="options"/>
-            <connect-inout port="counts" place="term_counts"/>
-            <connect-inout port="term_list" place="decomposed_list"/>
-          </transition>
-
-          <transition name="merge">
-            <defun>
-              <require key="worker" mandatory="true"/>
-              <in name="terms" type="list"/>
-              <in name="options" type="options_type"/>
-              <inout name="id" type="unsigned int"/>
-              <inout name="counts" type="term_count_type"/>
-              <condition>
-                ${counts.to_merge} :eq: 0U
-              </condition>
-              <module name="singular_parallel_allpfd"
-                      require_function_unloads_without_rest="false"
-                      function="merge_results
-                                  ( options
-                                  , terms
-                                  , id
-                                  , counts
-                                  )">
-                <cinclude href="interface/singular_pnet-interface.hpp"/>
-                <cinclude href="util-generic/dynamic_linking.hpp"/>
-                <cinclude href="iostream"/>
-                <code><![CDATA[
-                  /*<>*/
-
-                  std::cout << "local " << id << " before: " << counts.local << "\n";
-                  std::cout << "global " << id << " before: " << counts.global << "\n";
-                  std::cout << "Merging "
-                            << terms.size()
-                            <<" terms for Short Numerator "
-                            << id
-                            << "\n";
-                  int merge_count = terms.size();
-                  int new_count = RESOLVE_INTERFACE_FUNCTION
-                    (pfd_loop_merge)
-                    ( id, terms.size(), options, SHORT_NUM);
-                  std::cout << "Merging "
-                            << terms.size()
-                            <<" terms for Short Numerator "
-                            << id
-                            << " done! \n";
-                  counts.local = 0;
-                  counts.global = new_count;
-                  counts.to_merge = new_count;
-                  std::cout << "local " << id << " after: " << counts.local << "\n";
-                  std::cout << "global " << id << " after: " << counts.global << "\n";
-
-                ]]></code>
-              </module>
-            </defun>
-            <connect-in port="terms" place="decomposed_list"/>
-            <connect-read port="options" place="options"/>
-            <connect-inout port="id" place="id"/>
-            <connect-inout port="counts" place="term_counts"/>
-          </transition>
-
-          <transition name="loop_cycle_new_terms">
-            <defun>
-              <require key="worker" mandatory="true"/>
-              <in name="options" type="options_type"/>
-              <inout name="id" type="unsigned int"/>
-              <inout name="counts" type="term_count_type"/>
-              <out name="terms" type="list"/>
-              <out name="decomposed_list" type="list"/>
-
-              <condition>
-                ${counts.local} :eq: 0U :and: ${counts.global} :gt: 0U
-              </condition>
-              <module name="singular_parallel_allpfd"
-                      require_function_unloads_without_rest="false"
-                      function="terms cycle_new_terms
-                                  ( options
-                                  , id
-                                  , counts
-                                  , decomposed_list
-                                  )">
-                <cinclude href="interface/singular_pnet-interface.hpp"/>
-                <cinclude href="util-generic/dynamic_linking.hpp"/>
-                <cinclude href="iostream"/>
-                <code><![CDATA[
-                  /*<>*/
-
-                  std::cout << "Short Numerator Cycle Terms "
-                            << id
-                            << "\n";
-                  singular_parallel::pnet_list indices =  RESOLVE_INTERFACE_FUNCTION
-                    (pfd_loop_cycle_terms)
-                    ( id, options, SHORT_NUM);
-                  std::cout << "Short Numerator Cycle Terms "
-                            << id
-                            << " done! \n";
-
-                  counts.local = indices.size();
-                  decomposed_list = singular_parallel::pnet_list();
-
-                  return indices;
-                ]]></code>
-              </module>
-            </defun>
-            <connect-read port="options" place="options"/>
-            <connect-inout port="id" place="id"/>
-            <connect-inout port="counts" place="term_counts"/>
-            <connect-out port="decomposed_list" place="decomposed_list"/>
-            <connect-out-many port="terms" place="terms"/>
-          </transition>
-
-          <transition name="finish_loop">
-            <defun>
-              <require key="worker" mandatory="true"/>
-              <in name="options" type="options_type"/>
-              <in name="id" type="unsigned int"/>
-              <in name="counts" type="term_count_type"/>
-              <out name="out" type="unsigned int"/>
-
-              <condition>
-                ${counts.local} :eq: 0U :and: ${counts.global} :eq: 0U
-              </condition>
-              <module name="singular_parallel_allpfd"
-                      require_function_unloads_without_rest="false"
-                      function="finish_loop
-                                  ( options
-                                  , id
-                                  , counts
-                                  , out
-                                  )">
-                <cinclude href="interface/singular_pnet-interface.hpp"/>
-                <cinclude href="util-generic/dynamic_linking.hpp"/>
-                <cinclude href="iostream"/>
-                <code><![CDATA[
-                  /*<>*/
-                  std::cout << "Finish Short Numerator"
-                            << id
-                            << "\n";
-                  RESOLVE_INTERFACE_FUNCTION
-                    (pfd_loop_finish)
-                    ( id, options, SHORT_NUM);
-                  out = id;
-                  std::cout << "Finish Short Numerator"
-                            << id
-                            << " done! \n";
-
-                ]]></code>
-              </module>
-            </defun>
-            <connect-read port="options" place="options"/>
-            <connect-in port="id" place="id"/>
-            <connect-in port="counts" place="term_counts"/>
-            <connect-out port="out" place="decomposition"/>
-          </transition>
-
-
-
-
-        </net>
-      </defun>
       <connect-in port="in" place="nullstellensatz_done"/>
       <connect-read port="options" place="readoptions"/>
+      <connect-read port="step" place="short_num_name"/>
       <connect-out port="out" place="short_numerator_done"/>
     </transition>
 
     <transition name="compute_algebraic_dependence">
-      <defun>
-        <require key="worker" mandatory="true"/>
-        <in name="in" type="unsigned int"/>
-        <in name="options" type="options_type"/>
-        <out name="out" type="unsigned int"/>
+      <include-function href="pfd_split_compute_step.xpnet"/>
 
-        <module name="singular_parallel_allpfd"
-                require_function_unloads_without_rest="false"
-                function="compute_algebraic_dependence
-                            ( options
-                            , in
-                            , out
-                            )">
-          <cinclude href="interface/singular_pnet-interface.hpp"/>
-          <cinclude href="util-generic/dynamic_linking.hpp"/>
-          <cinclude href="iostream"/>
-          <code><![CDATA[
-                  /*<>*/
-
-            std::cout << "Computing Algebraic Dependence " << in << "\n";
-            RESOLVE_INTERFACE_FUNCTION
-              (pfd_compute_step)
-              ( in, options , ALG_DEPEND);
-            std::cout << "Computing Algebraic Dependence " << in << " done!\n";
-
-            out = in;
-
-          ]]></code>
-        </module>
-      </defun>
       <connect-in port="in" place="short_numerator_done"/>
       <connect-read port="options" place="readoptions"/>
+      <connect-read port="step" place="algebraic_step_name"/>
       <connect-out port="out" place="algebraic_dependence_done"/>
     </transition>
 
 
     <transition name="compute_numerator">
-      <defun>
-        <require key="worker" mandatory="true"/>
-        <in name="in" type="unsigned int"/>
-        <in name="options" type="options_type"/>
-        <out name="out" type="unsigned int"/>
+      <include-function href="pfd_split_compute_step.xpnet"/>
 
-        <module name="singular_parallel_allpfd"
-                require_function_unloads_without_rest="false"
-                function="compute_numerator
-                            ( options
-                            , in
-                            , out
-                            )">
-          <cinclude href="interface/singular_pnet-interface.hpp"/>
-          <cinclude href="util-generic/dynamic_linking.hpp"/>
-          <cinclude href="iostream"/>
-          <code><![CDATA[
-            /*<>*/
-            std::cout << "Computing Numerator " << in << "\n";
-            RESOLVE_INTERFACE_FUNCTION
-              (pfd_compute_step)
-              ( in, options , NUMERATOR);
-            std::cout << "Computing Numerator " << in << " done!\n";
-
-            out = in;
-
-          ]]></code>
-        </module>
-      </defun>
       <connect-in port="in" place="algebraic_dependence_done"/>
       <connect-read port="options" place="readoptions"/>
+      <connect-read port="step" place="numerator_step_name"/>
       <connect-out port="out" place="numerator_done"/>
     </transition>
-
-
 
     <transition name="write_result">
       <defun>
@@ -671,9 +294,14 @@
           <cinclude href="util-generic/dynamic_linking.hpp"/>
           <cinclude href="iostream"/>
           <code><![CDATA[
-
+          //<>
             std::cout << "Writing " << in << "\n";
-            RESOLVE_INTERFACE_FUNCTION 
+
+            RESOLVE_INTERFACE_FUNCTION
+              (log_duration)
+              (in, options, "total_time");
+
+            RESOLVE_INTERFACE_FUNCTION
               (pfd_write_result)
               ( in, options );
             std::cout << "Writing " << in << " done!\n";

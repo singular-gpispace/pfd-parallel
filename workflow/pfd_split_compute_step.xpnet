@@ -1,0 +1,248 @@
+<defun name="pfd_split_compute">
+
+  <include-structs href="types.xpnet"/>
+
+  <require key="worker" mandatory="true"/>
+  <in name="in" type="unsigned int" place="in"/>
+  <in name="step" type="string" place="step"/>
+  <in name="options" type="options_type" place="options"/>
+  <out name="out" type="unsigned int" place="decomposition"/>
+
+  <net>
+    <place name="in" type="unsigned int"/>
+    <place name="step" type="string"/>
+
+    <place name="id" type="unsigned int"/>
+    <place name="terms" type="unsigned int"/>
+    <place name="decomposed_terms" type="unsigned int"/>
+    <place name="decomposed_list" type="list"/>
+
+    <place name="decomposition" type="unsigned int"/>
+
+    <place name="term_counts" type="term_count_type"/>
+    <place name="options" type="options_type"/>
+
+    <transition name="split_init">
+      <defun>
+        <require key="worker" mandatory="true"/>
+        <in name="in" type="unsigned int"/>
+        <in name="options" type="options_type"/>
+        <in name="step" type="string"/>
+        <out name="out" type="list"/>
+        <out name="id" type="unsigned int"/>
+        <out name="counts" type="term_count_type"/>
+        <out name="decomposed_list" type="list"/>
+        <module name="singular_parallel_allpfd"
+                require_function_unloads_without_rest="false"
+                function="out split_init
+                            ( options
+                            , in
+                            , counts
+                            , id
+                            , decomposed_list
+                            , step
+                            )">
+          <cinclude href="interface/singular_pnet-interface.hpp"/>
+          <cinclude href="util-generic/dynamic_linking.hpp"/>
+          <cinclude href="iostream"/>
+          <code><![CDATA[
+            /*<>*/
+            std::cout << "Initializing split "
+                      << step << " "
+                      << in
+                      << "\n";
+
+            RESOLVE_INTERFACE_FUNCTION
+              (write_current_time)
+              (in, step, options.tmpdir);
+
+            singular_parallel::pnet_list indices = RESOLVE_INTERFACE_FUNCTION
+               (pfd_split_init)
+               ( in
+               , options
+               , step
+               );
+            std::cout << step
+                      << " "
+                      << in
+                      << " split into "
+                      << indices.size()
+                      << " terms.\n";
+
+            counts.local = indices.size();
+            counts.global = indices.size();
+            counts.to_merge = indices.size();
+            id = in;
+            decomposed_list = singular_parallel::pnet_list();
+
+            std::cout << "Initializing split "
+                      << step << " "
+                      << in
+                      << " done!\n";
+            return indices;
+          ]]></code>
+        </module>
+      </defun>
+      <connect-in port="in" place="in"/>
+      <connect-read port="options" place="options"/>
+      <connect-read port="step" place="step"/>
+      <connect-out-many port="out" place="terms"/>
+      <connect-out port="id" place="id"/>
+      <connect-out port="counts" place="term_counts"/>
+      <connect-out port="decomposed_list" place="decomposed_list"/>
+    </transition>
+
+    <transition name="split_compute">
+      <defun>
+        <require key="worker" mandatory="true"/>
+        <in name="id" type="unsigned int"/>
+        <in name="term" type="unsigned int"/>
+        <in name="options" type="options_type"/>
+        <in name="step" type="string"/>
+        <out name="out" type="unsigned int"/>
+        <module name="singular_parallel_allpfd"
+                require_function_unloads_without_rest="false"
+                function="split_compute
+                            ( options
+                            , id
+                            , term
+                            , out
+                            , step
+                            )">
+          <cinclude href="interface/singular_pnet-interface.hpp"/>
+          <cinclude href="util-generic/dynamic_linking.hpp"/>
+          <cinclude href="iostream"/>
+          <code><![CDATA[
+            /*<>*/
+
+            std::cout << "Split compute " << step << " "
+                      << id << " term " << term
+                      << "\n";
+            RESOLVE_INTERFACE_FUNCTION
+              (pfd_split_compute_term)
+              ( id, term, options , step);
+            std::cout << "Loop compute " << step << " "
+                      << id << " term " << term
+                      << " done! \n";
+
+            out = term;
+
+          ]]></code>
+        </module>
+      </defun>
+      <connect-in port="term" place="terms"/>
+      <connect-read port="id" place="id"/>
+      <connect-read port="options" place="options"/>
+      <connect-read port="step" place="step"/>
+      <connect-out port="out" place="decomposed_terms"/>
+    </transition>
+
+    <transition name="collect_decomposed">
+      <defun>
+        <require key="worker" mandatory="true"/>
+        <in name="id" type="unsigned int"/>
+        <in name="term" type="unsigned int"/>
+        <in name="options" type="options_type"/>
+        <in name="step" type="string"/>
+        <inout name="counts" type="term_count_type"/>
+
+        <condition>
+          ${counts.to_merge} :gt: 0U
+        </condition>
+
+        <module name="singular_parallel_allpfd"
+                require_function_unloads_without_rest="false"
+                function="collect_decomposed
+                            ( options
+                            , id
+                            , term
+                            , counts
+                            , step
+                            )">
+          <cinclude href="interface/singular_pnet-interface.hpp"/>
+          <cinclude href="util-generic/dynamic_linking.hpp"/>
+          <cinclude href="iostream"/>
+          <code><![CDATA[
+            /*<>*/
+
+            std::cout << "Split collect " << step << " "
+                      << id << " term " << term
+                      << "\n";
+            counts.to_merge -= 1;
+            std::cout << "Split collect " << step << " "
+                      << id << " term " << term
+                      << " done! \n";
+
+          ]]></code>
+        </module>
+      </defun>
+      <connect-in port="term" place="decomposed_terms"/>
+      <connect-read port="id" place="id"/>
+      <connect-read port="options" place="options"/>
+      <connect-read port="step" place="step"/>
+      <connect-inout port="counts" place="term_counts"/>
+    </transition>
+
+    <transition name="merge">
+      <defun>
+        <require key="worker" mandatory="true"/>
+        <in name="options" type="options_type"/>
+        <in name="step" type="string"/>
+        <in name="id" type="unsigned int"/>
+        <in name="counts" type="term_count_type"/>
+        <out name="out" type="unsigned int"/>
+        <condition>
+          ${counts.to_merge} :eq: 0U
+        </condition>
+        <module name="singular_parallel_allpfd"
+                require_function_unloads_without_rest="false"
+                function="merge_results
+                             ( options
+                             , id
+                             , counts
+                             , out
+                             , step
+                             )">
+          <cinclude href="interface/singular_pnet-interface.hpp"/>
+          <cinclude href="util-generic/dynamic_linking.hpp"/>
+          <cinclude href="iostream"/>
+          <code><![CDATA[
+            /*<>*/
+
+            std::cout << "Merging "
+                      << counts.local
+                      <<" terms for " + step + " "
+                      << id
+                      << "\n";
+            RESOLVE_INTERFACE_FUNCTION
+               (pfd_split_merge)
+               ( id, counts.local, options, step);
+            std::cout << "Merging "
+                      << counts.local
+                      <<" terms for " + step + " "
+                      << id
+                      << " done! \n";
+
+            RESOLVE_INTERFACE_FUNCTION
+               (pfd_split_finish)
+               ( id, options, step);
+
+            
+            RESOLVE_INTERFACE_FUNCTION
+              (log_duration)
+              (id, options, step);
+
+            out = id;
+
+          ]]></code>
+        </module>
+      </defun>
+      <connect-read port="options" place="options"/>
+      <connect-in port="id" place="id"/>
+      <connect-in port="counts" place="term_counts"/>
+      <connect-read port="step" place="step"/>
+      <connect-out port="out" place="decomposition"/>
+    </transition>
+  </net>
+</defun>
+
