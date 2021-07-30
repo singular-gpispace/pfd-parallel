@@ -30,10 +30,18 @@ find_boost (1.61 REQUIRED QUIET FROM_GPISPACE_INSTALLATION COMPONENTS
   chrono
 )
 
+list (APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/src/cmake/modules")
+find_package (Singular REQUIRED)
+
 set (BUNDLE_ROOT "libexec/bundle")
 bundle_GPISpace (DESTINATION "${BUNDLE_ROOT}/gpispace"
   COMPONENTS "runtime"
              "monitoring"
+)
+
+install (DIRECTORY "${SINGULAR_HOME}/"
+  DESTINATION libexec/bundle/singular
+  USE_SOURCE_PERMISSIONS
 )
 
 set(SP_INSTALL_PATH "${CMAKE_INSTALL_PREFIX}")
@@ -43,6 +51,8 @@ configure_file("src/installation.hpp.in" "src/installation.hpp")
 include_directories ("src")
 include_directories ("${CMAKE_CURRENT_SOURCE_DIR}")
 include_directories ("${CMAKE_CURRENT_BINARY_DIR}/src")
+include_directories ("${CMAKE_BINARY_DIR}")
+
 
 include_directories ("${CMAKE_SOURCE_DIR}/src")
 include_directories ("${CMAKE_BINARY_DIR}")
@@ -67,9 +77,10 @@ bundle_GPISpace_add_rpath (TARGET SINGULAR-parallel-installation INSTALL_DIRECTO
 extended_add_library (NAME module
   TYPE SHARED
   NAMESPACE SINGULAR-parallel
-  SOURCES "src/bin/SINGULAR-parallel-module.cpp" "parallel/singular_functions.cpp"
+  SOURCES "src/bin/SINGULAR-parallel-module.cpp" "interface/singular_functions.cpp"
   COMPILE_DEFINITIONS SING_NDEBUG OM_NDEBUG
   LIBRARIES SINGULAR-parallel::installation
+            partial_static_parallel_allpfd_wrapper
             Util::Generic
             GPISpace::execution
             GPISpace::workflow_development
@@ -85,9 +96,21 @@ set_target_properties (SINGULAR-parallel-module
 )
 bundle_GPISpace_add_rpath (TARGET SINGULAR-parallel-module INSTALL_DIRECTORY "LIB")
 
-add_subdirectory (parallel)
+add_subdirectory (interface)
 add_subdirectory (workflow)
 add_subdirectory (singular)
+
+configure_file("src/config.hpp.in"
+  "${CMAKE_BINARY_DIR}/src/config.hpp"
+  @ONLY
+)
+
+add_custom_target (Config
+  ALL
+  DEPENDS "${CMAKE_BINARY_DIR}/src/config.hpp"
+)
+
+
 
 #install (DIRECTORY "${SINGULAR_HOME}/"
 #  DESTINATION "${BUNDLE_ROOT}/singular"

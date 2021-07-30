@@ -4,16 +4,22 @@ info="demo";
 
 proc pfd_gspc_filename (string matrixname, string suffix, int row, int col)
 {
-  string filename = matrixname
-                  + "_" + string(row)
-                  + "_" + string(col)
-                  + "." + suffix;
+  string filename = pfd_gspc_filename_no_suffix (matrixname, row, col)
+                    + "." + suffix; 
   return (filename);
 }
 
+proc pfd_gspc_filename_no_suffix (string matrixname, int row, int col)
+{
+  string filename = matrixname
+                  + "_" + string(row)
+                  + "_" + string(col);
+  return (filename);
+}
+
+
 proc pfd_gspc_compute (in_struct input)
 {
-  execute("ring r = " + input.neededring);
   string filename = pfd_gspc_filename( input.matrixname
                                      , input.suffix
                                      , input.row
@@ -25,7 +31,448 @@ proc pfd_gspc_compute (in_struct input)
   return(output);
 }
 
+proc pfd_gspc_is_already_computed (in_struct input)
+{
+  //execute("ring r = " + input.neededring);
+  string filename = pfd_gspc_filename_no_suffix( input.matrixname
+                                               , input.row
+                                               , input.col);
+
+  list args = parsePfdSingleEntryArgs(input.fromdir, input.todir);
+  string from_dir = args[1];
+  string to_dir = args[2];
+
+  if (file_exists(to_dir + "result_" + filename + ".txt")) {
+    return(1);
+  } else {
+    return(0);
+  }
+}
+
+proc pfd_gspc_prepareSingleEntryFraction (in_struct input)
+{
+  list args = parsePfdSingleEntryArgs(input.fromdir, input.todir);
+  string from_dir = args[1];
+  string to_dir = args[2];
+  int ignore_nonlin = args[3];
+
+  if (input.suffix == "txt") {
+    string filename = pfd_gspc_filename_no_suffix( input.matrixname
+                                                 , input.suffix
+                                                 , input.row
+                                                 , input.col);
+    prepareSingleEntryFraction( filename
+                              , from_dir
+                              , ignore_nonlin
+                              );
+  }
+  if (!file_exists( from_dir + pfd_gspc_filename( input.matrixname
+                                                , "ssi"
+                                                , input.row
+                                                , input.col)
+                                                )
+                  ) {
+    ERROR("Preparation of ssi failed");
+  }
+}
+
+
+proc pfd_gspc_is_trivial (in_struct input)
+{
+  system("--ticks-per-sec",1000);
+  short = 0;
+  
+  list args = parsePfdSingleEntryArgs(input.fromdir, input.todir);
+  string from_dir = args[1];
+  string to_dir = args[2];
+  int ignore_nonlin = args[3];
+
+  string filename = pfd_gspc_filename_no_suffix( input.matrixname
+                                               , input.row
+                                               , input.col);
+  list fraction = read("ssi:r " + from_dir + filename + ".ssi");
+  list nonlin = prepareNonLin(fraction, ignore_nonlin);
+
+  int t = rtimer;
+
+  poly f = fraction[1];
+  if(typeof(fraction[2])=="list") {
+    list g=fraction[2];
+  } else {
+    poly g=fraction[2];
+  }
+
+  int debug=0;
+  //link l=":a "+string(debug)+"_log_"+datetime()+".txt";
+  link l=":w ";
+
+  if(debug)
+  {
+    fprintf(l,"debug: %s", debug);
+    fprintf(l,"size(string(f)) = %s, size(string(g)) = %s %n",
+               size(string(f)), size(string(g)), 0);
+  }
+
+  if(typeof(g)=="poly") {
+    if(deg(g)==0) {
+      // trivial degree for g
+      list dec = list(ideal(),list(list(f/g,intvec(0:0),intvec(0:0))));
+      if(debug)
+        {fprintf(l,"%ntotal: 0 ms (denominator was constant)",0); close(l);}
+      if(voice<=printlevel) {displaypfd(dec);}
+      //return(dec);
+    }
+  }
+
+  if(typeof(g)=="list") {
+    if(size(g[1])==0) {
+      list dec = list(ideal(),list(list(f,intvec(0:0),intvec(0:0))));
+      if(debug)
+        {fprintf(l,"%ntotal: 0 ms (denominator was constant)",0); close(l);}
+      if(voice<=printlevel) {displaypfd(dec);}
+      //return(dec);
+    }
+  }
+
+  if(f==0) {
+    // trivial case
+    list dec = list(ideal(),list(list(poly(0),intvec(0:0),intvec(0:0))));
+    if(debug)
+      {fprintf(l,"%ntotal: 0 ms (numerator was 0)",0); close(l);}
+    if(voice<=printlevel) {displaypfd(dec);}
+    //return(dec);
+  }
+  if (!defined(dec)) {
+    return (0);
+  } else {
+    // dec is defined in one of the trivial cases is trivial
+    t = rtimer-t;
+
+    list result = dec;
+
+    write(":w "+to_dir+"resources_"+filename+".txt",
+          sprintf("Time for Trivial: %s ms,  Memory: %s Bytes",t,memory(2)));
+
+    // output as Singular objects
+    if(ignore_nonlin)
+      {write("ssi:w "+to_dir+"result_"+filename+".ssi",list(nonlin,result));}
+    else
+      {write("ssi:w "+to_dir+"result_"+filename+".ssi",result);}
+
+    if (ignore_nonlin) {
+      write_pfd_as_txt(result, to_dir, filename, nonlin);
+    } else {
+      write_pfd_as_txt(result, to_dir, filename, list(list(),list()));
+    }
+
+    out_struct output;
+    output.result = "success! (trivial problem)";
+    return(output);
+  }
+}
+
+proc pfd_gspc_prepare_input (in_struct input, int id, string tmpdir, string terms_name)
+{
+  system("--ticks-per-sec",1000);
+  short = 0;
+
+  list args = parsePfdSingleEntryArgs(input.fromdir, input.todir);
+  string from_dir = args[1];
+  string to_dir = args[2];
+  int ignore_nonlin = args[3];
+
+  string filename = pfd_gspc_filename_no_suffix( input.matrixname
+                                               , input.row
+                                               , input.col);
+  list fraction = read("ssi:r " + from_dir + filename + ".ssi");
+  list nonlin = prepareNonLin(fraction, ignore_nonlin);
+
+
+  poly f = fraction[1];
+  if(typeof(fraction[2])=="list") {
+    list g=fraction[2];
+  } else {
+    poly g=fraction[2];
+  }
+
+  int debug=0;
+  link l=":w ";
+
+  list fqem = prepare_fqem(f, g, l);
+
+  f = fqem[1];
+  ideal q = fqem[2];
+  intvec e = fqem[3];
+  int m = fqem[4];
+  list terms = list(list(poly(f),1..m,e));
+  list prepared_input = list(q, ignore_nonlin, nonlin, filename, to_dir);
+
+  write("ssi:w " + tmpdir + "/input_" + string(id) + ".ssi", prepared_input);
+  write("ssi:w " + tmpdir + "/" + terms_name +"_" + string(id) + ".ssi", terms);
+}
+
+proc get_loop_strat(string step) {
+  if ((step == "NSSdecompStep") or (step == "algDependDecompStep")) {
+    return ("size");
+  } else{if ((step == "shortNumeratorDecompStep") or (step == "numeratorDecompStep")) {
+    return ("index");
+  } else {
+    return ("invalid");
+  }}
+
+}
+
+proc pfd_gspc_compute_step ( int id
+                           , string step
+                           , string from_terms
+                           , string to_terms
+                           , string tmpdir
+                           )
+{
+  system("--ticks-per-sec",1000);
+  short = 0;
+
+  int debug=0;
+  link l=":w ";
+
+  list input = read("ssi:r " + tmpdir + "/input_" + string(id) + ".ssi");
+  list terms = read("ssi:r " + tmpdir + "/"  + from_terms + "_" + string(id) + ".ssi");
+
+  ideal q = input[1];
+  string filename = input[4];
+  string to_dir = input[5];
+
+  int t = rtimer;
+
+  // (1) Nullstellensatz decomposition /////////////////////////////////////////
+  terms = generic_dec_loop(step, get_loop_strat(step), terms, q, debug, l);
+
+  t = rtimer-t;
+  write(":a "+to_dir+"resources_"+filename+".txt",
+        sprintf(step + " Time: %s ms,  Memory: %s Bytes",t,memory(2)));
+
+  write("ssi:w " + tmpdir + "/" + to_terms +"_" + string(id) + ".ssi", terms);
+
+}
+
+proc pfd_gspc_write_result (int id, string tmpdir)
+{
+  system("--ticks-per-sec",1000);
+  short = 0;
+
+  int debug=0;
+  link l=":w ";
+
+  list input = read("ssi:r " + tmpdir + "/input_" + string(id) + ".ssi");
+  list terms = read("ssi:r " + tmpdir + "/terms_4_" + string(id) + ".ssi");
+
+  ideal q = input[1];
+  int ignore_nonlin = input[2];
+  list nonlin = input[3];
+  string filename = input[4];
+  string to_dir = input[5];
+
+
+  if(size(terms)==1) {if(terms[1][1]==0) {terms = list();}}
+  list result = list(q,terms);
+
+  if(voice<=printlevel) {displaypfd(result);}
+
+  // output as Singular objects
+  if(ignore_nonlin)
+    {write("ssi:w "+to_dir+"result_"+filename+".ssi",list(nonlin,result));}
+  else
+    {write("ssi:w "+to_dir+"result_"+filename+".ssi",result);}
+
+  if (ignore_nonlin) {
+    write_pfd_as_txt(result, to_dir, filename, nonlin);
+  } else {
+    write_pfd_as_txt(result, to_dir, filename, list(list(),list()));
+  }
+
+  out_struct output;
+  output.result = "success!";
+  return(output);
+}
+
+// while loop functions
+
+proc pfd_loop_split_terms(int id, string in_filename, string out_filename, string tmpdir)
+{
+  list terms = read("ssi:r " + tmpdir + "/" + in_filename + "_" + string(id) + ".ssi");
+  int term_count = size(terms);
+  int SPLIT_MAX = 8;
+  int split_count = min(SPLIT_MAX, term_count);
+  int i;
+
+  list term_lists = list();
+  for(i = 1; i <= split_count; i++) {
+    term_lists[i] = list();
+  }
+  for(i = 0; i < term_count; i++) {
+    term_lists[1 + i % split_count][1 + i div split_count] = terms[1 + i];
+  }
+
+  for(i = 1; i <= split_count; i++) {
+    write("ssi:w " + tmpdir + "/" + out_filename + "_" +
+          string(id) + "_" + string(i) + ".ssi", term_lists[i]);
+  }
+
+  return (split_count);
+}
+
+proc pfd_split_compute_term( int id
+                          , int term_id
+                          , string step
+                          , string in_filename
+                          , string out_filename
+                          , string tmpdir
+                          , list #
+                          )
+{
+
+  system("--ticks-per-sec",1000);
+  short = 0;
+
+  int debug=0;
+  link l=":w ";
+
+  list terms = read("ssi:r " + tmpdir + "/" + in_filename + "_" +
+          string(id) + "_" + string(term_id) + ".ssi");
+  list input = read("ssi:r " + tmpdir + "/input_" + string(id) + ".ssi");
+  ideal q = input[1];
+
+  //if ((size(terms) > 1) or (size(terms) < 1)) {
+  if (size(terms) < 1) {
+    ERROR("Expected at least one term, got " + string(size(terms)) +
+          " instead.  Check for error in term split process.");
+  }
+
+  terms = generic_dec_loop(step, get_loop_strat(step), terms, q, debug, l);
+  //ERROR(step " seems to compute");
+
+  write("ssi:w " + tmpdir +
+                   "/" + out_filename + "_" +
+                   string(id) + "_" + string(term_id) +
+                   ".ssi", terms);
+}
+
+proc pfd_loop_compute_term( int id
+                           , int term_id
+                           , string step
+                           , string in_filename
+                           , string out_filename
+                           , string tmpdir
+                           , list #
+                           )
+{
+  list terms = read("ssi:r " + tmpdir + "/" + in_filename + "_" +
+          string(id) + "_" + string(term_id) + ".ssi");
+  list input = read("ssi:r " + tmpdir + "/input_" + string(id) + ".ssi");
+  ideal q = input[1];
+
+  if ((size(terms) > 1) or (size(terms) < 1)) {
+    ERROR("Expected exactly one term, got " + string(size(terms)) +
+          " instead.  Check for error in term split process.");
+  }
+
+  string command = "list result = " + step + "(terms[1],q,#);";
+  execute(command);
+
+  write("ssi:w " + tmpdir +
+                   "/" + out_filename + "_" +
+                   string(id) + "_" + string(term_id) +
+                   ".ssi", result);
+}
+
+proc pfd_loop_merge( int id
+                   , int term_count
+                   , string step
+                   , string filename
+                   , string tmpdir
+                   )
+{
+  list dec = read("ssi:r " + tmpdir +
+                             "/" + filename + "_dec_" +
+                             string(id) +
+                             ".ssi");
+  list new_terms = read("ssi:r " + tmpdir +
+                                   "/" + filename + "_new_terms_" +
+                                   string(id) +
+                                   ".ssi");
+
+  int new_count_before = size(new_terms);
+  int i;
+  string strat = get_loop_strat(step);
+  for (i = 1; i <= term_count; i++) {
+    list result = read("ssi:r " + tmpdir +
+                                "/" + filename + "_result_" +
+                                string(id) + "_" + string(i) +
+                                ".ssi");
+
+    list merged = general_merge_step(strat, new_terms, dec, result);
+    dec = merged[1];
+    new_terms = merged[2];
+  }
+
+  int new_count = size(new_terms) - new_count_before;
+
+  write( "ssi:w " + tmpdir +
+                    "/" + filename + "_dec_" +
+                    string(id) +
+                    ".ssi"
+       , dec);
+  write( "ssi:w " + tmpdir +
+                    "/" + filename + "_new_terms_" +
+                    string(id) +
+                    ".ssi"
+       , new_terms);
+  return (new_count);
+}
+
+proc pfd_split_merge( int id
+                   , int term_count
+                   , string step
+                   , string filename
+                   , string tmpdir
+                   )
+{
+  list dec = read("ssi:r " + tmpdir +
+                             "/" + filename + "_dec_" +
+                             string(id) +
+                             ".ssi");
+  int i;
+  string strat = get_loop_strat(step);
+  for (i = 1; i <= term_count; i++) {
+    list result = read("ssi:r " + tmpdir +
+                                "/" + filename + "_result_" +
+                                string(id) + "_" + string(i) +
+                                ".ssi");
+
+    dec = mergepfd(dec, result);
+  }
+
+  write( "ssi:w " + tmpdir +
+                    "/" + filename + "_dec_" +
+                    string(id) +
+                    ".ssi"
+       , dec);
+}
+
+proc pfd_gspc_log_duration(int id,
+                           bigint duration,
+                           string measure_name,
+                           string tmpdir)
+{
+  list input = read("ssi:r " + tmpdir + "/input_" + string(id) + ".ssi");
+  string filename = input[4];
+  string to_dir = input[5];
+    write(":a "+to_dir+"resources_"+filename+".txt",
+          sprintf(measure_name+" time: %s ms",duration));
+}
+
 proc mod_init() {
   // TODO: change to installed pfd library
   LIB "@PFD_SING_LIB_PATH@/pfd.lib";
 }
+

@@ -14,10 +14,11 @@
 #include <util-generic/print_exception.hpp>
 #include <util-generic/read_lines.hpp>
 
-#include "Singular/libsingular.h"
+#include <Singular/libsingular.h>
 
-#include "parallel/singular_functions.hpp"
-#include <share/include/type_aliases.hpp>
+#include <interface/singular_functions.hpp>
+#include <interface/type_aliases.hpp>
+#include <config.hpp>
 
 #define get_singular_string_argument(A,B,C) \
     require_argument<B, char*> (A,STRING_CMD,"string",C)
@@ -102,14 +103,12 @@ namespace
       std::string tmpDir() const;
       std::string nodeFile() const;
       std::string showStrategy() const;
-      std::string baseFileName() const;
       std::string inStructName() const;
       std::string inStructDesc() const;
       std::string outStructName() const;
       std::string outStructDesc() const;
       std::string neededLibrary() const;
       std::string functionName() const;
-      std::string expandNodeFunction() const;
       std::string graphType() const;
 
       singular_parallel::installation singPI() const;
@@ -132,24 +131,19 @@ namespace
       std::string outstructdesc;
       std::string neededlibrary;
       std::string functionname;
-      std::string expandnodefunction;
 
       std::string graph_type;
 
       /* derived variables */
       std::size_t num_tasks;
       int out_token;
-      std::string base_filename;
 
       singular_parallel::installation singular_parallel_installation;
   };
 
   /*** private function declarations ***/
   int fetch_token_value_from_sing_scope (std::string token_s);
-  int get_num_tasks(leftv args, lists arg_list, std::string graph_type);
-  std::string get_base_filename(std::string const& graph_type,
-                                std::string const& tmpdir);
-  std::string get_expandnodefunction(leftv args, std::string graph_type);
+  int get_num_tasks(lists arg_list, std::string graph_type);
 
   /*** ArgumentState implementations ***/
   int ArgumentState::outToken() const {
@@ -176,10 +170,6 @@ namespace
     return strategy;
   }
 
-  std::string ArgumentState::baseFileName() const {
-    return base_filename;
-  }
-
   std::string ArgumentState::inStructName() const {
     return instructname;
   }
@@ -202,10 +192,6 @@ namespace
 
   std::string ArgumentState::functionName() const {
     return functionname;
-  }
-
-  std::string ArgumentState::expandNodeFunction() const {
-    return expandnodefunction;
   }
 
   std::string ArgumentState::graphType() const {
@@ -237,11 +223,9 @@ namespace
   , outstructdesc (get_singular_string_argument(args, 9, "output struct description"))
   , neededlibrary (get_singular_string_argument(args, 10, "needed library"))
   , functionname (get_singular_string_argument(args, 11, "function name"))
-  , expandnodefunction (get_expandnodefunction(args, graph_type) )
   , graph_type (graph_type)
-  , num_tasks (get_num_tasks(args, arg_list, graph_type))
+  , num_tasks (get_num_tasks(arg_list, graph_type))
   , out_token (fetch_token_value_from_sing_scope (outstructname))
-  , base_filename (get_base_filename(graph_type, tmpdir))
   , singular_parallel_installation ()
   {
     if (out_token == 0)
@@ -259,49 +243,14 @@ namespace
     return token_v;
   }
 
-  int get_num_tasks(leftv args, lists arg_list, std::string graph_type)
+  int get_num_tasks(lists arg_list, std::string graph_type)
   {
     if ((graph_type == "list_all") ||
       (graph_type == "list_first") ||
       (graph_type == "pfd"))  {
       return arg_list->nr + 1;
-    } else if ((graph_type == "tree_all") || (graph_type == "rgraph_all")) {
-      return (int)require_argument<13, long>
-                    (args, INT_CMD, "int", "upper bound");
     } else {
       return 0;
-    }
-  }
-
-  std::string get_base_filename(std::string const& graph_type,
-                                std::string const& tmpdir)
-  {
-    std::string base_filename;
-    if ((graph_type == "list_all") || (graph_type == "list_first")) {
-      base_filename = tmpdir + "/sggspc_list";
-    } else if (graph_type == "tree_all") {
-      base_filename = tmpdir + "/sggspc_tree";
-    } else if (graph_type == "rgraph_all") {
-      base_filename = tmpdir + "/sggspc_rgraph";
-    } else if (graph_type == "pfd") {
-        base_filename = tmpdir + "/sggspc_pfd";
-    } else {
-      throw std::runtime_error( std::string("Bad graph type as argument")
-                              + "while determining base filename");
-    }
-
-    return base_filename;
-  }
-
-  std::string get_expandnodefunction(leftv args, std::string graph_type)
-  {
-    if ((graph_type == "tree_all") || (graph_type == "rgraph_all")) {
-      return require_argument<12, char*> (args,
-                                          STRING_CMD,
-                                          "string",
-                                          "expand node function");
-    } else {
-      return "";
     }
   }
 }
@@ -311,11 +260,12 @@ namespace
 void sggspc_print_current_exception (std::string s);
 singular_parallel::pnet_list get_index_list(unsigned long count);
 std::optional<std::multimap<std::string, pnet::type::value::value_type>>
-    get_values_on_ports(ArgumentState const &as,
-                        boost::filesystem::path const implementation);
+    get_values_on_ports(ArgumentState const &as);
 std::optional<std::multimap<std::string, pnet::type::value::value_type>>
     gpis_launch_with_workflow (boost::filesystem::path workflow,
                                ArgumentState const &as);
+
+std::string get_base_file_name(std::string graph_type);
 
 /*** Library function declarations ***/
 BOOLEAN sggspc_wait_all (leftv res, leftv args);
@@ -342,56 +292,14 @@ singular_parallel::pnet_list get_index_list(unsigned long count)
 
 
 std::optional<std::multimap<std::string, pnet::type::value::value_type>>
-    get_values_on_ports(ArgumentState const &as,
-                        boost::filesystem::path const implementation)
+    get_values_on_ports(ArgumentState const &as)
 {
   using pnet::type::value::value_type;
   using pnet::type::value::poke;
 
-  if ((as.graphType() == "list_all") ||
-      (as.graphType() == "list_first")
-      ) {
-    std::multimap<std::string, pnet::type::value::value_type> values_on_ports
-      ( { {"implementation", implementation.string()}
-        , {"path_to_libsingular", fhg::util::executable_path (&siInit)
-                                                              .string()}
-        , {"base_filename", as.baseFileName()}
-        , {"function_name", as.functionName()}
-        , {"in_struct_name", as.inStructName()}
-        , {"in_struct_desc", as.inStructDesc()}
-        , {"out_struct_name", as.outStructName()}
-        , {"out_struct_desc", as.outStructDesc()}
-        , {"needed_library", as.neededLibrary()}
-        , {"task_count", static_cast<unsigned int> (as.numTasks())}
-        }
-      );
-    return values_on_ports;
-  } else if ((as.graphType() == "tree_all") ||
-             (as.graphType() == "rgraph_all")) {
-    singular_parallel::pnet_list l = get_index_list((unsigned long)as
-                                                        .argList()
-                                                        ->nr + 1);
-    /*
-    */
-    std::multimap<std::string, pnet::type::value::value_type> values_on_ports
-      ( { {"implementation", implementation.string()}
-        , {"path_to_libsingular", fhg::util::executable_path (&siInit)
-                                                              .parent_path()
-                                                              .string()}
-        , {"base_filename", as.baseFileName()}
-        , {"function_name", as.functionName()}
-        , {"expand_node_function", as.expandNodeFunction()}
-        , {"in_struct_name", as.inStructName()}
-        , {"in_struct_desc", as.inStructDesc()}
-        , {"out_struct_name", as.outStructName()}
-        , {"out_struct_desc", as.outStructDesc()}
-        , {"needed_library", as.neededLibrary()}
-        , {"max_count", static_cast<unsigned long> (as.numTasks())}
-        , {"initial_task_list", l}
-        }
-      );
-    return values_on_ports;
-  } else if (as.graphType() == "pfd") {
+  if ((as.graphType() == "pfd") ||
+    (as.graphType() == "list_all") ||
+    (as.graphType() == "list_first")) {
     value_type problem_token_type;
     poke( "function_name", problem_token_type, as.functionName());
     poke( "needed_library", problem_token_type, as.neededLibrary());
@@ -399,19 +307,12 @@ std::optional<std::multimap<std::string, pnet::type::value::value_type>>
     poke( "in_struct_desc", problem_token_type, as.inStructDesc());
     poke( "out_struct_name", problem_token_type, as.outStructName());
     poke( "out_struct_desc", problem_token_type, as.outStructDesc());
-
-    value_type config;
-    poke( "path_to_libsingular"
-        , config
-        , fhg::util::executable_path (&siInit)
-                     .string());
-    poke( "base_filename", config, as.baseFileName());
-    poke( "implementation", config, implementation.string());
-    poke( "task_count", config, static_cast<unsigned int> (as.numTasks()));
+    poke( "tmpdir", problem_token_type, as.tmpDir());
+    poke( "task_count", problem_token_type, static_cast<unsigned int> (as.numTasks()));
 
     std::multimap<std::string, value_type> values_on_ports
-      ( { {"config", config}
-        , {"global_options", problem_token_type}
+      ( {
+          {"global_options", problem_token_type}
         }
       );
     return values_on_ports;
@@ -431,8 +332,6 @@ try
     as.outStructName() + " " + as.outStructDesc() + " " +
     as.neededLibrary() + " " + as.functionName() + " " +
     as.graphType() + "\n";
-  /*
-  */
 
   std::vector<std::string> options;
   std::size_t num_addargs = as.addArgsList()->nr + 1;
@@ -464,8 +363,11 @@ try
     throw std::invalid_argument ("struct does not exist");
   }
 
+  std::string basename = get_base_file_name(as.graphType());
+
   write_in_structs_to_file( as.argList()
-                          , as.baseFileName()
+                          , as.tmpDir()
+                          , basename
                           , in_token
                           );
 
@@ -474,10 +376,6 @@ try
 
   std::string const topology_description
     ("worker:" + std::to_string (as.procsPerNode())); // here, only one type
-
-  boost::filesystem::path const implementation
-    (as.singPI().workflow_dir() /
-     "libparallel_implementation.so");
 
   boost::program_options::options_description options_description;
   options_description.add_options() ("help", "Display this message");
@@ -542,7 +440,7 @@ try
                                    , scoped_rifd.entry_points()
                                    );
 
-  auto values_on_ports = get_values_on_ports(as, implementation);
+  auto values_on_ports = get_values_on_ports(as);
   if (!values_on_ports.has_value()) {
     return std::nullopt;
   }
@@ -559,6 +457,21 @@ catch (...)
   // need to check which resources must be tidied up
   sggspc_print_current_exception (std::string ("in gpis_launch_with_workflow"));
   return std::nullopt;
+}
+
+
+std::string get_base_file_name(std::string graph_type) {
+  std::string basename;
+  if ((graph_type == "list_all") || (graph_type == "list_first")) {
+    basename = config::parallel_list_base_name();
+  } else if (graph_type == "pfd") {
+    basename = config::parallel_pfd_base_name();
+  } else {
+    throw std::runtime_error(std::string("Bad graph type as argument ")
+        + "while determining base filename");
+  }
+
+  return basename;
 }
 
 /*** Module initialization ***/
@@ -607,9 +520,13 @@ try {
   lists out_list = static_cast<lists> (omAlloc0Bin (slists_bin));
   out_list->Init (as.numTasks());
 
+  std::string basename = get_base_file_name(as.graphType());
+
   for (std::size_t i = 0; i < as.numTasks(); i++)
   {
-    si_link l = ssi_open_for_read(get_out_struct_filename(as.baseFileName(), i));
+    si_link l = ssi_open_for_read(get_out_struct_filename(as.tmpDir(),
+                                                          basename,
+                                                          i));
     // later consider case of "wrong" output (and do not throw)
     lists entry = ssi_read_newstruct (l, as.outStructName());
     ssi_close_and_remove (l);
@@ -629,11 +546,6 @@ catch (...)
   sggspc_print_current_exception (std::string ("in sggspc_wait_all"));
   return TRUE;
 }
-
-
-
-
-
 
 
 
@@ -659,14 +571,26 @@ try {
   lists out_list = static_cast<lists> (omAlloc0Bin (slists_bin));
   out_list->Init (as.numTasks());
 
+  std::string basename = get_base_file_name(as.graphType());
+
+  singular::call_and_discard("def internal_placeholder;"); 
   for (std::size_t i = 0; i < as.numTasks(); i++)
   {
-    si_link l = ssi_open_for_read(get_out_struct_filename(as.baseFileName(), i));
-    // later consider case of "wrong" output (and do not throw)
+    si_link l = ssi_open_for_read(get_out_struct_filename( as.tmpDir()
+                                                         , basename
+                                                         , i));
+    // later consider case of "wrong" output (and do not throw) 
     lists entry = ssi_read_newstruct (l, as.outStructName());
     ssi_close_and_remove (l);
     out_list->m[i].rtyp = as.outToken();
     out_list->m[i].data = entry;
+
+    remove((get_out_struct_filename( as.tmpDir()
+                                     , basename
+                                     , i)).c_str() );
+    remove((get_in_struct_filename( as.tmpDir()
+                                    , basename
+                                    , i)).c_str() );
   }
 
 
@@ -707,9 +631,10 @@ try
   }
   unsigned int i = boost::get<unsigned int> (sm_result_it->second);
 
-  si_link l = ssi_open_for_read (as.baseFileName() +
-                                 ".o" +
-                                 std::to_string (i));
+  std::string basename = get_base_file_name(as.graphType());
+  si_link l = ssi_open_for_read (get_out_struct_filename(as.tmpDir(),
+                                                          basename,
+                                                          i));
 
   lists entry = ssi_read_newstruct (l, as.outStructName());
   ssi_close_and_remove (l);

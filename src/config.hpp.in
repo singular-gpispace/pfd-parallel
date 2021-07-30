@@ -1,0 +1,50 @@
+#pragma once
+// Author: Christian Reinbold
+
+#include <util-generic/executable_path.hpp>
+
+#include <boost/filesystem/path.hpp>
+
+
+namespace config
+{
+  static boost::filesystem::path const installation("@CMAKE_INSTALL_PREFIX@");
+
+  inline boost::filesystem::path const& singularLibrary()
+  {
+    static boost::filesystem::path const library(
+      installation / "libexec" / "bundle" / "singular" / "lib" / "libSingular.so"
+    );
+    return library;
+  }
+
+  inline boost::filesystem::path const& parallelInterfaceLibrary()
+  {
+    static boost::filesystem::path const library(
+      installation / "libexec" / "workflow" / "libparallel_implementation.so"
+    );
+    return library;
+  }
+
+  inline std::string const& parallel_list_base_name()
+  {
+    static std::string const list_base_name("sggspc_list");
+    return list_base_name;
+  }
+
+  inline std::string const& parallel_pfd_base_name()
+  {
+    static std::string const pfd_base_name("sggspc_pfd");
+    return pfd_base_name;
+  }
+
+/*
+  inline boost::filesystem::path const& feynmanInterpreterLibrary()
+  {
+    static boost::filesystem::path const library(
+      installation / "libexec" / "feynman.lib"
+    );
+    return library;
+  }
+*/
+}
