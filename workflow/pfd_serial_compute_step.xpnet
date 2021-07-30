@@ -1,0 +1,37 @@
+<defun name="pfd_serial_step_compute">
+
+  <include-structs href="types.xpnet"/>
+
+  <require key="worker" mandatory="true"/>
+  <in name="in" type="unsigned int"/>
+  <in name="step" type="string"/>
+  <in name="options" type="options_type"/>
+  <out name="out" type="unsigned int"/>
+
+  <module name="singular_parallel_allpfd"
+          require_function_unloads_without_rest="false"
+          function="serial_step_compute
+                      ( options
+                      , in
+                      , out
+                      , step
+                      )">
+    <cinclude href="interface/singular_pnet-interface.hpp"/>
+    <cinclude href="util-generic/dynamic_linking.hpp"/>
+    <cinclude href="iostream"/>
+    <code><![CDATA[
+      /*<>*/
+
+      std::cout << "Computing " + step +" " << in << "\n";
+      RESOLVE_INTERFACE_FUNCTION
+        (pfd_compute_step)
+        (in, options, step);
+      std::cout << step + " "  << in << " done!\n";
+
+      out = in;
+
+    ]]></code>
+  </module>
+
+</defun>
+

@@ -62,7 +62,7 @@ static proc mod_init()
   LIB "ring.lib";
   LIB "parallel.lib";
   LIB "elim.lib";
-  LIB "polylib.lib";
+//  LIB "polylib.lib";
 //LIB "poly.lib";
   LIB "general.lib";
   LIB "matrix.lib";
@@ -117,6 +117,9 @@ EXAMPLE:  example pfd; shows an example"
 {
   short = 0;
   int i,t1;
+
+
+
   if(typeof(#[1])=="list")
   {
     // pfd(arguments[, parallelize]);
@@ -165,6 +168,10 @@ EXAMPLE:  example pfd; shows an example"
     }
   }
 
+
+
+
+
  // pfd(f,g[,debug]);   f,g poly, debug int
  // OR
  // pfd(f,g[,debug]);   f poly, g list, debug int
@@ -196,15 +203,6 @@ EXAMPLE:  example pfd; shows an example"
                size(string(f)), size(string(g)), 0);
   }
 
-  if(f==0) {
-    // trivial case
-    list dec = list(ideal(),list(list(poly(0),intvec(0:0),intvec(0:0))));
-    if(debug)
-      {fprintf(l,"%ntotal: 0 ms (numerator was 0)",0); close(l);}
-    if(voice<=printlevel) {displaypfd(dec);}
-    return(dec);
-  }
-
   if(typeof(g)=="poly") {
     if(deg(g)==0) {
       // trivial degree for g
@@ -214,54 +212,41 @@ EXAMPLE:  example pfd; shows an example"
       if(voice<=printlevel) {displaypfd(dec);}
       return(dec);
     }
-
-    // (1) factorization of the denominator ////////////////////////////////////
-    // prepare f, q, e, m
-    if (debug) {
-      t1 = rtimer;
-      write(l,"factorizing ");
-    }
-
-    // TODO: Test prepare_fqem_gpoly
-    list fqem = prepare_fqem_gpoly(f, g);
-
-    if(debug) {
-      t1 = rtimer-t1;
-      fprintf(l,"done! (%s ms)", t1);
-    }
-
   }
-  else{if(typeof(g)=="list")
-  {
-    if(size(g[1])==0)
-    {
+
+  if(typeof(g)=="list") {
+    if(size(g[1])==0) {
       list dec = list(ideal(),list(list(f,intvec(0:0),intvec(0:0))));
       if(debug)
         {fprintf(l,"%ntotal: 0 ms (denominator was constant)",0); close(l);}
       if(voice<=printlevel) {displaypfd(dec);}
       return(dec);
     }
-
-    list fqem = prepare_fqem_glist(f, g, l);
-
   }
-  else
-  {ERROR("wrong type for second argument, expected poly or list(ideal,intvec)");}}
 
+  if(f==0) {
+    // trivial case
+    list dec = list(ideal(),list(list(poly(0),intvec(0:0),intvec(0:0))));
+    if(debug)
+      {fprintf(l,"%ntotal: 0 ms (numerator was 0)",0); close(l);}
+    if(voice<=printlevel) {displaypfd(dec);}
+    return(dec);
+  }
+
+  if (debug) { t1 = rtimer; write(l,"factorizing "); }
+
+  list fqem = prepare_fqem(f, g, l);
   f = fqem[1];
   ideal q = fqem[2];
   intvec e = fqem[3];
   int m = fqem[4];
 
+  if(debug) { t1 = rtimer-t1; fprintf(l,"done! (%s ms)", t1); }
   if(debug) {int t = rtimer; write(l,"Start PFD functional unit");}
 
   list dec = pfd_functional_unit(f, q, e, m, debug, l);
 
-  if(debug) {
-    t = rtimer-t;
-    fprintf(l,"PFD functional unit done! (%s ms, %s terms)", t, size(dec));
-  }
-
+  if(debug) { t = rtimer-t; fprintf(l,"PFD functional unit done! (%s ms, %s terms)", t, size(dec));}
   if(debug) {fprintf(l,"%ntotal: %s ms", t1 + t); close(l);}
 
   return (dec);
@@ -396,6 +381,31 @@ proc pfd_functional_unit(poly f, ideal q, intvec e, int m, list #)
   return(dec);
 }
 
+proc prepare_fqem (poly f, list #)
+{
+
+  if (size(#) != 2) {
+    ERROR("incorrect call to prepare_fqem");
+  }
+  link l = #[2];
+  if (typeof(#[1])=="poly") {
+    // (1) factorization of the denominator ////////////////////////////////////
+    // TODO: Test prepare_fqem_gpoly
+    list fqem = prepare_fqem_gpoly(f, #[1]);
+
+  } else{if(typeof(#[1])=="list") {
+
+    list fqem = prepare_fqem_glist(f, #[1], l);
+
+  } else {
+    ERROR("wrong type for second argument, expected poly or list(ideal,intvec)");
+  }}
+
+  return (fqem);
+
+
+}
+
 proc prepare_fqem_gpoly (poly f, poly g)
 {
   int i;
@@ -436,7 +446,6 @@ proc prepare_fqem_glist (poly f, list g, link l)
   return (list(f, q, e, m));
 }
 
-//proc generic_dec_loop(string decomp, string mergetype, list terms, ideal q, int debug, link l)
 proc generic_dec_loop(string decomp, string mergetype, list terms, ideal q, list #)
 {
   list dec,newterms,result;
@@ -542,7 +551,7 @@ static proc NSSdecompStep(list l, ideal q, list #)
   }
 }
 
-static proc shortNumeratorDecompStep(list l, ideal q, list #)
+proc shortNumeratorDecompStep(list l, ideal q, list #)
 {
   int debug=0;
   if(size(#)>0) {debug=#[1]; link ll=#[2];}
@@ -762,7 +771,7 @@ static proc numeratorDecompStep(list l, ideal q, list #)
   return(list(dec,rest));
 }
 
-static proc mergepfd(list dec1, list dec2)
+proc mergepfd(list dec1, list dec2)
 {
   // Note: assumes dec1 is already sorted w.r.t. dp in the denominator exponents
   int n1=size(dec1);
@@ -2666,7 +2675,7 @@ static proc readQfileTXT(string filename__)
 
 // Test ////////////////////////////////////////////////////////////////////////
 
-static proc file_exists(string file)
+proc file_exists(string file)
 {
   return(status(":r "+file,"exists","yes"));
 }
@@ -2707,94 +2716,31 @@ SEE ALSO: pfdMat, pfdSingleEntrySSI
 {
   system("--ticks-per-sec",1000);
   short = 0;
-  if(size(#)>0)
-  {
-    string from_dir = #[1]; // read file from this
-    if(from_dir[size(from_dir)]!="/") {from_dir = from_dir + "/";}
-  }
-  else {string from_dir = "";}
-  if(size(#)>1)
-  {
-    string to_dir = #[2];
-    if(to_dir[size(to_dir)]!="/") {to_dir = to_dir + "/";}
-  }
-  else {string to_dir = "";}
-  int ignore_nonlin=1;
-  if(size(#)>2) {ignore_nonlin = #[3];}
 
+  list args = parsePfdSingleEntryArgs(#);
+  string from_dir = args[1];
+  string to_dir = args[2];
+  int ignore_nonlin = args[3];
 
-  int i,j,k;
-  list fraction;
-  i = find(filename,".");
+  int i = find(filename,".");
   if(i>0) {filename = filename[1,i-1];} // remove file ending if given
 
-  if(file_exists(to_dir+"resources_"+filename+".txt")) {return();}
+  if (file_exists(to_dir + "resources_" + filename + ".txt")) { return(); }
 
-  if(file_exists(from_dir+filename+".ssi"))
-  {
-    fraction = read("ssi:r "+from_dir+filename+".ssi");
-  }
-  else
-  {
-    string s = read(":r "+from_dir+filename+".txt");
-    if(!defined(basering))
-      {ERROR("Please set a basering, that matches the variable names used in "
-                                       + "the input file ("+filename+".txt).");}
-    string s1,s2;
-    j = find(s,"/(");
-    if(j==0) // no denominator
-    {
-      fraction = list(string_to_poly(s), poly(1));
-    }
-    else
-    {
-      s1 = s[1,j-1];
-      s2 = s[j+1,size(s)-j];
-      fraction = list(string_to_poly(s1), string_to_poly(s2));
-    }
-
-    list fact = factorize(fraction[2]);
-
-    number lcoeff;
-    number constant = number(fact[1][1])^fact[2][1];
-    fact[1] = delete(fact[1],1);
-    fact[2] = delete(fact[2],1);
-    for(k=1; k<=size(fact[1]); k++)
-    {
-      lcoeff = leadcoef(fact[1][k]);
-      fact[1][k] = fact[1][k]/lcoeff;
-      constant = constant*(lcoeff^fact[2][k]); // polynomial is monic (thus unique)
-      lcoeff = content(fact[1][k]);
-      fact[1][k] = fact[1][k]/lcoeff;
-      constant = constant*(lcoeff^fact[2][k]); // polynomial has nice coefficients
-    }
-
-    fraction[1] = fraction[1] * (1/constant);
-    fraction[2] = fact;
-
-    write("ssi:w "+from_dir+filename+".ssi", fraction);
-  }
-
-  list nonlin = list(list(),list());
-  if(ignore_nonlin)
-  {
-    i = 1;
-    for(k=1; k<=size(fraction[2][1]); k++) // move nonlinear factors into nonlin
-    {
-      if(deg(fraction[2][1][k])>1)
-      {
-        nonlin[1][i] = fraction[2][1][k];
-        nonlin[2][i] = fraction[2][2][k];
-        fraction[2][1] = delete(fraction[2][1],k);
-        fraction[2][2] = delete(fraction[2][2],k);
-        i++;
-      }
-    }
-  }
+  prepareSingleEntryFraction(filename,
+                             from_dir,
+                             //to_dir,
+                             ignore_nonlin);
+  list fraction = read("ssi:r " + from_dir + filename + ".ssi");
+  list nonlin = prepareNonLin(fraction, ignore_nonlin);
 
   int t = rtimer;
+
   list result = pfd(fraction);
+
   t = rtimer-t;
+  write(":w "+to_dir+"resources_"+filename+".txt",
+        sprintf("Time: %s ms,  Memory: %s Bytes",t,memory(2)));
 
   // output as Singular objects
   if(ignore_nonlin)
@@ -2802,7 +2748,52 @@ SEE ALSO: pfdMat, pfdSingleEntrySSI
   else
     {write("ssi:w "+to_dir+"result_"+filename+".ssi",result);}
 
+  if (ignore_nonlin) {
+    write_pfd_as_txt(result, to_dir, filename, nonlin);
+  } else {
+    write_pfd_as_txt(result, to_dir, filename, list(list(),list()));
+  }
+
+}
+
+proc parsePfdSingleEntryArgs(list #)
+{
+  // Set up to and from directories
+  if(size(#)>0) {
+
+    string from_dir = #[1]; // read file from this
+    if(from_dir[size(from_dir)]!="/") {from_dir = from_dir + "/";}
+
+  } else {
+
+    string from_dir = "";
+  }
+
+  if(size(#)>1) {
+
+    string to_dir = #[2];
+    if(to_dir[size(to_dir)]!="/") {to_dir = to_dir + "/";}
+
+  } else {
+
+    string to_dir = "";
+
+  }
+
+  int ignore_nonlin=1;
+  if (size(#)>2) {
+    ignore_nonlin = #[3];
+  }
+
+  return (list(from_dir, to_dir, ignore_nonlin));
+
+}
+
+proc write_pfd_as_txt(list result, string to_dir, string filename, list nonlin)
+{
+
   //output as txt:
+  int i,j,k;
   string dec;
   string nonlin_fact;
   k = size(nonlin[1]);
@@ -2850,8 +2841,85 @@ SEE ALSO: pfdMat, pfdSingleEntrySSI
     denom_fact = denom_fact + "q" + string(i) + " = " + string(q[i]) + "%n";
   }
   fprintf(":w "+to_dir+"result_denominator_factors_"+filename+".txt", denom_fact,0);
+}
 
-  write(":w "+to_dir+"resources_"+filename+".txt",sprintf("Time: %s ms,  Memory: %s Bytes",t,memory(2)));
+proc prepareNonLin(list fraction, int ignore_nonlin)
+{
+  list nonlin = list(list(),list());
+  int i, k;
+  if(ignore_nonlin)
+  {
+    i = 1;
+    for(k=1; k<=size(fraction[2][1]); k++) // move nonlinear factors into nonlin
+    {
+      if(deg(fraction[2][1][k])>1)
+      {
+        nonlin[1][i] = fraction[2][1][k];
+        nonlin[2][i] = fraction[2][2][k];
+        fraction[2][1] = delete(fraction[2][1],k);
+        fraction[2][2] = delete(fraction[2][2],k);
+        i++;
+      }
+    }
+  }
+  return (nonlin);
+
+}
+
+proc prepareSingleEntryFraction(string filename,
+                                string from_dir,
+                                //string to_dir,
+                                int ignore_nonlin)
+{
+  list fraction;
+  if (file_exists(from_dir + filename + ".ssi"))
+  {
+    //fraction = read("ssi:r " + from_dir + filename + ".ssi");
+    return();
+  }
+  else
+  {
+    string s = read(":r " + from_dir + filename + ".txt");
+    if (!defined(basering)) {
+      ERROR("Please set a basering, that matches the variable names used in "
+            + "the input file (" + filename + ".txt).");
+    }
+    string s1,s2;
+    j = find(s, "/(");
+    if (j==0) {
+      // no denominator
+      fraction = list(string_to_poly(s), poly(1));
+    } else {
+      s1 = s[1,j-1];
+      s2 = s[j+1,size(s)-j];
+      fraction = list(string_to_poly(s1), string_to_poly(s2));
+    }
+
+    list fact = factorize(fraction[2]);
+
+    number lcoeff;
+    number constant = number(fact[1][1])^fact[2][1];
+    fact[1] = delete(fact[1], 1);
+    fact[2] = delete(fact[2], 1);
+    for (k=1; k<=size(fact[1]); k++) {
+      lcoeff = leadcoef(fact[1][k]);
+      fact[1][k] = fact[1][k] / lcoeff;
+      constant = constant * (lcoeff^fact[2][k]); // polynomial is monic (thus unique)
+      lcoeff = content(fact[1][k]);
+      fact[1][k] = fact[1][k]/lcoeff;
+      constant = constant * (lcoeff^fact[2][k]); // polynomial has nice coefficients
+    }
+
+    fraction[1] = fraction[1] * (1/constant);
+    fraction[2] = fact;
+
+    write("ssi:w "+from_dir+filename+".ssi", fraction);
+  }
+
+  //link l = "ssi:w "+to_dir+ "prepared_" + filename+".ssi";
+  //write(l, fraction);
+  //write(l, nonlin);
+  //close(l);
 }
 
 
@@ -2942,3 +3010,9 @@ SEE ALSO: pfdMat, pfdSingleEntry
     }
   }
 }
+
+proc test_my_proc(list l, ideal q, list #) {
+    print ("hi!");
+
+    return (list());
+  }

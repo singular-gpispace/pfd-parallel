@@ -87,24 +87,25 @@ proc get_tmpdir(configToken gc)
 
 proc get_parallel_launch_command(string ret_name, string tmpdir, string pnet_id)
 {
-  if ((pnet_id == "wait_all") ||
-      (pnet_id == "wait_first") ||
-      (pnet_id == "pfd")) {
-    string s_command = "def " + ret_name + " = sggspc_" +
-                                    pnet_id +
-                                    "(l, " +
-                                    "\"" + tmpdir + "\"" + ", " +
-                                    "gc.options.nodefile, " +
-                                    "gc.options.procspernode, " +
-                                    "gc.options.rifstrategy, " +
-                                    "gc.options.addargs, " +
-                                    "pc.options.instructname, " +
-                                    "pc.options.instructdesc, " +
-                                    "pc.options.outstructname, " +
-                                    "pc.options.outstructdesc, " +
-                                    "pc.options.neededlibrary, " +
-                                    "pc.options.functionname);";
-    return (s_command);
+  string common_ending = "\"" + tmpdir + "\"" + ", " +
+            "gc.options.nodefile, " +
+            "gc.options.procspernode, " +
+            "gc.options.rifstrategy, " +
+            "gc.options.addargs, " +
+            "pc.options.instructname, " +
+            "pc.options.instructdesc, " +
+            "pc.options.outstructname, " +
+            "pc.options.outstructdesc, " +
+            "pc.options.neededlibrary, " +
+            "pc.options.functionname);";
+  if (pnet_id == "wait_first") {
+    return ("def " + ret_name + " = sggspc_wait_first(l, " + common_ending);
+  }
+  if (pnet_id == "wait_all") {
+    return ("def " + ret_name + " = sggspc_wait_all(l, " + common_ending);
+  }
+  if (pnet_id == "pfd") {
+    return ("def " + ret_name + " = sggspc_pfd(l, " + common_ending);
   }
 }
 
@@ -248,7 +249,7 @@ PURPOSE:  apply @code{pfd} in parallel to the rational function saved in the
 "
 {
   configToken gc, pc;
-  int i;
+  int i, parallelize;
   list l;
   string todir, suffix;
 
@@ -274,6 +275,11 @@ PURPOSE:  apply @code{pfd} in parallel to the rational function saved in the
   } else {
     suffix = "txt";
   }
+  if (size(#) >= 4) {
+    parallelize = #[4];
+  } else {
+    parallelize = 0; // false
+  }
 
   pc = pfd_structs_config();
 
@@ -293,7 +299,11 @@ PURPOSE:  apply @code{pfd} in parallel to the rational function saved in the
       l[i] = ins;
   }
 
-  def re_all = parallel_waitpfd(l,gc,pc);
+  if (parallelize) {
+    def re_all = parallel_waitpfd(l,gc,pc);
+  } else {
+    def re_all = parallel_waitall(l,gc,pc);
+  }
 
   if (size(#) < 1) {
     system("sh", "rm -rv " + gc.options.tmpdir);
