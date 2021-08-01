@@ -2872,6 +2872,7 @@ proc prepareSingleEntryFraction(string filename,
                                 int ignore_nonlin)
 {
   list fraction;
+  int j, k;
   if (file_exists(from_dir + filename + ".ssi"))
   {
     //fraction = read("ssi:r " + from_dir + filename + ".ssi");

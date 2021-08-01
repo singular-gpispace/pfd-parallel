@@ -278,7 +278,7 @@ PURPOSE:  apply @code{pfd} in parallel to the rational function saved in the
   if (size(#) >= 4) {
     parallelize = #[4];
   } else {
-    parallelize = 0; // false
+    parallelize = 1; // false
   }
 
   pc = pfd_structs_config();
