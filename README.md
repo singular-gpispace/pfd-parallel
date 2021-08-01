@@ -300,6 +300,7 @@ To build GPI-Space, run
 mkdir -p "${GPISPACE_BUILD_DIR}"
 
 cmake -D CMAKE_INSTALL_PREFIX=${GPISPACE_INSTALL_DIR}             \
+      -D CMAKE_BUILD_TYPE=Release                                 \
       -B ${GPISPACE_BUILD_DIR}                                    \
       -S ${GPISPACE_REPO}                                         \
       ${build_tests:-}
@@ -528,9 +529,9 @@ mkdir -p $PFD_BUILD_DIR
 cmake -D CMAKE_INSTALL_PREFIX=$PFD_INSTALL_DIR   \
       -D CMAKE_BUILD_TYPE=Release                \
       -D GSPC_HOME=$GPISPACE_INSTALL_DIR         \
-      -D ALLOW_ANY_GPISPACE_VERSION=true         \
       -D GPISPACE_REPO=$GPISPACE_REPO            \
       -D SINGULAR_HOME=$SINGULAR_INSTALL_DIR     \
+      -D FLINT_HOME=$DEP_LIBS                    \
       -B ${PFD_BUILD_DIR}                        \
       -S ${PFD_REPO}
 
