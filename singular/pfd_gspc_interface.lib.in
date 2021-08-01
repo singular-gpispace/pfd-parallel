@@ -57,8 +57,8 @@ proc pfd_gspc_prepareSingleEntryFraction (in_struct input)
   int ignore_nonlin = args[3];
 
   if (input.suffix == "txt") {
+    execute("ring r = " + input.neededring);
     string filename = pfd_gspc_filename_no_suffix( input.matrixname
-                                                 , input.suffix
                                                  , input.row
                                                  , input.col);
     prepareSingleEntryFraction( filename
