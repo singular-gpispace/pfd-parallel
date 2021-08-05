@@ -31,6 +31,24 @@ proc pfd_gspc_compute (in_struct input)
   return(output);
 }
 
+proc pfd_gspc_general_prepare (in_struct input, int id, string tmpdir, string terms_name)
+{
+  if (pfd_gspc_is_already_computed(input)) {
+    return(1);
+  }
+
+  pfd_gspc_prepareSingleEntryFraction(input);
+
+  def triv = pfd_gspc_is_trivial(input);
+  if (typeof(triv) == "out_struct") {
+    return (2);
+  }
+
+  pfd_gspc_prepare_input(input, id, tmpdir, terms_name);
+
+  return (0);
+}
+
 proc pfd_gspc_is_already_computed (in_struct input)
 {
   //execute("ring r = " + input.neededring);

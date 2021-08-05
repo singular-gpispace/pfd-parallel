@@ -285,6 +285,58 @@ namespace singular_parallel
       }
 
     NO_NAME_MANGLING
+      unsigned int pfd_general_prepare
+      ( unsigned int const& id
+      , const pnet_options& options
+      , const std::string& first_step
+      )
+      {
+        init_singular ();
+
+        singular::register_struct(options.in_struct_name,
+                                  options.in_struct_desc);
+        singular::register_struct(options.out_struct_name,
+                                  options.out_struct_desc);
+        singular::load_library (options.needed_library);
+        singular::load_ssi("input", get_in_struct_filename( options.tmpdir
+                                        , config::parallel_pfd_base_name()
+                                        , id));
+        boost::format command =
+              boost::format("int prepstat = pfd_gspc_general_prepare(%1%, %2%, %3%, %4%);")
+                            % "input"
+                            % id
+                            % ("\"" + options.tmpdir + "\"")
+                            % ("\"" + get_from_name(first_step) + "\"");
+
+        singular::call_and_discard(command.str());
+        unsigned int prepstat = singular::getInt("prepstat");
+        singular::call_and_discard("kill prepstat;");
+
+        if (prepstat) {
+          singular::call_and_discard( options.out_struct_name +
+                                      " internal_temp_o;");
+          if (prepstat == 1) {
+            singular::call_and_discard(" internal_temp_o.result = \"Already done!\";");
+          } else { if (prepstat == 2) {
+            singular::call_and_discard(" internal_temp_o.result = \"Trivially done!\";");
+          } else {
+            throw("Unrecognised return value from general prepare");
+          }}
+          singular::write_ssi( "internal_temp_o"
+                             , get_out_struct_filename( options.tmpdir
+                                              , config::parallel_pfd_base_name()
+                                              , id)
+                             );
+          singular::call_and_discard("kill internal_temp_o;");
+        }
+        singular::call_and_discard("kill input;");
+
+        return prepstat;
+      }
+
+
+
+    NO_NAME_MANGLING
       void pfd_compute_step
       ( unsigned int const& id
       , const pnet_options& options

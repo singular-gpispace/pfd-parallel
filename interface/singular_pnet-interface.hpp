@@ -41,6 +41,13 @@ namespace singular_parallel
        );
 
     NO_NAME_MANGLING
+      unsigned int pfd_general_prepare
+      ( unsigned int const& id
+      , const pnet_options& options
+      , const std::string& first_step
+      );
+
+    NO_NAME_MANGLING
       unsigned int pfd_already_done
        ( unsigned int const& id
        , const pnet_options& options

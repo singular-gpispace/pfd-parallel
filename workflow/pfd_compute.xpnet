@@ -10,9 +10,12 @@
 
   <net>
     <place name="intask" type="unsigned int"/>
+    <place name="gen_prep_status" type="task_status"/>
+    <!--
     <place name="computed_status" type="task_status"/>
     <place name="prepared_ssi" type="unsigned int"/>
     <place name="triviality_status" type="task_status"/>
+    -->
     <place name="prepared_input" type="unsigned int"/>
     <place name="nullstellensatz_done" type="unsigned int"/>
     <place name="short_numerator_done" type="unsigned int"/>
@@ -34,18 +37,20 @@
       <token><value>"numeratorDecompStep"</value></token>
     </place>
 
-    <transition name="check_if_already_done">
+    <transition name="general_prepare">
       <defun>
         <require key="worker" mandatory="true"/>
         <in name="in" type="unsigned int"/>
         <in name="options" type="options_type"/>
+        <in name="first_step" type="string"/>
         <out name="out" type="task_status"/>
 
         <module name="singular_parallel_allpfd"
                 require_function_unloads_without_rest="false"
-                function="check_done
+                function="general_prepare
                             ( options
                             , in
+                            , first_step
                             , out
                             )">
           <cinclude href="interface/singular_pnet-interface.hpp"/>
@@ -53,188 +58,71 @@
           <cinclude href="iostream"/>
           <code><![CDATA[
             //<>
-            std::cout << "checking if " << in << " has been precomputed\n";
+            std::cout << "Preparing " << in << "\n";
 
-            unsigned int already_done = RESOLVE_INTERFACE_FUNCTION
-              (pfd_already_done)
-              ( in, options );
-            if (already_done) {
+            unsigned int prep_stat = RESOLVE_INTERFACE_FUNCTION
+              (pfd_general_prepare)
+              ( in, options, first_step);
+            if (prep_stat == 1) {
               std::cout << in << " already done!\n";
-            } else {
+            } else if (prep_stat == 2) {
+              std::cout << in << " Trivially done!\n";
+            } else if (prep_stat == 0) {
               std::cout << in << " still to be computed.\n";
+
+              RESOLVE_INTERFACE_FUNCTION
+                (write_current_time)
+                (in, "total_time", options.tmpdir);
+
+            } else {
+              std::cout << in << " has an incorrect return value.\n";
             }
             out.id = in;
-            out.status = already_done;
+            out.status = prep_stat;
 
           ]]></code>
         </module>
       </defun>
       <connect-in port="in" place="intask"/>
       <connect-read port="options" place="readoptions"/>
-      <connect-out port="out" place="computed_status"/>
-    </transition>
-
-    <transition name="consume_precomputed">
-      <defun>
-        <require key="worker" mandatory="true"/>
-        <in name="in" type="task_status"/>
-        <out name="out" type="unsigned int"/>
-
-        <condition>
-          ${in.status} :gt: 0U
-        </condition>
-
-        <expression>
-            ${out} := ${in.id};
-        </expression>
-      </defun>
-      <connect-in port="in" place="computed_status"/>
-      <connect-out port="out" place="out"/>
-    </transition>
-
-    <transition name="prepare_ssi">
-      <defun>
-        <require key="worker" mandatory="true"/>
-        <in name="in" type="task_status"/>
-        <in name="options" type="options_type"/>
-        <out name="out" type="unsigned int"/>
-
-        <condition>
-          ${in.status} :eq: 0U
-        </condition>
-
-        <module name="singular_parallel_allpfd"
-                require_function_unloads_without_rest="false"
-                function="prepare_ssi
-                            ( options
-                            , in
-                            , out
-                            )">
-          <cinclude href="interface/singular_pnet-interface.hpp"/>
-          <cinclude href="util-generic/dynamic_linking.hpp"/>
-          <cinclude href="iostream"/>
-          <code><![CDATA[
-            std::cout << "Preparing ssi for " << in.id << "\n";
-
-            RESOLVE_INTERFACE_FUNCTION 
-              (pfd_prepare_single_entry_fraction)
-              ( in.id
-              , options);
-            std::cout << "Preparing ssi for " << in.id << " done!\n";
-            out = in.id;
-
-          ]]></code>
-        </module>
-      </defun>
-      <connect-in port="in" place="computed_status"/>
-      <connect-read port="options" place="readoptions"/>
-      <connect-out port="out" place="prepared_ssi"/>
-    </transition>
-
-    <transition name="check_if_trivial">
-      <defun>
-        <require key="worker" mandatory="true"/>
-        <in name="in" type="unsigned int"/>
-        <in name="options" type="options_type"/>
-        <out name="out" type="task_status"/>
-
-        <module name="singular_parallel_allpfd"
-                require_function_unloads_without_rest="false"
-                function="check_triviality
-                            ( options
-                            , in
-                            , out
-                            )">
-          <cinclude href="interface/singular_pnet-interface.hpp"/>
-          <cinclude href="util-generic/dynamic_linking.hpp"/>
-          <cinclude href="iostream"/>
-          <code><![CDATA[
-            std::cout << "checking if " << in << " is trivial\n";
-
-            unsigned int is_trivial = RESOLVE_INTERFACE_FUNCTION 
-              (pfd_is_trivial)
-              ( in, options );
-            if (is_trivial) {
-              std::cout << in << " is trivial!\n";
-            } else {
-              std::cout << in << " is non-trivial.\n";
-            }
-            out.id = in;
-            out.status = is_trivial;
-
-          ]]></code>
-        </module>
-      </defun>
-      <connect-in port="in" place="prepared_ssi"/>
-      <connect-read port="options" place="readoptions"/>
-      <connect-out port="out" place="triviality_status"/>
-    </transition>
-
-    <transition name="consume_trivial">
-      <defun>
-        <require key="worker" mandatory="true"/>
-        <in name="in" type="task_status"/>
-        <out name="out" type="unsigned int"/>
-
-        <condition>
-          ${in.status} :gt: 0U
-        </condition>
-
-        <expression>
-            ${out} := ${in.id};
-        </expression>
-      </defun>
-      <connect-in port="in" place="triviality_status"/>
-      <connect-out port="out" place="out"/>
-    </transition>
-
-    <transition name="prepare_input">
-      <defun>
-        <require key="worker" mandatory="true"/>
-        <in name="in" type="task_status"/>
-        <in name="options" type="options_type"/>
-        <in name="first_step" type="string"/>
-        <out name="out" type="unsigned int"/>
-
-        <condition>
-          ${in.status} :eq: 0U
-        </condition>
-
-        <module name="singular_parallel_allpfd"
-                require_function_unloads_without_rest="false"
-                function="prepare_input
-                            ( options
-                            , in
-                            , out
-                            , first_step
-                            )">
-          <cinclude href="interface/singular_pnet-interface.hpp"/>
-          <cinclude href="util-generic/dynamic_linking.hpp"/>
-          <cinclude href="iostream"/>
-          <code><![CDATA[
-          /*<>*/
-
-            std::cout << "Preparing input " << in.id << "\n";
-            RESOLVE_INTERFACE_FUNCTION
-              (pfd_prepare_input)
-              ( in.id
-              , options
-              , first_step);
-
-            RESOLVE_INTERFACE_FUNCTION
-              (write_current_time)
-              (in.id, "total_time", options.tmpdir);
-
-            std::cout << "Preparing input " << in.id << " done!\n";
-
-            out = in.id;
-
-          ]]></code>
-        </module>
-      </defun>
-      <connect-in port="in" place="triviality_status"/>
-      <connect-read port="options" place="readoptions"/>
       <connect-read port="first_step" place="null_step_name"/>
+      <connect-out port="out" place="gen_prep_status"/>
+    </transition>
+
+    
+    <transition name="consume_non_compute">
+      <defun>
+        <require key="worker" mandatory="true"/>
+        <in name="in" type="task_status"/>
+        <out name="out" type="unsigned int"/>
+
+        <condition>
+          ${in.status} :gt: 0U
+        </condition>
+
+        <expression>
+            ${out} := ${in.id};
+        </expression>
+      </defun>
+      <connect-in port="in" place="gen_prep_status"/>
+      <connect-out port="out" place="out"/>
+    </transition>
+
+    <transition name="pass_on_to_compute">
+      <defun>
+        <require key="worker" mandatory="true"/>
+        <in name="in" type="task_status"/>
+        <out name="out" type="unsigned int"/>
+
+        <condition>
+          ${in.status} :eq: 0U
+        </condition>
+
+        <expression>
+            ${out} := ${in.id};
+        </expression>
+      </defun>
+      <connect-in port="in" place="gen_prep_status"/>
       <connect-out port="out" place="prepared_input"/>
     </transition>
 

@@ -15,7 +15,6 @@
     <place name="id" type="unsigned int"/>
     <place name="terms" type="unsigned int"/>
     <place name="decomposed_terms" type="unsigned int"/>
-    <place name="decomposed_list" type="list"/>
 
     <place name="decomposition" type="unsigned int"/>
 
@@ -31,7 +30,6 @@
         <out name="out" type="list"/>
         <out name="id" type="unsigned int"/>
         <out name="counts" type="term_count_type"/>
-        <out name="decomposed_list" type="list"/>
         <module name="singular_parallel_allpfd"
                 require_function_unloads_without_rest="false"
                 function="out split_init
@@ -39,7 +37,6 @@
                             , in
                             , counts
                             , id
-                            , decomposed_list
                             , step
                             )">
           <cinclude href="interface/singular_pnet-interface.hpp"/>
@@ -73,7 +70,6 @@
             counts.global = indices.size();
             counts.to_merge = indices.size();
             id = in;
-            decomposed_list = singular_parallel::pnet_list();
 
             std::cout << "Initializing split "
                       << step << " "
@@ -89,7 +85,6 @@
       <connect-out-many port="out" place="terms"/>
       <connect-out port="id" place="id"/>
       <connect-out port="counts" place="term_counts"/>
-      <connect-out port="decomposed_list" place="decomposed_list"/>
     </transition>
 
     <transition name="split_compute">
@@ -115,15 +110,9 @@
           <code><![CDATA[
             /*<>*/
 
-            std::cout << "Split compute " << step << " "
-                      << id << " term " << term
-                      << "\n";
             RESOLVE_INTERFACE_FUNCTION
               (pfd_split_compute_term)
               ( id, term, options , step);
-            std::cout << "Loop compute " << step << " "
-                      << id << " term " << term
-                      << " done! \n";
 
             out = term;
 
@@ -165,13 +154,7 @@
           <code><![CDATA[
             /*<>*/
 
-            std::cout << "Split collect " << step << " "
-                      << id << " term " << term
-                      << "\n";
             counts.to_merge -= 1;
-            std::cout << "Split collect " << step << " "
-                      << id << " term " << term
-                      << " done! \n";
 
           ]]></code>
         </module>
