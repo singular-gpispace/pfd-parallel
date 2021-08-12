@@ -367,7 +367,7 @@ namespace singular_parallel
       }
 
     NO_NAME_MANGLING
-      singular_parallel::pnet_list pfd_loop_split_terms
+      singular_parallel::pnet_list pfd_split_terms
       ( unsigned int const& id
       , const pnet_options& options
       , const std::string& in_file
@@ -383,11 +383,12 @@ namespace singular_parallel
         singular::load_library (options.needed_library);
 
         boost::format command =
-              boost::format("int count = pfd_loop_split_terms(%1%, %2%, %3%, %4%);")
+              boost::format("int count = pfd_split_terms(%1%, %2%, %3%, %4%, %5%);")
                             % id
                             % ("\"" + in_file + "\"")
                             % ("\"" + out_file + "\"")
-                            % ("\"" + options.tmpdir + "\"");
+                            % ("\"" + options.tmpdir + "\"")
+                            % options.split_max;
 
         singular::call_and_discard(command.str());
 
@@ -415,7 +416,7 @@ namespace singular_parallel
       {
         std::string file(get_from_name(step));
 
-        singular_parallel::pnet_list indices(pfd_loop_split_terms(id, options, file, file));
+        singular_parallel::pnet_list indices(pfd_split_terms(id, options, file, file));
 
         boost::format command =
               boost::format("write(\"ssi:w %1%/%2%_%4%_%3%.ssi\", list());")
@@ -432,7 +433,7 @@ namespace singular_parallel
       }
 
     NO_NAME_MANGLING
-      singular_parallel::pnet_list pfd_split_init
+      singular_parallel::pnet_list pfd_fork_init
       ( unsigned int const& id
       , const pnet_options& options
       , const std::string& step
@@ -440,7 +441,7 @@ namespace singular_parallel
       {
         std::string file(get_from_name(step));
 
-        singular_parallel::pnet_list indices(pfd_loop_split_terms(id, options, file, file));
+        singular_parallel::pnet_list indices(pfd_split_terms(id, options, file, file));
 
         boost::format command =
               boost::format("write(\"ssi:w %1%/%2%_%4%_%3%.ssi\", list());")
@@ -486,7 +487,7 @@ namespace singular_parallel
       }
 
     NO_NAME_MANGLING
-      void pfd_split_compute_term
+      void pfd_fork_compute_term
       ( const unsigned int& id
       , const unsigned int& term_id
       , const pnet_options& options
@@ -502,7 +503,7 @@ namespace singular_parallel
                                   options.out_struct_desc);
         singular::load_library (options.needed_library);
         boost::format command =
-              boost::format("pfd_split_compute_term(%1%, %2%, %3%, %4%, %5%, %6%);")
+              boost::format("pfd_fork_compute_term(%1%, %2%, %3%, %4%, %5%, %6%);")
                             % id
                             % term_id
                             % ("\"" + step + "\"")
@@ -558,7 +559,7 @@ namespace singular_parallel
       }
 
     NO_NAME_MANGLING
-      void pfd_split_merge
+      void pfd_fork_merge
       ( unsigned int const& id
       , unsigned int const& term_count
       , const pnet_options& options
@@ -576,7 +577,7 @@ namespace singular_parallel
         singular::load_library (options.needed_library);
 
         boost::format command =
-              boost::format("pfd_split_merge(%1%, %2%, %3%, %4%, %5%);")
+              boost::format("pfd_fork_merge(%1%, %2%, %3%, %4%, %5%);")
                             % id
                             % term_count
                             % ("\"" + step + "\"")
@@ -604,7 +605,7 @@ namespace singular_parallel
         std::string file = get_from_name(step);
 
         singular_parallel::pnet_list indices(
-                                pfd_loop_split_terms(id
+                                pfd_split_terms(id
                               , options
                               , file + "_new_terms"
                               , file));
@@ -645,7 +646,7 @@ namespace singular_parallel
       }
 
     NO_NAME_MANGLING
-      void pfd_split_finish
+      void pfd_fork_finish
       ( unsigned int const& id
       , const pnet_options& options
       , const std::string& step

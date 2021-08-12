@@ -137,7 +137,7 @@
     </transition>
 
     <transition name="compute_short_numerator">
-      <include-function href="pfd_split_compute_step.xpnet"/>
+      <include-function href="pfd_fork_compute_step.xpnet"/>
 
       <connect-in port="in" place="nullstellensatz_done"/>
       <connect-read port="options" place="readoptions"/>
@@ -146,7 +146,7 @@
     </transition>
 
     <transition name="compute_algebraic_dependence">
-      <include-function href="pfd_split_compute_step.xpnet"/>
+      <include-function href="pfd_fork_compute_step.xpnet"/>
 
       <connect-in port="in" place="short_numerator_done"/>
       <connect-read port="options" place="readoptions"/>
@@ -154,15 +154,15 @@
       <connect-out port="out" place="algebraic_dependence_done"/>
     </transition>
 
-
     <transition name="compute_numerator">
-      <include-function href="pfd_split_compute_step.xpnet"/>
+      <include-function href="pfd_fork_compute_step.xpnet"/>
 
       <connect-in port="in" place="algebraic_dependence_done"/>
       <connect-read port="options" place="readoptions"/>
       <connect-read port="step" place="numerator_step_name"/>
       <connect-out port="out" place="numerator_done"/>
     </transition>
+
 
     <transition name="write_result">
       <defun>

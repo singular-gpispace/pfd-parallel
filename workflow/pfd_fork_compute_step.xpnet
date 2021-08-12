@@ -1,4 +1,4 @@
-<defun name="pfd_split_compute">
+<defun name="pfd_fork_compute">
 
   <include-structs href="types.xpnet"/>
 
@@ -54,7 +54,7 @@
               (in, step, options.tmpdir);
 
             singular_parallel::pnet_list indices = RESOLVE_INTERFACE_FUNCTION
-               (pfd_split_init)
+               (pfd_fork_init)
                ( in
                , options
                , step
@@ -111,7 +111,7 @@
             /*<>*/
 
             RESOLVE_INTERFACE_FUNCTION
-              (pfd_split_compute_term)
+              (pfd_fork_compute_term)
               ( id, term, options , step);
 
             out = term;
@@ -198,7 +198,7 @@
                       << id
                       << "\n";
             RESOLVE_INTERFACE_FUNCTION
-               (pfd_split_merge)
+               (pfd_fork_merge)
                ( id, counts.local, options, step);
             std::cout << "Merging "
                       << counts.local
@@ -207,7 +207,7 @@
                       << " done! \n";
 
             RESOLVE_INTERFACE_FUNCTION
-               (pfd_split_finish)
+               (pfd_fork_finish)
                ( id, options, step);
 
             

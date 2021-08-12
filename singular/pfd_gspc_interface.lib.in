@@ -315,11 +315,11 @@ proc pfd_gspc_write_result (int id, string tmpdir)
 
 // while loop functions
 
-proc pfd_loop_split_terms(int id, string in_filename, string out_filename, string tmpdir)
+proc pfd_split_terms(int id, string in_filename, string out_filename, string
+tmpdir, int SPLIT_MAX)
 {
   list terms = read("ssi:r " + tmpdir + "/" + in_filename + "_" + string(id) + ".ssi");
   int term_count = size(terms);
-  int SPLIT_MAX = 8;
   int split_count = min(SPLIT_MAX, term_count);
   int i;
 
@@ -339,7 +339,7 @@ proc pfd_loop_split_terms(int id, string in_filename, string out_filename, strin
   return (split_count);
 }
 
-proc pfd_split_compute_term( int id
+proc pfd_fork_compute_term( int id
                           , int term_id
                           , string step
                           , string in_filename
@@ -448,7 +448,7 @@ proc pfd_loop_merge( int id
   return (new_count);
 }
 
-proc pfd_split_merge( int id
+proc pfd_fork_merge( int id
                    , int term_count
                    , string step
                    , string filename

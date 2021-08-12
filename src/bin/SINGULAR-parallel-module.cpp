@@ -99,6 +99,7 @@ namespace
       int outToken() const;
       int procsPerNode() const;
       std::size_t numTasks() const;
+      std::size_t splitMax() const;
 
       std::string tmpDir() const;
       std::string nodeFile() const;
@@ -136,6 +137,7 @@ namespace
 
       /* derived variables */
       std::size_t num_tasks;
+      std::size_t split_max;
       int out_token;
 
       singular_parallel::installation singular_parallel_installation;
@@ -144,6 +146,7 @@ namespace
   /*** private function declarations ***/
   int fetch_token_value_from_sing_scope (std::string token_s);
   int get_num_tasks(lists arg_list, std::string graph_type);
+  int get_split_max(leftv args, std::string graph_type);
 
   /*** ArgumentState implementations ***/
   int ArgumentState::outToken() const {
@@ -156,6 +159,10 @@ namespace
 
   std::size_t ArgumentState::numTasks() const {
     return num_tasks;
+  }
+
+  std::size_t ArgumentState::splitMax() const {
+    return split_max;
   }
 
   std::string ArgumentState::tmpDir() const {
@@ -225,6 +232,7 @@ namespace
   , functionname (get_singular_string_argument(args, 11, "function name"))
   , graph_type (graph_type)
   , num_tasks (get_num_tasks(arg_list, graph_type))
+  , split_max(get_split_max(args, graph_type))
   , out_token (fetch_token_value_from_sing_scope (outstructname))
   , singular_parallel_installation ()
   {
@@ -241,6 +249,15 @@ namespace
     int token_v;
     blackboxIsCmd (token_s.c_str(), token_v);
     return token_v;
+  }
+
+  int get_split_max(leftv args, std::string graph_type)
+  {
+    if (graph_type == "pfd") {
+      return get_singular_int_argument(args, 12, "splitmax");
+    } else {
+      return 0;
+    }
   }
 
   int get_num_tasks(lists arg_list, std::string graph_type)
@@ -309,6 +326,7 @@ std::optional<std::multimap<std::string, pnet::type::value::value_type>>
     poke( "out_struct_desc", problem_token_type, as.outStructDesc());
     poke( "tmpdir", problem_token_type, as.tmpDir());
     poke( "task_count", problem_token_type, static_cast<unsigned int> (as.numTasks()));
+    poke( "split_max", problem_token_type, static_cast<unsigned int> (as.splitMax()));
 
     std::multimap<std::string, value_type> values_on_ports
       ( {
@@ -573,13 +591,13 @@ try {
 
   std::string basename = get_base_file_name(as.graphType());
 
-  singular::call_and_discard("def internal_placeholder;"); 
+  singular::call_and_discard("def internal_placeholder;");
   for (std::size_t i = 0; i < as.numTasks(); i++)
   {
     si_link l = ssi_open_for_read(get_out_struct_filename( as.tmpDir()
                                                          , basename
                                                          , i));
-    // later consider case of "wrong" output (and do not throw) 
+    // later consider case of "wrong" output (and do not throw)
     lists entry = ssi_read_newstruct (l, as.outStructName());
     ssi_close_and_remove (l);
     out_list->m[i].rtyp = as.outToken();
