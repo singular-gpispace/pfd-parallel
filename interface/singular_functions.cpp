@@ -304,7 +304,7 @@ void ssi_write_newstruct (si_link l, int type, lists lst)
 
 /*
  * Why? Ensures in some edge cases that files on disk for that "same" struct is
- * directly comparable on byte level.  
+ * directly comparable on byte level.
  */
 void double_ssi_write_newstruct ( std::string const& filename
                                 , int const& in_token
@@ -325,7 +325,7 @@ void double_ssi_write_newstruct ( std::string const& filename
                       , l
                       );
   boost::filesystem::remove(tmp_filename);
-  
+
 }
 
 lists ssi_read_newstruct(std::string const& file_name,

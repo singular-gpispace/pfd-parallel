@@ -548,7 +548,6 @@ namespace singular_parallel
         int new_count = singular::getInt("new_count");
         singular::call_and_discard("kill new_count;");
 
-        
         for (i = 1; i <= term_count; i++) {
           remove((options.tmpdir + "/" + file + "_result_" +
                        std::to_string(id) + "_" + std::to_string(i) +

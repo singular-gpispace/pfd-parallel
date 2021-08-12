@@ -89,7 +89,6 @@
       <connect-out port="out" place="gen_prep_status"/>
     </transition>
 
-    
     <transition name="consume_non_compute">
       <defun>
         <require key="worker" mandatory="true"/>

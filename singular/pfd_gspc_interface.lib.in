@@ -5,7 +5,7 @@ info="demo";
 proc pfd_gspc_filename (string matrixname, string suffix, int row, int col)
 {
   string filename = pfd_gspc_filename_no_suffix (matrixname, row, col)
-                    + "." + suffix; 
+                    + "." + suffix;
   return (filename);
 }
 
@@ -99,7 +99,7 @@ proc pfd_gspc_is_trivial (in_struct input)
 {
   system("--ticks-per-sec",1000);
   short = 0;
-  
+
   list args = parsePfdSingleEntryArgs(input.fromdir, input.todir);
   string from_dir = args[1];
   string to_dir = args[2];

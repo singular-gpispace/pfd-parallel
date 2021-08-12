@@ -210,7 +210,6 @@
                (pfd_fork_finish)
                ( id, options, step);
 
-            
             RESOLVE_INTERFACE_FUNCTION
               (log_duration)
               (id, options, step);
