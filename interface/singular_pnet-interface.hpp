@@ -41,6 +41,13 @@ namespace singular_parallel
        );
 
     NO_NAME_MANGLING
+      unsigned int pfd_general_prepare
+      ( unsigned int const& id
+      , const pnet_options& options
+      , const std::string& first_step
+      );
+
+    NO_NAME_MANGLING
       unsigned int pfd_already_done
        ( unsigned int const& id
        , const pnet_options& options
@@ -81,7 +88,7 @@ namespace singular_parallel
       );
 
     NO_NAME_MANGLING
-      singular_parallel::pnet_list pfd_split_init
+      singular_parallel::pnet_list pfd_fork_init
       ( unsigned int const& id
       , const pnet_options& options
       , const std::string& step
@@ -96,7 +103,7 @@ namespace singular_parallel
       );
 
     NO_NAME_MANGLING
-      void pfd_split_compute_term
+      void pfd_fork_compute_term
       ( const unsigned int& id
       , const unsigned int& term_id
       , const pnet_options& options
@@ -112,7 +119,7 @@ namespace singular_parallel
       );
 
     NO_NAME_MANGLING
-      void pfd_split_merge
+      void pfd_fork_merge
       ( unsigned int const& id
       , unsigned int const& term_count
       , const pnet_options& options
@@ -134,7 +141,7 @@ namespace singular_parallel
       );
 
     NO_NAME_MANGLING
-      void  pfd_split_finish
+      void  pfd_fork_finish
       ( unsigned int const& id
       , const pnet_options& options
       , const std::string& step

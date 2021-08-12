@@ -61,10 +61,10 @@ proc doComputation(int j, list #)
       string(MM) + "_" +
       string(alpha) + ".txt"
       , string(PF));
-  system("sh", "echo " + string(j) 
+  system("sh", "echo " + string(j)
                + " >> " +
                rootdir + "logs/log_done_" + string(j) + "_.txt");
-  system("sh", "echo " + 
+  system("sh", "echo " +
                rootdir + "Z_output/" +
                string(LL) + "_" +
                string(m) + "/Z_" +
@@ -75,11 +75,11 @@ proc doComputation(int j, list #)
                string(alpha) + ".txt"
                 + " >> " +
                 rootdir + "logs/log_done_" + string(j) + "_.txt");
-  system("sh", "echo " + 
+  system("sh", "echo " +
                "time: " + string(rtimer - t)
                + " >> " +
                 rootdir + "logs/log_done_" + string(j) + "_.txt");
-  system("sh", "echo " + 
+  system("sh", "echo " +
                "memory: " + string(memory(2))
                + " >> " +
                 rootdir + "logs/log_done_" + string(j) + "_.txt");

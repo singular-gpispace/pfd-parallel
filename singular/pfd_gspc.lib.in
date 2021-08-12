@@ -23,7 +23,8 @@ proc mod_init()
             "string neededlibrary, " +
             "string functionname, " +
             "string expandnodefunction, " +
-            "int upperbound");
+            "int upperbound, " +
+            "int splitmax");
 }
 
 proc configure_gspc()
@@ -87,7 +88,7 @@ proc get_tmpdir(configToken gc)
 
 proc get_parallel_launch_command(string ret_name, string tmpdir, string pnet_id)
 {
-  string common_ending = "\"" + tmpdir + "\"" + ", " +
+  string common_args = "\"" + tmpdir + "\"" + ", " +
             "gc.options.nodefile, " +
             "gc.options.procspernode, " +
             "gc.options.rifstrategy, " +
@@ -97,15 +98,16 @@ proc get_parallel_launch_command(string ret_name, string tmpdir, string pnet_id)
             "pc.options.outstructname, " +
             "pc.options.outstructdesc, " +
             "pc.options.neededlibrary, " +
-            "pc.options.functionname);";
+            "pc.options.functionname";
   if (pnet_id == "wait_first") {
-    return ("def " + ret_name + " = sggspc_wait_first(l, " + common_ending);
+    return ("def " + ret_name + " = sggspc_wait_first(l, " + common_args + ");");
   }
   if (pnet_id == "wait_all") {
-    return ("def " + ret_name + " = sggspc_wait_all(l, " + common_ending);
+    return ("def " + ret_name + " = sggspc_wait_all(l, " + common_args + ");");
   }
   if (pnet_id == "pfd") {
-    return ("def " + ret_name + " = sggspc_pfd(l, " + common_ending);
+    return ("def " + ret_name + " = sggspc_pfd(l, " + common_args +
+      ", pc.options.splitmax);");
   }
 }
 
@@ -226,8 +228,8 @@ proc pfd_structs_config()
                             "string todir, string suffix";
   pc.options.outstructname = "out_struct";
   pc.options.outstructdesc = "string result";
-  pc.options.neededlibrary = "@PFD_SING_LIB_PATH@/pfd_gspc_interface.lib";
-  pc.options.functionname = "pfd_gspc_compute";
+  pc.options.neededlibrary = "@PFD_SING_LIB_PATH@/pfd_singular_interface.lib";
+  pc.options.functionname = "pfd_singular_compute";
 
   return (pc);
 }
@@ -249,7 +251,7 @@ PURPOSE:  apply @code{pfd} in parallel to the rational function saved in the
 "
 {
   configToken gc, pc;
-  int i, parallelize;
+  int i, parallelize, split_max;
   list l;
   string todir, suffix;
 
@@ -280,8 +282,17 @@ PURPOSE:  apply @code{pfd} in parallel to the rational function saved in the
   } else {
     parallelize = 1; // false
   }
+  if (size(#) >= 5) {
+    if ( typeof(#[5]) != "int") {
+      ERROR("split_max requires an int");
+    }
+    split_max = #[5];
+  } else {
+    split_max = 8; // default 8
+  }
 
   pc = pfd_structs_config();
+  pc.options.splitmax = split_max;
 
   newstruct(pc.options.instructname, pc.options.instructdesc);
   newstruct(pc.options.outstructname, pc.options.outstructdesc);

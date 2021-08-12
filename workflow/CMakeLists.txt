@@ -29,6 +29,7 @@ function(add_petrinet in out module_name)
             --path-to-cpp="${CMAKE_CURRENT_BINARY_DIR}/gen_${module_name}"
             --Wbackup-file=OFF
             --Woverwrite-file=OFF
+            --Wduplicate-external-function=OFF # repeated subnet inclusion
             &&
             make -C "${CMAKE_CURRENT_BINARY_DIR}/gen_${module_name}"
     DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/${in}"
@@ -76,6 +77,6 @@ addinstall_pnet(parallel_all)
 addinstall_pnet(parallel_first)
 addinstall_pnet(parallel_allpfd
                 pfd_compute.xpnet
-                pfd_split_compute_step.xpnet
+                pfd_fork_compute_step.xpnet
                 pfd_serial_compute_step.xpnet)
 

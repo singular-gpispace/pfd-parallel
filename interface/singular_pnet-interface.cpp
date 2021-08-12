@@ -174,7 +174,7 @@ namespace singular_parallel
                                         , config::parallel_pfd_base_name()
                                         , id));
         singular::call_and_discard(std::string("def already_done = ") +
-                                    "pfd_gspc_is_already_computed" +
+                                    "pfd_singular_is_already_computed" +
                                     "( input );");
 
         unsigned int done_already = singular::getInt("already_done");
@@ -211,7 +211,7 @@ namespace singular_parallel
         singular::load_ssi("input", get_in_struct_filename( options.tmpdir
                                         , config::parallel_pfd_base_name()
                                         , id));
-        singular::call_and_discard( std::string("pfd_gspc_prepareSingleEntryFraction")
+        singular::call_and_discard( std::string("pfd_singular_prepareSingleEntryFraction")
                                     + "( input );");
         singular::call_and_discard("kill input;");
       }
@@ -233,7 +233,7 @@ namespace singular_parallel
                                         , config::parallel_pfd_base_name()
                                         , id));
         singular::call_and_discard("def output = "
-                                   "pfd_gspc_is_trivial"
+                                   "pfd_singular_is_trivial"
                                    "(input);");
         singular::call_and_discard("kill input;");
         singular::call_and_discard("if (typeof(output) == \"out_struct\")"
@@ -273,7 +273,7 @@ namespace singular_parallel
                                         , config::parallel_pfd_base_name()
                                         , id));
         boost::format command =
-              boost::format("pfd_gspc_prepare_input(%1%, %2%, %3%, %4%);")
+              boost::format("pfd_singular_prepare_input(%1%, %2%, %3%, %4%);")
                             % "input"
                             % id
                             % ("\"" + options.tmpdir + "\"")
@@ -283,6 +283,58 @@ namespace singular_parallel
 
         singular::call_and_discard("kill input;");
       }
+
+    NO_NAME_MANGLING
+      unsigned int pfd_general_prepare
+      ( unsigned int const& id
+      , const pnet_options& options
+      , const std::string& first_step
+      )
+      {
+        init_singular ();
+
+        singular::register_struct(options.in_struct_name,
+                                  options.in_struct_desc);
+        singular::register_struct(options.out_struct_name,
+                                  options.out_struct_desc);
+        singular::load_library (options.needed_library);
+        singular::load_ssi("input", get_in_struct_filename( options.tmpdir
+                                        , config::parallel_pfd_base_name()
+                                        , id));
+        boost::format command =
+              boost::format("int prepstat = pfd_singular_general_prepare(%1%, %2%, %3%, %4%);")
+                            % "input"
+                            % id
+                            % ("\"" + options.tmpdir + "\"")
+                            % ("\"" + get_from_name(first_step) + "\"");
+
+        singular::call_and_discard(command.str());
+        unsigned int prepstat = singular::getInt("prepstat");
+        singular::call_and_discard("kill prepstat;");
+
+        if (prepstat) {
+          singular::call_and_discard( options.out_struct_name +
+                                      " internal_temp_o;");
+          if (prepstat == 1) {
+            singular::call_and_discard(" internal_temp_o.result = \"Already done!\";");
+          } else { if (prepstat == 2) {
+            singular::call_and_discard(" internal_temp_o.result = \"Trivially done!\";");
+          } else {
+            throw("Unrecognised return value from general prepare");
+          }}
+          singular::write_ssi( "internal_temp_o"
+                             , get_out_struct_filename( options.tmpdir
+                                              , config::parallel_pfd_base_name()
+                                              , id)
+                             );
+          singular::call_and_discard("kill internal_temp_o;");
+        }
+        singular::call_and_discard("kill input;");
+
+        return prepstat;
+      }
+
+
 
     NO_NAME_MANGLING
       void pfd_compute_step
@@ -299,7 +351,7 @@ namespace singular_parallel
                                   options.out_struct_desc);
         singular::load_library (options.needed_library);
         boost::format command =
-              boost::format("pfd_gspc_compute_step(%1%, %2%, %3%, %4%, %5%);")
+              boost::format("pfd_singular_compute_step(%1%, %2%, %3%, %4%, %5%);")
                             % id
                             % ("\"" + step + "\"")
                             % ("\"" + get_from_name(step) + "\"")
@@ -315,7 +367,7 @@ namespace singular_parallel
       }
 
     NO_NAME_MANGLING
-      singular_parallel::pnet_list pfd_loop_split_terms
+      singular_parallel::pnet_list pfd_split_terms
       ( unsigned int const& id
       , const pnet_options& options
       , const std::string& in_file
@@ -331,11 +383,12 @@ namespace singular_parallel
         singular::load_library (options.needed_library);
 
         boost::format command =
-              boost::format("int count = pfd_loop_split_terms(%1%, %2%, %3%, %4%);")
+              boost::format("int count = pfd_split_terms(%1%, %2%, %3%, %4%, %5%);")
                             % id
                             % ("\"" + in_file + "\"")
                             % ("\"" + out_file + "\"")
-                            % ("\"" + options.tmpdir + "\"");
+                            % ("\"" + options.tmpdir + "\"")
+                            % options.split_max;
 
         singular::call_and_discard(command.str());
 
@@ -363,7 +416,7 @@ namespace singular_parallel
       {
         std::string file(get_from_name(step));
 
-        singular_parallel::pnet_list indices(pfd_loop_split_terms(id, options, file, file));
+        singular_parallel::pnet_list indices(pfd_split_terms(id, options, file, file));
 
         boost::format command =
               boost::format("write(\"ssi:w %1%/%2%_%4%_%3%.ssi\", list());")
@@ -380,7 +433,7 @@ namespace singular_parallel
       }
 
     NO_NAME_MANGLING
-      singular_parallel::pnet_list pfd_split_init
+      singular_parallel::pnet_list pfd_fork_init
       ( unsigned int const& id
       , const pnet_options& options
       , const std::string& step
@@ -388,7 +441,7 @@ namespace singular_parallel
       {
         std::string file(get_from_name(step));
 
-        singular_parallel::pnet_list indices(pfd_loop_split_terms(id, options, file, file));
+        singular_parallel::pnet_list indices(pfd_split_terms(id, options, file, file));
 
         boost::format command =
               boost::format("write(\"ssi:w %1%/%2%_%4%_%3%.ssi\", list());")
@@ -434,7 +487,7 @@ namespace singular_parallel
       }
 
     NO_NAME_MANGLING
-      void pfd_split_compute_term
+      void pfd_fork_compute_term
       ( const unsigned int& id
       , const unsigned int& term_id
       , const pnet_options& options
@@ -450,7 +503,7 @@ namespace singular_parallel
                                   options.out_struct_desc);
         singular::load_library (options.needed_library);
         boost::format command =
-              boost::format("pfd_split_compute_term(%1%, %2%, %3%, %4%, %5%, %6%);")
+              boost::format("pfd_fork_compute_term(%1%, %2%, %3%, %4%, %5%, %6%);")
                             % id
                             % term_id
                             % ("\"" + step + "\"")
@@ -495,7 +548,6 @@ namespace singular_parallel
         int new_count = singular::getInt("new_count");
         singular::call_and_discard("kill new_count;");
 
-        
         for (i = 1; i <= term_count; i++) {
           remove((options.tmpdir + "/" + file + "_result_" +
                        std::to_string(id) + "_" + std::to_string(i) +
@@ -506,7 +558,7 @@ namespace singular_parallel
       }
 
     NO_NAME_MANGLING
-      void pfd_split_merge
+      void pfd_fork_merge
       ( unsigned int const& id
       , unsigned int const& term_count
       , const pnet_options& options
@@ -524,7 +576,7 @@ namespace singular_parallel
         singular::load_library (options.needed_library);
 
         boost::format command =
-              boost::format("pfd_split_merge(%1%, %2%, %3%, %4%, %5%);")
+              boost::format("pfd_fork_merge(%1%, %2%, %3%, %4%, %5%);")
                             % id
                             % term_count
                             % ("\"" + step + "\"")
@@ -552,7 +604,7 @@ namespace singular_parallel
         std::string file = get_from_name(step);
 
         singular_parallel::pnet_list indices(
-                                pfd_loop_split_terms(id
+                                pfd_split_terms(id
                               , options
                               , file + "_new_terms"
                               , file));
@@ -593,7 +645,7 @@ namespace singular_parallel
       }
 
     NO_NAME_MANGLING
-      void pfd_split_finish
+      void pfd_fork_finish
       ( unsigned int const& id
       , const pnet_options& options
       , const std::string& step
@@ -617,7 +669,7 @@ namespace singular_parallel
         singular::load_library (options.needed_library);
 
         boost::format command =
-              boost::format("out_struct output = pfd_gspc_write_result(%1%, %2%);")
+              boost::format("out_struct output = pfd_singular_write_result(%1%, %2%);")
                             % id
                             % ("\"" + options.tmpdir + "\"");
         singular::call_and_discard(command.str());
@@ -704,7 +756,7 @@ namespace singular_parallel
                                   options.out_struct_desc);
         singular::load_library (options.needed_library);
         boost::format command =
-              boost::format("pfd_gspc_log_duration(%1%, %2%, %3%, %4%);")
+              boost::format("pfd_singular_log_duration(%1%, %2%, %3%, %4%);")
                             % id
                             % duration
                             % ("\"" + measure_name + "\"")
