@@ -174,7 +174,7 @@ namespace singular_parallel
                                         , config::parallel_pfd_base_name()
                                         , id));
         singular::call_and_discard(std::string("def already_done = ") +
-                                    "pfd_gspc_is_already_computed" +
+                                    "pfd_singular_is_already_computed" +
                                     "( input );");
 
         unsigned int done_already = singular::getInt("already_done");
@@ -211,7 +211,7 @@ namespace singular_parallel
         singular::load_ssi("input", get_in_struct_filename( options.tmpdir
                                         , config::parallel_pfd_base_name()
                                         , id));
-        singular::call_and_discard( std::string("pfd_gspc_prepareSingleEntryFraction")
+        singular::call_and_discard( std::string("pfd_singular_prepareSingleEntryFraction")
                                     + "( input );");
         singular::call_and_discard("kill input;");
       }
@@ -233,7 +233,7 @@ namespace singular_parallel
                                         , config::parallel_pfd_base_name()
                                         , id));
         singular::call_and_discard("def output = "
-                                   "pfd_gspc_is_trivial"
+                                   "pfd_singular_is_trivial"
                                    "(input);");
         singular::call_and_discard("kill input;");
         singular::call_and_discard("if (typeof(output) == \"out_struct\")"
@@ -273,7 +273,7 @@ namespace singular_parallel
                                         , config::parallel_pfd_base_name()
                                         , id));
         boost::format command =
-              boost::format("pfd_gspc_prepare_input(%1%, %2%, %3%, %4%);")
+              boost::format("pfd_singular_prepare_input(%1%, %2%, %3%, %4%);")
                             % "input"
                             % id
                             % ("\"" + options.tmpdir + "\"")
@@ -302,7 +302,7 @@ namespace singular_parallel
                                         , config::parallel_pfd_base_name()
                                         , id));
         boost::format command =
-              boost::format("int prepstat = pfd_gspc_general_prepare(%1%, %2%, %3%, %4%);")
+              boost::format("int prepstat = pfd_singular_general_prepare(%1%, %2%, %3%, %4%);")
                             % "input"
                             % id
                             % ("\"" + options.tmpdir + "\"")
@@ -351,7 +351,7 @@ namespace singular_parallel
                                   options.out_struct_desc);
         singular::load_library (options.needed_library);
         boost::format command =
-              boost::format("pfd_gspc_compute_step(%1%, %2%, %3%, %4%, %5%);")
+              boost::format("pfd_singular_compute_step(%1%, %2%, %3%, %4%, %5%);")
                             % id
                             % ("\"" + step + "\"")
                             % ("\"" + get_from_name(step) + "\"")
@@ -669,7 +669,7 @@ namespace singular_parallel
         singular::load_library (options.needed_library);
 
         boost::format command =
-              boost::format("out_struct output = pfd_gspc_write_result(%1%, %2%);")
+              boost::format("out_struct output = pfd_singular_write_result(%1%, %2%);")
                             % id
                             % ("\"" + options.tmpdir + "\"");
         singular::call_and_discard(command.str());
@@ -756,7 +756,7 @@ namespace singular_parallel
                                   options.out_struct_desc);
         singular::load_library (options.needed_library);
         boost::format command =
-              boost::format("pfd_gspc_log_duration(%1%, %2%, %3%, %4%);")
+              boost::format("pfd_singular_log_duration(%1%, %2%, %3%, %4%);")
                             % id
                             % duration
                             % ("\"" + measure_name + "\"")

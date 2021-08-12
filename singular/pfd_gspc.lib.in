@@ -228,8 +228,8 @@ proc pfd_structs_config()
                             "string todir, string suffix";
   pc.options.outstructname = "out_struct";
   pc.options.outstructdesc = "string result";
-  pc.options.neededlibrary = "@PFD_SING_LIB_PATH@/pfd_gspc_interface.lib";
-  pc.options.functionname = "pfd_gspc_compute";
+  pc.options.neededlibrary = "@PFD_SING_LIB_PATH@/pfd_singular_interface.lib";
+  pc.options.functionname = "pfd_singular_compute";
 
   return (pc);
 }
@@ -283,6 +283,9 @@ PURPOSE:  apply @code{pfd} in parallel to the rational function saved in the
     parallelize = 1; // false
   }
   if (size(#) >= 5) {
+    if ( typeof(#[5]) != "int") {
+      ERROR("split_max requires an int");
+    }
     split_max = #[5];
   } else {
     split_max = 8; // default 8
