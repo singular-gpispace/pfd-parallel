@@ -119,6 +119,16 @@ namespace singular_parallel
       );
 
     NO_NAME_MANGLING
+      unsigned int pfd_fork_merge_pair
+      ( unsigned int const& id
+      , unsigned int const& left
+      , unsigned int const& right
+      , const pnet_options& options
+      , const std::string& step
+      );
+
+
+    NO_NAME_MANGLING
       void pfd_fork_merge
       ( unsigned int const& id
       , unsigned int const& term_count
@@ -143,6 +153,7 @@ namespace singular_parallel
     NO_NAME_MANGLING
       void  pfd_fork_finish
       ( unsigned int const& id
+      , unsigned int const& term_id
       , const pnet_options& options
       , const std::string& step
       );

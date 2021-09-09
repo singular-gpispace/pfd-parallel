@@ -262,7 +262,6 @@ proc pfd_singular_compute_step ( int id
 
   int t = rtimer;
 
-  // (1) Nullstellensatz decomposition /////////////////////////////////////////
   terms = generic_dec_loop(step, get_loop_strat(step), terms, q, debug, l);
 
   t = rtimer-t;
@@ -378,78 +377,6 @@ proc pfd_fork_compute_term( int id
                    ".ssi", terms);
 }
 
-proc pfd_loop_compute_term( int id
-                           , int term_id
-                           , string step
-                           , string in_filename
-                           , string out_filename
-                           , string tmpdir
-                           , list #
-                           )
-{
-  list terms = read("ssi:r " + tmpdir + "/" + in_filename + "_" +
-          string(id) + "_" + string(term_id) + ".ssi");
-  list input = read("ssi:r " + tmpdir + "/input_" + string(id) + ".ssi");
-  ideal q = input[1];
-
-  if ((size(terms) > 1) or (size(terms) < 1)) {
-    ERROR("Expected exactly one term, got " + string(size(terms)) +
-          " instead.  Check for error in term split process.");
-  }
-
-  string command = "list result = " + step + "(terms[1],q,#);";
-  execute(command);
-
-  write("ssi:w " + tmpdir +
-                   "/" + out_filename + "_" +
-                   string(id) + "_" + string(term_id) +
-                   ".ssi", result);
-}
-
-proc pfd_loop_merge( int id
-                   , int term_count
-                   , string step
-                   , string filename
-                   , string tmpdir
-                   )
-{
-  list dec = read("ssi:r " + tmpdir +
-                             "/" + filename + "_dec_" +
-                             string(id) +
-                             ".ssi");
-  list new_terms = read("ssi:r " + tmpdir +
-                                   "/" + filename + "_new_terms_" +
-                                   string(id) +
-                                   ".ssi");
-
-  int new_count_before = size(new_terms);
-  int i;
-  string strat = get_loop_strat(step);
-  for (i = 1; i <= term_count; i++) {
-    list result = read("ssi:r " + tmpdir +
-                                "/" + filename + "_result_" +
-                                string(id) + "_" + string(i) +
-                                ".ssi");
-
-    list merged = general_merge_step(strat, new_terms, dec, result);
-    dec = merged[1];
-    new_terms = merged[2];
-  }
-
-  int new_count = size(new_terms) - new_count_before;
-
-  write( "ssi:w " + tmpdir +
-                    "/" + filename + "_dec_" +
-                    string(id) +
-                    ".ssi"
-       , dec);
-  write( "ssi:w " + tmpdir +
-                    "/" + filename + "_new_terms_" +
-                    string(id) +
-                    ".ssi"
-       , new_terms);
-  return (new_count);
-}
 
 proc pfd_fork_merge( int id
                    , int term_count
@@ -458,12 +385,12 @@ proc pfd_fork_merge( int id
                    , string tmpdir
                    )
 {
+  int i;
   list dec = read("ssi:r " + tmpdir +
                              "/" + filename + "_dec_" +
                              string(id) +
                              ".ssi");
-  int i;
-  string strat = get_loop_strat(step);
+
   for (i = 1; i <= term_count; i++) {
     list result = read("ssi:r " + tmpdir +
                                 "/" + filename + "_result_" +
@@ -478,6 +405,31 @@ proc pfd_fork_merge( int id
                     string(id) +
                     ".ssi"
        , dec);
+}
+
+proc pfd_fork_merge_pair( int id
+                        , int left
+                        , int right
+                        , string filename
+                        , string tmpdir
+                   )
+{
+  list leftl = read("ssi:r " + tmpdir +
+                              "/" + filename + "_result_" +
+                              string(id) + "_" + string(left) +
+                              ".ssi");
+  list rightl = read("ssi:r " + tmpdir +
+                              "/" + filename + "_result_" +
+                              string(id) + "_" + string(right) +
+                              ".ssi");
+
+  leftl = mergepfd(leftl, rightl);
+
+  write( "ssi:w " + tmpdir +
+                    "/" + filename + "_result_" +
+                    string(id) + "_" + string(left) +
+                    ".ssi"
+       , leftl);
 }
 
 proc pfd_singular_log_duration(int id,
