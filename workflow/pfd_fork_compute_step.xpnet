@@ -5,19 +5,22 @@
   <require key="worker" mandatory="true"/>
   <in name="in" type="unsigned int" place="in"/>
   <in name="step" type="string" place="step"/>
-  <in name="options" type="options_type" place="options"/>
+  <tunnel name="options" type="options_type" place="options"/>
   <out name="out" type="unsigned int" place="decomposition"/>
 
   <net>
     <place name="in" type="unsigned int"/>
     <place name="step" type="string"/>
 
-    <place name="id" type="unsigned int"/>
-    <place name="terms" type="unsigned int"/>
-    <place name="decomposed_terms" type="unsigned int"/>
+    <place name="init_active" type="unsigned int">
+      <token><value> 0U </value></token>
+    </place>
+    <place name="finish_active" type="unsigned int"/>
+    <place name="terms" type="term"/>
+    <place name="decomposed_terms" type="term"/>
 
-    <place name="left" type="unsigned int"/>
-    <place name="right" type="unsigned int"/>
+    <place name="left" type="term"/>
+    <place name="right" type="term"/>
     <place name="l_active" type="unsigned int">
       <token><value> 0U </value></token>
     </place>
@@ -26,16 +29,17 @@
     <place name="decomposition" type="unsigned int"/>
 
     <place name="term_counts" type="term_count_type"/>
-    <place name="options" type="options_type"/>
+    <place name="options" type="options_type" virtual="true"/>
 
     <transition name="split_init">
       <defun>
         <require key="worker" mandatory="true"/>
         <in name="in" type="unsigned int"/>
+        <in name="init_active" type="unsigned int"/>
         <in name="options" type="options_type"/>
         <in name="step" type="string"/>
         <out name="out" type="list"/>
-        <out name="id" type="unsigned int"/>
+        <out name="finish_active" type="unsigned int"/>
         <out name="counts" type="term_count_type"/>
         <module name="singular_parallel_allpfd"
                 require_function_unloads_without_rest="false"
@@ -43,8 +47,9 @@
                             ( options
                             , in
                             , counts
-                            , id
                             , step
+                            , init_active
+                            , finish_active
                             )">
           <cinclude href="interface/singular_pnet-interface.hpp"/>
           <cinclude href="util-generic/dynamic_linking.hpp"/>
@@ -73,10 +78,9 @@
                       << indices.size()
                       << " terms.\n";
 
-            counts.local = indices.size();
-            counts.global = indices.size();
-            counts.to_merge = indices.size();
-            id = in;
+            counts.computing = indices.size();
+            counts.id = in;
+            finish_active=init_active;
 
             std::cout << "Initializing split "
                       << step << " "
@@ -87,26 +91,25 @@
         </module>
       </defun>
       <connect-in port="in" place="in"/>
+      <connect-in port="init_active" place="init_active"/>
       <connect-read port="options" place="options"/>
       <connect-read port="step" place="step"/>
       <connect-out-many port="out" place="terms"/>
-      <connect-out port="id" place="id"/>
+      <connect-out port="finish_active" place="finish_active"/>
       <connect-out port="counts" place="term_counts"/>
     </transition>
 
-    <transition name="split_compute">
+    <transition name="fork_compute">
       <defun>
         <require key="worker" mandatory="true"/>
-        <in name="id" type="unsigned int"/>
-        <in name="term" type="unsigned int"/>
+        <in name="term" type="term"/>
         <in name="options" type="options_type"/>
         <in name="step" type="string"/>
-        <out name="out" type="unsigned int"/>
+        <out name="out" type="term"/>
         <module name="singular_parallel_allpfd"
                 require_function_unloads_without_rest="false"
-                function="split_compute
+                function="fork_compute
                             ( options
-                            , id
                             , term
                             , out
                             , step
@@ -119,7 +122,7 @@
 
             RESOLVE_INTERFACE_FUNCTION
               (pfd_fork_compute_term)
-              ( id, term, options , step);
+              ( term.id, term.term_id, options , step);
 
             out = term;
 
@@ -127,7 +130,6 @@
         </module>
       </defun>
       <connect-in port="term" place="terms"/>
-      <connect-read port="id" place="id"/>
       <connect-read port="options" place="options"/>
       <connect-read port="step" place="step"/>
       <connect-out port="out" place="decomposed_terms"/>
@@ -136,9 +138,9 @@
     <transition name="populate_left">
       <defun>
         <require key="worker" mandatory="true"/>
-        <in name="term" type="unsigned int"/>
+        <in name="term" type="term"/>
         <in name="l_active" type="unsigned int"/>
-        <out name="left" type="unsigned int"/>
+        <out name="left" type="term"/>
         <out name="r_active" type="unsigned int"/>
         <expression>
             ${left} := ${term};
@@ -154,9 +156,9 @@
     <transition name="populate_right">
       <defun>
         <require key="worker" mandatory="true"/>
-        <in name="term" type="unsigned int"/>
+        <in name="term" type="term"/>
         <in name="r_active" type="unsigned int"/>
-        <out name="right" type="unsigned int"/>
+        <out name="right" type="term"/>
         <out name="l_active" type="unsigned int"/>
         <expression>
             ${right} := ${term};
@@ -173,23 +175,23 @@
     <transition name="merge_decomposed">
       <defun>
         <require key="worker" mandatory="true"/>
-        <in name="id" type="unsigned int"/>
-        <in name="left" type="unsigned int"/>
-        <in name="right" type="unsigned int"/>
+        <in name="left" type="term"/>
+        <in name="right" type="term"/>
         <in name="options" type="options_type"/>
         <in name="step" type="string"/>
         <inout name="counts" type="term_count_type"/>
-        <out name="decomped" type="unsigned int"/>
+        <out name="decomped" type="term"/>
 
         <condition>
-          ${counts.to_merge} :gt: 1U
+          ${counts.computing} :gt: 1U :and:
+          ${left.id} :eq: ${right.id} :and:
+          ${counts.id} :eq: ${left.id}
         </condition>
 
         <module name="singular_parallel_allpfd"
                 require_function_unloads_without_rest="false"
                 function="merge_decomposed
                             ( options
-                            , id
                             , left
                             , right
                             , counts
@@ -204,32 +206,31 @@
 
 
             std::cout << "Merging terms "
-                      << left
+                      << left.term_id
                       << " and "
-                      << right
+                      << right.term_id
                       <<" for " + step + " "
-                      << id
                       << "\n";
-            decomped = RESOLVE_INTERFACE_FUNCTION
+            decomped.id = left.id;
+            decomped.term_id = RESOLVE_INTERFACE_FUNCTION
                (pfd_fork_merge_pair)
-               ( id, left, right, options, step);
+               ( left.id, left.term_id, right.term_id, options, step);
 
             std::cout << "Merging terms "
-                      << left
+                      << left.term_id
                       << " and "
-                      << right
+                      << right.term_id
                       <<" for " + step + " "
-                      << id
+                      << left.id
                       << " done\n";
 
-            counts.to_merge -= 1;
+            counts.computing -= 1;
 
           ]]></code>
         </module>
       </defun>
       <connect-in port="left" place="left"/>
       <connect-in port="right" place="right"/>
-      <connect-read port="id" place="id"/>
       <connect-read port="options" place="options"/>
       <connect-read port="step" place="step"/>
       <connect-inout port="counts" place="term_counts"/>
@@ -241,22 +242,25 @@
         <require key="worker" mandatory="true"/>
         <in name="options" type="options_type"/>
         <in name="step" type="string"/>
-        <in name="id" type="unsigned int"/>
-        <in name="term_id" type="unsigned int"/>
+        <in name="term" type="term"/>
+        <in name="finish_active" type="unsigned int"/>
         <in name="counts" type="term_count_type"/>
         <out name="out" type="unsigned int"/>
+        <out name="init_active" type="unsigned int"/>
         <condition>
-          ${counts.to_merge} :eq: 1U
+          ${counts.computing} :eq: 1U :and:
+          ${counts.id} :eq: ${term.id}
         </condition>
         <module name="singular_parallel_allpfd"
                 require_function_unloads_without_rest="false"
                 function="finish_step
                              ( options
-                             , id
-                             , term_id
+                             , term
                              , counts
                              , out
                              , step
+                             , init_active
+                             , finish_active
                              )">
           <cinclude href="interface/singular_pnet-interface.hpp"/>
           <cinclude href="util-generic/dynamic_linking.hpp"/>
@@ -266,22 +270,24 @@
 
             RESOLVE_INTERFACE_FUNCTION
                (pfd_fork_finish)
-               ( id, term_id, options, step);
+               ( term.id, term.term_id, options, step);
 
             RESOLVE_INTERFACE_FUNCTION
               (log_duration)
-              (id, options, step);
+              (term.id, options, step);
 
-            out = id;
+            init_active=finish_active;
+            out = term.id;
 
           ]]></code>
         </module>
       </defun>
       <connect-read port="options" place="options"/>
-      <connect-in port="id" place="id"/>
-      <connect-in port="term_id" place="left"/>
+      <connect-in port="finish_active" place="finish_active"/>
+      <connect-in port="term" place="left"/>
       <connect-in port="counts" place="term_counts"/>
       <connect-read port="step" place="step"/>
+      <connect-out port="init_active" place="init_active"/>
       <connect-out port="out" place="decomposition"/>
     </transition>
   </net>

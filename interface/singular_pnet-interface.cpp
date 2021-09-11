@@ -13,6 +13,7 @@
 #include <config.hpp>
 #include <chrono>
 #include <string>
+#include <pnetc/type/term/op.hpp>
 
 namespace singular_parallel
 {
@@ -401,8 +402,10 @@ namespace singular_parallel
         singular_parallel::pnet_list indices;
         int i;
         for (i = 1; i <= term_count; i++) {
-          unsigned int term = i;
-          indices.push_back(term);
+          singular_parallel::pnet_term term;
+          term.id = id;
+          term.term_id = i;
+          indices.push_back(pnetc::type::term::to_value(term));
         }
         return indices;
       }

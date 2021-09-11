@@ -3,7 +3,7 @@
 
 //#include <pnetc/type/config_type.hpp>
 #include <pnetc/type/options_type.hpp>
-//#include <pnetc/type/term_type.hpp>
+#include <pnetc/type/term.hpp>
 #include <pnetc/type/term_count_type.hpp>
 #include <we/type/value.hpp>
 
@@ -16,7 +16,7 @@ namespace singular_parallel
 
   //using pnet_config = pnetc::type::config_type::config_type;
   using pnet_options = pnetc::type::options_type::options_type;
-  //using pnet_term_type = pnetc::type::term_type::term_type;
+  using pnet_term = pnetc::type::term::term;
   using pnet_term_count_type = pnetc::type::term_count_type::term_count_type;
 
   // Provides a non-overloaded wrapper for boost::get.

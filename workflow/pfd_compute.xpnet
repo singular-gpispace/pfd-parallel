@@ -139,7 +139,7 @@
       <include-function href="pfd_fork_compute_step.xpnet"/>
 
       <connect-in port="in" place="nullstellensatz_done"/>
-      <connect-read port="options" place="readoptions"/>
+      <place-map virtual="options" real="readoptions"/>
       <connect-read port="step" place="short_num_name"/>
       <connect-out port="out" place="short_numerator_done"/>
     </transition>
@@ -148,7 +148,7 @@
       <include-function href="pfd_fork_compute_step.xpnet"/>
 
       <connect-in port="in" place="short_numerator_done"/>
-      <connect-read port="options" place="readoptions"/>
+      <place-map virtual="options" real="readoptions"/>
       <connect-read port="step" place="algebraic_step_name"/>
       <connect-out port="out" place="algebraic_dependence_done"/>
     </transition>
@@ -157,7 +157,7 @@
       <include-function href="pfd_fork_compute_step.xpnet"/>
 
       <connect-in port="in" place="algebraic_dependence_done"/>
-      <connect-read port="options" place="readoptions"/>
+      <place-map virtual="options" real="readoptions"/>
       <connect-read port="step" place="numerator_step_name"/>
       <connect-out port="out" place="numerator_done"/>
     </transition>
