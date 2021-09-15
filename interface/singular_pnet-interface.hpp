@@ -168,17 +168,33 @@ namespace singular_parallel
       long get_current_time_milli();
 
     NO_NAME_MANGLING
-      void write_current_time
-      ( const unsigned int& id
-      , const std::string& measure_name
-      , const std::string& tmpdir
-      );
+      std::string get_term_time_path( const int& id
+                                    , const int& term_id
+                                    , std::string measure_name
+                                    , std::string tmpdir
+                                    );
+    NO_NAME_MANGLING
+      std::string get_problem_time_path( const int& id
+                                    , std::string measure_name
+                                    , std::string tmpdir
+                                    );
+    
 
     NO_NAME_MANGLING
-      long get_start_time
-      ( const unsigned int& id
-      , const std::string& measure_name
-      , const std::string& tmpdir
+      void write_current_time
+      ( const std::string& path );
+      
+    NO_NAME_MANGLING
+      long get_written_time (const std::string& path);
+
+    NO_NAME_MANGLING
+      long get_duration_time
+      ( const std::string& path );
+
+    NO_NAME_MANGLING
+      void write_duration_time
+      ( const long& duration
+      , const std::string& path 
       );
 
     NO_NAME_MANGLING
@@ -186,6 +202,7 @@ namespace singular_parallel
       ( unsigned int const& id
       , const pnet_options& options
       , const std::string& measure_name
+      , const long& duration
       );
   }
 }

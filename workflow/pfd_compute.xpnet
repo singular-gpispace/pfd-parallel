@@ -69,11 +69,6 @@
               std::cout << in << " Trivially done!\n";
             } else if (prep_stat == 0) {
               std::cout << in << " still to be computed.\n";
-
-              RESOLVE_INTERFACE_FUNCTION
-                (write_current_time)
-                (in, "total_time", options.tmpdir);
-
             } else {
               std::cout << in << " has an incorrect return value.\n";
             }
@@ -126,7 +121,7 @@
     </transition>
 
 
-    <transition name="compute_nullstellensatz">
+    <transition name="compute_nullstellensatz" inline="true">
       <include-function href="pfd_serial_compute_step.xpnet"/>
 
       <connect-in port="in" place="prepared_input"/>
@@ -135,33 +130,35 @@
       <connect-out port="out" place="nullstellensatz_done"/>
     </transition>
 
-    <transition name="compute_short_numerator">
+    <transition name="compute_short_numerator" inline="true">
       <include-function href="pfd_fork_compute_step.xpnet"/>
 
-      <connect-in port="in" place="nullstellensatz_done"/>
+      <place-map virtual="in" real="nullstellensatz_done"/>
       <place-map virtual="options" real="readoptions"/>
-      <connect-read port="step" place="short_num_name"/>
-      <connect-out port="out" place="short_numerator_done"/>
+      <place-map virtual="step" real="short_num_name"/>
+      <place-map virtual="decomposition" real="short_numerator_done"/>
     </transition>
 
-    <transition name="compute_algebraic_dependence">
+    <transition name="compute_algebraic_dependence" inline="true">
       <include-function href="pfd_fork_compute_step.xpnet"/>
 
-      <connect-in port="in" place="short_numerator_done"/>
+      <place-map virtual="in" real="short_numerator_done"/>
       <place-map virtual="options" real="readoptions"/>
-      <connect-read port="step" place="algebraic_step_name"/>
-      <connect-out port="out" place="algebraic_dependence_done"/>
+      <place-map virtual="step" real="algebraic_step_name"/>
+      <place-map virtual="decomposition" real="algebraic_dependence_done"/>
     </transition>
 
-    <transition name="compute_numerator">
+    <transition name="compute_numerator" inline="true">
       <include-function href="pfd_fork_compute_step.xpnet"/>
 
+      <!--
       <connect-in port="in" place="algebraic_dependence_done"/>
+      -->
+      <place-map virtual="in" real="algebraic_dependence_done"/>
       <place-map virtual="options" real="readoptions"/>
-      <connect-read port="step" place="numerator_step_name"/>
-      <connect-out port="out" place="numerator_done"/>
+      <place-map virtual="step" real="numerator_step_name"/>
+      <place-map virtual="decomposition" real="numerator_done"/>
     </transition>
-
 
     <transition name="write_result">
       <defun>
@@ -183,10 +180,6 @@
           <code><![CDATA[
           //<>
             std::cout << "Writing " << in << "\n";
-
-            RESOLVE_INTERFACE_FUNCTION
-              (log_duration)
-              (in, options, "total_time");
 
             RESOLVE_INTERFACE_FUNCTION
               (pfd_write_result)

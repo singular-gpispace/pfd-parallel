@@ -267,6 +267,8 @@ proc pfd_singular_compute_step ( int id
   t = rtimer-t;
   write(":a "+to_dir+"resources_"+filename+".txt",
         sprintf(step + " Time: %s ms,  Memory: %s Bytes",t,memory(2)));
+  write(":a "+tmpdir+"/"+step+"_"+string(id)+".time",
+        string(t));
 
   write("ssi:w " + tmpdir + "/" + to_terms +"_" + string(id) + ".ssi", terms);
 
