@@ -11,11 +11,6 @@
   <net>
     <place name="intask" type="unsigned int"/>
     <place name="gen_prep_status" type="task_status"/>
-    <!--
-    <place name="computed_status" type="task_status"/>
-    <place name="prepared_ssi" type="unsigned int"/>
-    <place name="triviality_status" type="task_status"/>
-    -->
     <place name="prepared_input" type="unsigned int"/>
     <place name="nullstellensatz_done" type="unsigned int"/>
     <place name="short_numerator_done" type="unsigned int"/>

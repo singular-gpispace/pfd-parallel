@@ -124,21 +124,9 @@
           <code><![CDATA[
             /*<>*/
 
-            //std::cout << "Computing forked term"
-            //          << term.id
-            //          << " "
-            //          << term.term_id
-            //          << " starting";
-
             RESOLVE_INTERFACE_FUNCTION
               (pfd_fork_compute_term)
               ( term.id, term.term_id, options , step);
-
-            //std::cout << "Computing forked term"
-            //          << term.id
-            //          << " "
-            //          << term.term_id
-            //          << " done!";
 
             out = term;
 
@@ -216,29 +204,11 @@
           <code><![CDATA[
             /*<>*/
 
-            /*
-            std::cout << "Merging terms "
-                      << left.term_id
-                      << " and "
-                      << right.term_id
-                      <<" for " + step + " "
-                      << left.id
-                      << "\n";
-            */
             decomped.id = left.id;
             decomped.term_id = RESOLVE_INTERFACE_FUNCTION
                (pfd_fork_merge_pair)
                ( left.id, left.term_id, right.term_id, options, step);
 
-            /*
-            std::cout << "Merging terms "
-                      << left.term_id
-                      << " and "
-                      << right.term_id
-                      <<" for " + step + " "
-                      << left.id
-                      << " done\n";
-            */
 
             counts.computing -= 1;
 
