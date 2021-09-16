@@ -17,17 +17,14 @@
     <field name="status" type="unsigned int"/>
   </struct>
 
-  <!--
-  <struct name="term_type">
+  <struct name="term">
     <field name="id" type="unsigned int"/>
     <field name="term_id" type="unsigned int"/>
   </struct>
-  -->
 
   <struct name="term_count_type">
-    <field name="local" type="unsigned int"/>
-    <field name="global" type="unsigned int"/>
-    <field name="to_merge" type="unsigned int"/>
+    <field name="computing" type="unsigned int"/>
+    <field name="id" type="unsigned int"/>
   </struct>
 
 </structs>

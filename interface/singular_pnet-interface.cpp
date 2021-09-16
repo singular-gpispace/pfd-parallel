@@ -13,6 +13,7 @@
 #include <config.hpp>
 #include <chrono>
 #include <string>
+#include <pnetc/type/term/op.hpp>
 
 namespace singular_parallel
 {
@@ -28,6 +29,16 @@ namespace singular_parallel
     BOOLEAN check_integers_equal(int const& a,
         int const& b,
         std::string const& err_message);
+
+    NO_NAME_MANGLING
+      void pfd_fork_compute_term_
+      ( const unsigned int& id
+      , const unsigned int& term_id
+      , const pnet_options& options
+      , const std::string step
+      , const std::string from_file
+      , const std::string to_file
+      );
 
     /*** local function impementations ***/
 
@@ -401,36 +412,14 @@ namespace singular_parallel
         singular_parallel::pnet_list indices;
         int i;
         for (i = 1; i <= term_count; i++) {
-          unsigned int term = i;
-          indices.push_back(term);
+          singular_parallel::pnet_term term;
+          term.id = id;
+          term.term_id = i;
+          indices.push_back(pnetc::type::term::to_value(term));
         }
         return indices;
       }
 
-    NO_NAME_MANGLING
-      singular_parallel::pnet_list pfd_loop_init
-      ( unsigned int const& id
-      , const pnet_options& options
-      , const std::string& step
-      )
-      {
-        std::string file(get_from_name(step));
-
-        singular_parallel::pnet_list indices(pfd_split_terms(id, options, file, file));
-
-        boost::format command =
-              boost::format("write(\"ssi:w %1%/%2%_%4%_%3%.ssi\", list());")
-                            % options.tmpdir
-                            % file
-                            % id;
-        boost::format command1 = boost::format(command)%"dec";
-        boost::format command2 = boost::format(command)%"new_terms";
-
-        singular::call_and_discard(command1.str());
-        singular::call_and_discard(command2.str());
-
-        return indices;
-      }
 
     NO_NAME_MANGLING
       singular_parallel::pnet_list pfd_fork_init
@@ -439,51 +428,21 @@ namespace singular_parallel
       , const std::string& step
       )
       {
+        std::string time_path(
+            get_problem_time_path( id
+                                 , "init_" + step
+                                 , options.tmpdir
+                                 ));
+        write_current_time(time_path);
+
         std::string file(get_from_name(step));
 
         singular_parallel::pnet_list indices(pfd_split_terms(id, options, file, file));
 
-        boost::format command =
-              boost::format("write(\"ssi:w %1%/%2%_%4%_%3%.ssi\", list());")
-                            % options.tmpdir
-                            % file
-                            % id
-                            % "dec";
-        singular::call_and_discard(command.str());
+        long duration(get_duration_time (time_path));
+        write_duration_time(duration, time_path);
 
         return indices;
-      }
-
-
-    NO_NAME_MANGLING
-      void pfd_loop_compute_term
-      ( const unsigned int& id
-      , const unsigned int& term_id
-      , const pnet_options& options
-      , const std::string step
-      )
-      {
-        init_singular ();
-        std::string file(get_from_name(step));
-
-        singular::register_struct(options.in_struct_name,
-                                  options.in_struct_desc);
-        singular::register_struct(options.out_struct_name,
-                                  options.out_struct_desc);
-        singular::load_library (options.needed_library);
-        boost::format command =
-              boost::format("pfd_loop_compute_term(%1%, %2%, %3%, %4%, %5%, %6%);")
-                            % id
-                            % term_id
-                            % ("\"" + step + "\"")
-                            % ("\"" + file + "\"")
-                            % ("\"" + file + "_result" + "\"")
-                            % ("\"" + options.tmpdir + "\"");
-
-        singular::call_and_discard(command.str());
-        remove((options.tmpdir + "/" + file + "_" + std::to_string(id) +
-                        "_" + std::to_string(term_id) + ".ssi").c_str());
-
       }
 
     NO_NAME_MANGLING
@@ -493,9 +452,41 @@ namespace singular_parallel
       , const pnet_options& options
       , const std::string step
       )
+    {
+        std::string time_path(get_term_time_path( id
+                                                , term_id
+                                                , "fork_compute_" + step
+                                                , options.tmpdir));
+        write_current_time(time_path);
+
+        std::string file(get_from_name(step));
+        pfd_fork_compute_term_( id
+                             , term_id
+                             , options
+                             , step
+                             , file
+                             , file + "_result"
+                             );
+        remove((options.tmpdir + "/" + file + "_" + std::to_string(id) +
+                        "_" + std::to_string(term_id) + ".ssi").c_str());
+
+        long duration( get_duration_time(time_path) );
+        write_duration_time ( duration , time_path);
+
+    }
+
+
+    NO_NAME_MANGLING
+      void pfd_fork_compute_term_
+      ( const unsigned int& id
+      , const unsigned int& term_id
+      , const pnet_options& options
+      , const std::string step
+      , const std::string from_file
+      , const std::string to_file
+      )
       {
         init_singular ();
-        std::string file(get_from_name(step));
 
         singular::register_struct(options.in_struct_name,
                                   options.in_struct_desc);
@@ -507,55 +498,13 @@ namespace singular_parallel
                             % id
                             % term_id
                             % ("\"" + step + "\"")
-                            % ("\"" + file + "\"")
-                            % ("\"" + file + "_result" + "\"")
+                            % ("\"" + from_file + "\"")
+                            % ("\"" + to_file + "\"")
                             % ("\"" + options.tmpdir + "\"");
 
         singular::call_and_discard(command.str());
-        remove((options.tmpdir + "/" + file + "_" + std::to_string(id) +
-                        "_" + std::to_string(term_id) + ".ssi").c_str());
-
       }
 
-    NO_NAME_MANGLING
-      int pfd_loop_merge
-      ( unsigned int const& id
-      , unsigned int const& term_count
-      , const pnet_options& options
-      , const std::string& step
-      )
-      {
-        unsigned int i;
-        std::string file = get_from_name(step);
-        init_singular ();
-
-        singular::register_struct(options.in_struct_name,
-                                  options.in_struct_desc);
-        singular::register_struct(options.out_struct_name,
-                                  options.out_struct_desc);
-        singular::load_library (options.needed_library);
-
-        boost::format command =
-              boost::format("int new_count = pfd_loop_merge(%1%, %2%, %3%, %4%, %5%);")
-                            % id
-                            % term_count
-                            % ("\"" + step + "\"")
-                            % ("\"" + file + "\"")
-                            % ("\"" + options.tmpdir + "\"");
-
-        singular::call_and_discard(command.str());
-
-        int new_count = singular::getInt("new_count");
-        singular::call_and_discard("kill new_count;");
-
-        for (i = 1; i <= term_count; i++) {
-          remove((options.tmpdir + "/" + file + "_result_" +
-                       std::to_string(id) + "_" + std::to_string(i) +
-                       ".ssi").c_str());
-        }
-
-        return new_count;
-      }
 
     NO_NAME_MANGLING
       void pfd_fork_merge
@@ -592,48 +541,108 @@ namespace singular_parallel
         }
       }
 
-
-
     NO_NAME_MANGLING
-      singular_parallel::pnet_list  pfd_loop_cycle_terms
+      unsigned int pfd_fork_merge_pair
       ( unsigned int const& id
+      , unsigned int const& left
+      , unsigned int const& right
       , const pnet_options& options
       , const std::string& step
       )
       {
-        std::string file = get_from_name(step);
+        std::string left_time_path( get_term_time_path( id
+                                                      , left
+                                                      , "fork_compute_" + step
+                                                      , options.tmpdir) );
+        std::string right_time_path( get_term_time_path( id
+                                                       , right
+                                                       , "fork_compute_" + step
+                                                       , options.tmpdir) );
+        long left_time( get_written_time (left_time_path) );
+        long right_time( get_written_time (right_time_path) );
 
-        singular_parallel::pnet_list indices(
-                                pfd_split_terms(id
-                              , options
-                              , file + "_new_terms"
-                              , file));
+        write_current_time(left_time_path);
+
+
+        std::string file = get_from_name(step);
+        init_singular ();
+
+        singular::register_struct(options.in_struct_name,
+                                  options.in_struct_desc);
+        singular::register_struct(options.out_struct_name,
+                                  options.out_struct_desc);
+        singular::load_library (options.needed_library);
 
         boost::format command =
-              boost::format("write(\"ssi:w %1%/%2%_%4%_%3%.ssi\", list());")
-                            % options.tmpdir
-                            % file
-                            % id
-                            % "new_terms";
+             boost::format("pfd_fork_merge_pair(%1%, %2%, %3%, %4%, %5%);")
+                           % id
+                           % left
+                           % right
+                           % ("\"" + file + "\"")
+                           % ("\"" + options.tmpdir + "\"");
 
         singular::call_and_discard(command.str());
 
-        return indices;
+        remove((options.tmpdir + "/" + file + "_result_" +
+                       std::to_string(id) + "_" + std::to_string(right) +
+                       ".ssi").c_str());
+
+
+
+
+        long merge_time ( get_duration_time(left_time_path) );
+        write_duration_time(left_time + right_time + merge_time, left_time_path);
+
+        return left;
       }
 
+
     NO_NAME_MANGLING
-      void pfd_loop_finish
+      void pfd_fork_finish
       ( unsigned int const& id
+      , unsigned int const& term_id
       , const pnet_options& options
       , const std::string& step
       )
       {
+        //get times until now
+        std::string computed_time_path(
+            get_term_time_path( id
+                              , term_id
+                              , "fork_compute_" + step
+                              , options.tmpdir) );
+        std::string init_time_path(
+            get_problem_time_path( id
+                              , "init_" + step
+                              , options.tmpdir) );
+        long computed_time(get_written_time(computed_time_path));
+        long init_time(get_written_time(init_time_path));
+
+        // prepare to measure finishing step
+        std::string step_time_path(
+            get_problem_time_path( id
+                                 , step
+                                 , options.tmpdir) );
+        write_current_time(step_time_path);
+
+        // function contents
         std::string from_name(get_from_name(step));
         std::string to_name(get_to_name(step));
 
-        std::string from_file(options.tmpdir + "/" + from_name +
-                                               "_dec_" + std::to_string(id) +
-                                               ".ssi");
+        /*
+        */
+        pfd_fork_compute_term_( id
+                              , term_id
+                              , options
+                              , step
+                              , from_name + "_result"
+                              , from_name + "_result"
+                              );
+
+        std::string from_file(options.tmpdir + "/" + from_name + "_result_" +
+                       std::to_string(id) + "_" + std::to_string(term_id) +
+                       ".ssi");
+
         std::string to_file(options.tmpdir + "/" + to_name +
                                                "_" + std::to_string(id) +
                                                ".ssi");
@@ -642,16 +651,17 @@ namespace singular_parallel
         {
           throw("Could not rename " + from_file + " to " + to_file);
         }
-      }
 
-    NO_NAME_MANGLING
-      void pfd_fork_finish
-      ( unsigned int const& id
-      , const pnet_options& options
-      , const std::string& step
-      )
-      {
-        pfd_loop_finish(id, options, step);
+
+        // get function time
+        long finish_time( get_duration_time(step_time_path) );
+        write_duration_time( finish_time + computed_time + init_time
+                           , step_time_path);
+        log_duration( id
+                    , options
+                    , step
+                    , finish_time + computed_time + init_time);
+
       }
 
     NO_NAME_MANGLING
@@ -679,6 +689,21 @@ namespace singular_parallel
                                             , id)
                                             );
         singular::call_and_discard("kill output;");
+
+        long step1( get_written_time(get_problem_time_path( id
+                                                          , "NSSdecompStep"
+                                                          , options.tmpdir)) );
+        long step2( get_written_time(get_problem_time_path( id
+                                                          , "shortNumeratorDecompStep"
+                                                          , options.tmpdir)) );
+        long step3( get_written_time(get_problem_time_path( id
+                                                          , "algDependDecompStep"
+                                                          , options.tmpdir)) );
+        long step4( get_written_time(get_problem_time_path( id
+                                                          , "numeratorDecompStep"
+                                                          , options.tmpdir)) );
+        log_duration(id, options, "total cpu", step1 + step2 + step3 + step4);
+
         remove((options.tmpdir + "/" + get_to_name(NUMERATOR) +"_"
                                      + std::to_string(id)
                                      + ".ssi").c_str()
@@ -697,45 +722,76 @@ namespace singular_parallel
 
       }
 
-    std::string get_time_path(const int& id,
-                              std::string measure_name,
-                              std::string tmpdir)
+    NO_NAME_MANGLING
+      std::string get_problem_time_path( const int& id
+                                    , std::string measure_name
+                                    , std::string tmpdir
+                                    )
     {
       return tmpdir +
              "/" + measure_name +
              "_" + std::to_string(id) +
              ".time";
     }
+
+    NO_NAME_MANGLING
+      std::string get_term_time_path( const int& id
+                                    , const int& term_id
+                                    , std::string measure_name
+                                    , std::string tmpdir
+                                    )
+    {
+      return tmpdir +
+             "/" + measure_name +
+             "_" + std::to_string(id) +
+             "_" + std::to_string(term_id) +
+             ".time";
+    }
+
     NO_NAME_MANGLING
       void write_current_time
-      ( const unsigned int& id
-      , const std::string& measure_name
-      , const std::string& tmpdir
-      )
+      ( const std::string& path )
       {
         long t_now = get_current_time_milli();
         std::ofstream time_file;
-        time_file.open(get_time_path(id, measure_name, tmpdir));
+        time_file.open(path, std::ofstream::trunc);
         time_file << t_now <<  "\n";
         time_file.close();
       }
 
     NO_NAME_MANGLING
-      long get_start_time
-      ( const unsigned int& id
-      , const std::string& measure_name
-      , const std::string& tmpdir
-      )
+      long get_written_time (const std::string& path)
       {
-        std::string file_path(get_time_path(id, measure_name, tmpdir));
-        std::ifstream time_file(file_path);
+        std::ifstream time_file(path);
         std::string line;
         std::getline(time_file, line);
-        long start_time = std::stol(line);
+        long time_val = std::stol(line);
         time_file.close();
-        remove(file_path.c_str());
 
-        return start_time;
+        remove(path.c_str());
+
+        return time_val;
+      }
+
+    NO_NAME_MANGLING
+      long get_duration_time
+      ( const std::string& path )
+      {
+        long t_now = get_current_time_milli();
+        long start_time = get_written_time(path);
+
+        return t_now - start_time;
+      }
+
+    NO_NAME_MANGLING
+      void write_duration_time
+      ( const long& duration
+      , const std::string& path )
+      {
+        std::ofstream time_file;
+        time_file.open(path, std::ofstream::trunc);
+        time_file << duration <<  "\n";
+        time_file.close();
       }
 
     NO_NAME_MANGLING
@@ -743,11 +799,9 @@ namespace singular_parallel
       ( unsigned int const& id
       , const pnet_options& options
       , const std::string& measure_name
+      , const long& duration
       )
       {
-        long start_time = get_start_time(id, measure_name, options.tmpdir);
-        long duration = get_current_time_milli() - start_time;
-
         init_singular ();
 
         singular::register_struct(options.in_struct_name,
