@@ -623,6 +623,7 @@ namespace singular_parallel
             get_problem_time_path( id
                                  , step
                                  , options.tmpdir) );
+        long previous_iteration_time( get_written_time(step_time_path) );
         write_current_time(step_time_path);
 
         // function contents
@@ -655,12 +656,14 @@ namespace singular_parallel
 
         // get function time
         long finish_time( get_duration_time(step_time_path) );
-        write_duration_time( finish_time + computed_time + init_time
+        write_duration_time( finish_time + computed_time +
+                             init_time + previous_iteration_time
                            , step_time_path);
         log_duration( id
                     , options
                     , step
-                    , finish_time + computed_time + init_time);
+                    , finish_time + computed_time + init_time +
+                      previous_iteration_time);
 
       }
 

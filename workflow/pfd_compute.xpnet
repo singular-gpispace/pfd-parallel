@@ -92,6 +92,7 @@
         <expression>
             ${out} := ${in.id};
         </expression>
+
       </defun>
       <connect-in port="in" place="gen_prep_status"/>
       <connect-out port="out" place="out"/>
@@ -101,17 +102,44 @@
       <defun>
         <require key="worker" mandatory="true"/>
         <in name="in" type="task_status"/>
+        <in name="options" type="options_type"/>
         <out name="out" type="unsigned int"/>
 
         <condition>
           ${in.status} :eq: 0U
         </condition>
 
-        <expression>
-            ${out} := ${in.id};
-        </expression>
+        <module name="singular_parallel_allpfd"
+                require_function_unloads_without_rest="false"
+                function="pass_on_to_compute
+                            ( in
+                            , out
+                            , options
+                            )">
+          <cinclude href="interface/singular_pnet-interface.hpp"/>
+          <cinclude href="util-generic/dynamic_linking.hpp"/>
+          <cinclude href="iostream"/>
+          <code><![CDATA[
+            /*<>*/
+            RESOLVE_INTERFACE_FUNCTION (write_duration_time)
+                ( 0, RESOLVE_INTERFACE_FUNCTION (get_problem_time_path)
+                ( in.id, "NSSdecompStep", options.tmpdir));
+            RESOLVE_INTERFACE_FUNCTION (write_duration_time)
+                ( 0, RESOLVE_INTERFACE_FUNCTION (get_problem_time_path)
+                ( in.id, "shortNumeratorDecompStep", options.tmpdir));
+            RESOLVE_INTERFACE_FUNCTION (write_duration_time)
+                ( 0, RESOLVE_INTERFACE_FUNCTION (get_problem_time_path)
+                ( in.id, "algDependDecompStep", options.tmpdir));
+            RESOLVE_INTERFACE_FUNCTION (write_duration_time)
+                ( 0, RESOLVE_INTERFACE_FUNCTION (get_problem_time_path)
+                ( in.id, "numeratorDecompStep", options.tmpdir));
+
+            out = in.id;
+          ]]></code>
+        </module>
       </defun>
       <connect-in port="in" place="gen_prep_status"/>
+      <connect-read port="options" place="readoptions"/>
       <connect-out port="out" place="prepared_input"/>
     </transition>
 
