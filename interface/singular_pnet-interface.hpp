@@ -204,5 +204,12 @@ namespace singular_parallel
       , const std::string& measure_name
       , const long& duration
       );
+
+    NO_NAME_MANGLING
+      std::list<int> pfd_fork_get_tdegrees
+      ( unsigned int const& id
+      , const std::string& step
+      , const pnet_options& options
+      );
   }
 }

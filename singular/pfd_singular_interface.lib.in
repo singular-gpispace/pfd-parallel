@@ -446,6 +446,31 @@ proc pfd_singular_log_duration(int id,
           sprintf(measure_name+" time: %s ms",duration));
 }
 
+proc pfd_singular_get_tdegree_vector( int id
+                                    , string file
+                                    , string tmpdir
+                                    )
+{
+  list terms = read("ssi:r " + tmpdir + "/" + file + "_" +
+          string(id) + ".ssi");
+  int n = size(terms);
+  int i,j;
+  int itdegree;
+  list vtdegree;
+
+  // iterate over terms in list
+  for (i = 1; i <= n; i++) {
+    itdegree = 0;
+
+    //iterate over factors of denominator, calculating the total degree
+    for (j = 1; j <= size(terms[i][3]); j++) {
+      itdegree = itdegree + terms[i][3][j];
+    }
+    vtdegree = vtdegree + list(itdegree);
+  }
+  return (vtdegree);
+}
+
 proc mod_init() {
   // TODO: change to installed pfd library
   LIB "@PFD_SING_LIB_PATH@/pfd.lib";

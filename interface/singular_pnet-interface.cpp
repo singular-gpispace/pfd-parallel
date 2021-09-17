@@ -820,5 +820,41 @@ namespace singular_parallel
                             % ("\"" + options.tmpdir + "\"");
         singular::call_and_discard(command.str());
       }
+
+    NO_NAME_MANGLING
+      std::list<int> pfd_fork_get_tdegrees
+      ( unsigned int const& id
+      , const std::string& step
+      , const pnet_options& options
+      )
+      {
+        // fork compute outputs a "to" name
+        std::string to_file(get_to_name(step));
+
+        // shove the terms into Singular
+        init_singular ();
+        singular::load_library (options.needed_library);
+        boost::format command =
+              boost::format("list l = pfd_singular_get_tdegree_vector(%1%, %2%, %3%);")
+                            % id
+                            % ("\"" + to_file + "\"")
+                            % ("\"" + options.tmpdir + "\"");
+        singular::call_and_discard(command.str());
+        int n = singular::getList("l")->nr + 1;
+        std::list<int> ret_list;
+        int i;
+        singular::call_and_discard("int i;");
+        for (i = 0; i < n; i++) {
+          singular::call_and_discard(("i = l[" + std::to_string(i + 1) + "];")
+                                      .c_str());
+          ret_list.push_front(singular::getInt("i"));
+        }
+
+        singular::call_and_discard("kill l;");
+        singular::call_and_discard("kill i;");
+
+        ret_list.sort(std::greater<int>());
+        return ret_list;
+      }
   }
 }
