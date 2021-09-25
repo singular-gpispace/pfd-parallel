@@ -206,9 +206,29 @@ namespace singular_parallel
       );
 
     NO_NAME_MANGLING
-      std::list<int> pfd_fork_get_tdegrees
+      int pfd_fork_compare_tdegrees
+      ( std::list<int> left
+      , std::list<int> right
+      );
+
+    NO_NAME_MANGLING
+      std::list<int> pfd_fork_get_tdegrees_before
       ( unsigned int const& id
       , const std::string& step
+      , const pnet_options& options
+      );
+
+    NO_NAME_MANGLING
+      std::list<int> pfd_fork_get_tdegrees_after
+      ( unsigned int const& id
+      , const std::string& step
+      , const pnet_options& options
+      );
+
+    NO_NAME_MANGLING
+      std::list<int> pfd_fork_get_tdegrees_file
+      ( unsigned int const& id
+      , const std::string& file
       , const pnet_options& options
       );
   }

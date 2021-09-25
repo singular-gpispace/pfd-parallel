@@ -64,6 +64,14 @@
                       << in
                       << "\n";
 
+            std::list<int> l = RESOLVE_INTERFACE_FUNCTION
+            (pfd_fork_get_tdegrees_before)(in, step, options);
+            std::cout << "before: l = { ";
+            for (int n : l) {
+              std::cout << n << ", ";
+            }
+            std::cout << "};\n";
+
             singular_parallel::pnet_list indices = RESOLVE_INTERFACE_FUNCTION
                (pfd_fork_init)
                ( in
@@ -269,8 +277,8 @@
 
 
             std::list<int> l = RESOLVE_INTERFACE_FUNCTION
-            (pfd_fork_get_tdegrees)(term.id, step, options);
-            std::cout << "l = { ";
+            (pfd_fork_get_tdegrees_after)(term.id, step, options);
+            std::cout << "after: l = { ";
             for (int n : l) {
               std::cout << n << ", ";
             }

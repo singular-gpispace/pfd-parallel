@@ -822,7 +822,20 @@ namespace singular_parallel
       }
 
     NO_NAME_MANGLING
-      std::list<int> pfd_fork_get_tdegrees
+      std::list<int> pfd_fork_get_tdegrees_before
+      ( unsigned int const& id
+      , const std::string& step
+      , const pnet_options& options
+      )
+      {
+        // Compute for input file of fork compute
+        std::string from_file(get_from_name(step));
+
+        return pfd_fork_get_tdegrees_file(id, from_file, options);
+      }
+
+    NO_NAME_MANGLING
+      std::list<int> pfd_fork_get_tdegrees_after
       ( unsigned int const& id
       , const std::string& step
       , const pnet_options& options
@@ -831,15 +844,61 @@ namespace singular_parallel
         // fork compute outputs a "to" name
         std::string to_file(get_to_name(step));
 
-        // shove the terms into Singular
+        return pfd_fork_get_tdegrees_file(id, to_file, options);
+      }
+
+    NO_NAME_MANGLING
+      int pfd_fork_compare_tdegrees
+      ( std::list<int> left
+      , std::list<int> right
+      )
+      {
+        int i, l, r;
+
+        if (left.size() != right.size()) {
+          if (left.size() < right.size()) {
+            return -1;
+          }
+          if (left.size() > right.size()) {
+            return 1;
+          }
+        }
+
+        for (i = 0; (unsigned long)i < left.size(); i++) {
+          l = left.front();
+          left.pop_front();
+          r = right.front();
+          right.pop_front();
+          if (l < r) {
+            return 1;
+          }
+          if (l > r) {
+            return -1;
+          }
+        }
+
+        return 0;
+
+      }
+
+      NO_NAME_MANGLING
+      std::list<int> pfd_fork_get_tdegrees_file
+      ( unsigned int const& id
+      , const std::string& file
+      , const pnet_options& options
+      )
+      {
+        // Fire up and compute in singular
         init_singular ();
         singular::load_library (options.needed_library);
         boost::format command =
               boost::format("list l = pfd_singular_get_tdegree_vector(%1%, %2%, %3%);")
                             % id
-                            % ("\"" + to_file + "\"")
+                            % ("\"" + file + "\"")
                             % ("\"" + options.tmpdir + "\"");
         singular::call_and_discard(command.str());
+
+        // Extract into CPP data  structures
         int n = singular::getList("l")->nr + 1;
         std::list<int> ret_list;
         int i;
@@ -850,10 +909,13 @@ namespace singular_parallel
           ret_list.push_front(singular::getInt("i"));
         }
 
+        // Clean up Singular
         singular::call_and_discard("kill l;");
         singular::call_and_discard("kill i;");
 
+        // We assume a sorted list, for comparisons
         ret_list.sort(std::greater<int>());
+
         return ret_list;
       }
   }
