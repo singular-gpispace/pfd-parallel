@@ -486,6 +486,43 @@ proc generic_dec_loop(string decomp, string mergetype, list terms, ideal q, list
   return(dec);
 }
 
+proc generic_dec_onestep(string decomp, string mergetype, list terms, list in_dec, ideal q, list #)
+{
+  list result;
+  list dec = in_dec;
+  int i;
+  int counter,tt,ttt;
+  string command;
+  list merged;
+  int debug = 0;
+
+  if (size(#) > 0) {
+    debug = #[1];
+    link l  = #[2];
+  }
+
+  if(debug) {tt = rtimer; counter++;}
+  int imax = size(terms);
+  list newterms = list();
+
+  for(i=1; i<=imax; i++) {
+    command = "result = " + decomp + "(terms[i],q,#);";
+    execute(command);
+
+    if(debug) {ttt = rtimer;}
+    merged = general_merge_step(mergetype, newterms, dec, result);
+    dec = merged[1];
+    newterms = merged[2];
+    if(debug)
+    {fprintf(l,"      merging: %s ms, %s new terms", rtimer-ttt, size(result));}
+  }
+  if(debug) {
+    fprintf( l , "  %s: %s ms, %s terms, %s unfinished"
+           , counter, rtimer-tt, size(terms)+size(dec),size(newterms));
+  }
+  return(list(newterms, dec));
+}
+
 proc general_merge_step(string mergetype, list newterms, list dec, list result)
 {
   list merged;

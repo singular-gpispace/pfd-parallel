@@ -3,10 +3,10 @@
   <include-structs href="types.xpnet"/>
 
   <require key="worker" mandatory="true"/>
-  <in name="in" type="unsigned int"/>
+  <in name="in" type="task_status"/>
   <in name="step" type="string"/>
   <in name="options" type="options_type"/>
-  <out name="out" type="unsigned int"/>
+  <out name="out" type="task_status"/>
 
   <module name="singular_parallel_allpfd"
           require_function_unloads_without_rest="false"
@@ -22,13 +22,14 @@
     <code><![CDATA[
       /*<>*/
 
-      std::cout << "Computing " + step +" " << in << "\n";
+      std::cout << "Computing " + step +" " << in.id << "\n";
       RESOLVE_INTERFACE_FUNCTION
         (pfd_compute_step)
-        (in, options, step);
-      std::cout << step + " "  << in << " done!\n";
+        (in.id, options, step);
+      std::cout << step + " "  << in.id << " done!\n";
 
-      out = in;
+      out.id = in.id;
+      out.status = 0;
 
     ]]></code>
   </module>

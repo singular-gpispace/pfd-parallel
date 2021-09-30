@@ -446,6 +446,56 @@ namespace singular_parallel
       }
 
     NO_NAME_MANGLING
+      void pfd_hand_back
+      ( unsigned int const& id
+      , const pnet_options& options
+      , const std::string& step
+      )
+      {
+        std::string to_name( get_to_name(step) );
+        std::string from_name( get_from_name(step) );
+
+        std::string to_path( options.tmpdir +
+                             "/" + to_name + "_" + std::to_string(id) +
+                             ".ssi");
+        std::string from_path( options.tmpdir +
+                             "/" + from_name + "_" + std::to_string(id) +
+                             ".ssi");
+
+        if (rename(to_path.c_str(), from_path.c_str()))
+        {
+          throw("Could not rename " + to_path + " to " + from_path);
+        }
+      }
+
+    NO_NAME_MANGLING
+      void pfd_hand_forward
+      ( unsigned int const& id
+      , const pnet_options& options
+      , const std::string& step
+      )
+      {
+        std::string to_name( get_to_name(step) );
+
+        std::string from_path( options.tmpdir +
+                             "/" + to_name + "_" + std::to_string(id) +
+                             ".ssi");
+        std::string to_path( options.tmpdir +
+                             "/" + to_name + "_" + std::to_string(id) +
+                             ".ssi");
+
+        init_singular ();
+        singular::load_library (options.needed_library);
+        boost::format command =
+              boost::format("pfd_singular_hand_forward(%1%, %2%);")
+                            % ("\"" + from_path + "\"")
+                            % ("\"" + to_path + "\"");
+
+        singular::call_and_discard(command.str());
+
+      }
+
+    NO_NAME_MANGLING
       void pfd_fork_compute_term
       ( const unsigned int& id
       , const unsigned int& term_id
@@ -550,6 +600,7 @@ namespace singular_parallel
       , const std::string& step
       )
       {
+        // time logging
         std::string left_time_path( get_term_time_path( id
                                                       , left
                                                       , "fork_compute_" + step
@@ -563,6 +614,7 @@ namespace singular_parallel
 
         write_current_time(left_time_path);
 
+        // function content
 
         std::string file = get_from_name(step);
         init_singular ();
@@ -598,7 +650,7 @@ namespace singular_parallel
 
 
     NO_NAME_MANGLING
-      void pfd_fork_finish
+      unsigned int pfd_fork_finish
       ( unsigned int const& id
       , unsigned int const& term_id
       , const pnet_options& options
@@ -631,7 +683,6 @@ namespace singular_parallel
         std::string to_name(get_to_name(step));
 
         /*
-        */
         pfd_fork_compute_term_( id
                               , term_id
                               , options
@@ -639,6 +690,7 @@ namespace singular_parallel
                               , from_name + "_result"
                               , from_name + "_result"
                               );
+        */
 
         std::string from_file(options.tmpdir + "/" + from_name + "_result_" +
                        std::to_string(id) + "_" + std::to_string(term_id) +
@@ -653,6 +705,17 @@ namespace singular_parallel
           throw("Could not rename " + from_file + " to " + to_file);
         }
 
+        init_singular ();
+        singular::load_library (options.needed_library);
+
+         boost::format command =
+              boost::format("int i = pfd_singular_terms_left(%1%);")
+                            % ("\"" + to_file + "\"");
+        singular::call_and_discard(command.str());
+
+        unsigned int terms_left = singular::getInt("i");
+        singular::call_and_discard("kill i;");
+
 
         // get function time
         long finish_time( get_duration_time(step_time_path) );
@@ -665,6 +728,7 @@ namespace singular_parallel
                     , finish_time + computed_time + init_time +
                       previous_iteration_time);
 
+        return terms_left;
       }
 
     NO_NAME_MANGLING
@@ -822,7 +886,7 @@ namespace singular_parallel
       }
 
     NO_NAME_MANGLING
-      std::list<int> pfd_fork_get_tdegrees_before
+      singular_parallel::pnet_list pfd_fork_get_tdegrees_before
       ( unsigned int const& id
       , const std::string& step
       , const pnet_options& options
@@ -835,7 +899,7 @@ namespace singular_parallel
       }
 
     NO_NAME_MANGLING
-      std::list<int> pfd_fork_get_tdegrees_after
+      singular_parallel::pnet_list pfd_fork_get_tdegrees_after
       ( unsigned int const& id
       , const std::string& step
       , const pnet_options& options
@@ -849,8 +913,8 @@ namespace singular_parallel
 
     NO_NAME_MANGLING
       int pfd_fork_compare_tdegrees
-      ( std::list<int> left
-      , std::list<int> right
+      ( singular_parallel::pnet_list left
+      , singular_parallel::pnet_list right
       )
       {
         int i, l, r;
@@ -865,9 +929,9 @@ namespace singular_parallel
         }
 
         for (i = 0; (unsigned long)i < left.size(); i++) {
-          l = left.front();
+          l = boost::get<int> (left.front());
           left.pop_front();
-          r = right.front();
+          r = boost::get<int> (right.front());
           right.pop_front();
           if (l < r) {
             return 1;
@@ -882,7 +946,7 @@ namespace singular_parallel
       }
 
       NO_NAME_MANGLING
-      std::list<int> pfd_fork_get_tdegrees_file
+      singular_parallel::pnet_list pfd_fork_get_tdegrees_file
       ( unsigned int const& id
       , const std::string& file
       , const pnet_options& options
@@ -916,7 +980,13 @@ namespace singular_parallel
         // We assume a sorted list, for comparisons
         ret_list.sort(std::greater<int>());
 
-        return ret_list;
+        // repackage for pnet
+        singular_parallel::pnet_list ret_value_list;
+        for (int i : ret_list) {
+          ret_value_list.push_back(i);
+        }
+
+        return ret_value_list;
       }
   }
 }
