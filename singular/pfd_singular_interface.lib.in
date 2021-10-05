@@ -266,8 +266,8 @@ proc pfd_singular_compute_step ( int id
   list dec = generic_dec_loop(step, get_loop_strat(step), terms[1], q, debug, l);
 
   t = rtimer-t;
-  write(":a "+to_dir+"resources_"+filename+".txt",
-        sprintf(step + " Time: %s ms,  Memory: %s Bytes",t,memory(2)));
+//  write(":a "+to_dir+"resources_"+filename+".txt",
+//        sprintf(step + " Time: %s ms,  Memory: %s Bytes",t,memory(2)));
   write(":w "+tmpdir+"/"+step+"_"+string(id)+".time",
         string(t));
 

@@ -176,6 +176,7 @@ namespace singular_parallel
       void pfd_write_result
       ( unsigned int const& id
       , const pnet_options& options
+      , const std::string last_step
       );
 
     NO_NAME_MANGLING
@@ -192,12 +193,11 @@ namespace singular_parallel
                                     , std::string measure_name
                                     , std::string tmpdir
                                     );
-    
 
     NO_NAME_MANGLING
       void write_current_time
       ( const std::string& path );
-      
+
     NO_NAME_MANGLING
       long get_written_time (const std::string& path);
 
@@ -208,7 +208,7 @@ namespace singular_parallel
     NO_NAME_MANGLING
       void write_duration_time
       ( const long& duration
-      , const std::string& path 
+      , const std::string& path
       );
 
     NO_NAME_MANGLING

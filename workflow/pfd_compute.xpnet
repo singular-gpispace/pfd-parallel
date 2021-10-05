@@ -487,6 +487,7 @@
         <require key="worker" mandatory="true"/>
         <in name="in" type="task_status"/>
         <in name="options" type="options_type"/>
+        <in name="last_step" type="string"/>
         <out name="out" type="unsigned int"/>
 
         <condition>
@@ -499,6 +500,7 @@
                             ( options
                             , in
                             , out
+                            , last_step
                             )">
           <cinclude href="interface/singular_pnet-interface.hpp"/>
           <cinclude href="util-generic/dynamic_linking.hpp"/>
@@ -509,7 +511,7 @@
 
             RESOLVE_INTERFACE_FUNCTION
               (pfd_write_result)
-              ( in.id, options );
+              ( in.id, options, last_step );
             std::cout << "Writing " << in.id << " done!\n";
 
             out = in.id;
@@ -519,6 +521,7 @@
       </defun>
       <connect-in port="in" place="numerator_after"/>
       <connect-read port="options" place="readoptions"/>
+      <connect-read port="last_step" place="numerator_step_name"/>
       <connect-out port="out" place="out"/>
     </transition>
 

@@ -493,6 +493,20 @@ namespace singular_parallel
 
         singular::call_and_discard(command.str());
 
+        std::string step_time_path(
+            get_problem_time_path( id
+                                 , step
+                                 , options.tmpdir) );
+        long total_step_time( get_written_time(step_time_path) );
+        write_duration_time( total_step_time
+                           , step_time_path);
+        log_duration( id
+                    , options
+                    , step
+                    , total_step_time);
+
+
+
       }
 
     NO_NAME_MANGLING
@@ -722,11 +736,13 @@ namespace singular_parallel
         write_duration_time( finish_time + computed_time +
                              init_time + previous_iteration_time
                            , step_time_path);
+        /*
         log_duration( id
                     , options
                     , step
                     , finish_time + computed_time + init_time +
                       previous_iteration_time);
+        */
 
         return terms_left;
       }
@@ -735,6 +751,7 @@ namespace singular_parallel
       void pfd_write_result
       ( unsigned int const& id
       , const pnet_options& options
+      , const std::string last_step
       )
       {
         init_singular ();
@@ -757,6 +774,17 @@ namespace singular_parallel
                                             );
         singular::call_and_discard("kill output;");
 
+        std::string step_time_path(
+            get_problem_time_path( id
+                                 , last_step
+                                 , options.tmpdir) );
+        long total_step_time( get_written_time(step_time_path) );
+        log_duration( id
+                    , options
+                    , last_step
+                    , total_step_time);
+
+
         long step1( get_written_time(get_problem_time_path( id
                                                           , "NSSdecompStep"
                                                           , options.tmpdir)) );
@@ -766,12 +794,10 @@ namespace singular_parallel
         long step3( get_written_time(get_problem_time_path( id
                                                           , "algDependDecompStep"
                                                           , options.tmpdir)) );
-        long step4( get_written_time(get_problem_time_path( id
-                                                          , "numeratorDecompStep"
-                                                          , options.tmpdir)) );
+        long step4( total_step_time );
         log_duration(id, options, "total cpu", step1 + step2 + step3 + step4);
 
-        remove((options.tmpdir + "/" + get_to_name(NUMERATOR) +"_"
+        remove((options.tmpdir + "/" + get_to_name(last_step) +"_"
                                      + std::to_string(id)
                                      + ".ssi").c_str()
               );
