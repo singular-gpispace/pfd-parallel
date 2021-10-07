@@ -27,6 +27,7 @@
     <place name="right" type="term"/>
     <place name="l_active" type="unsigned int"/>
     <place name="r_active" type="unsigned int"/>
+    <place name="merged" type="term"/>
 
     <place name="decomposition" type="task_status" virtual="true"/>
 
@@ -157,7 +158,24 @@
         <condition>
           ${active} :eq: ${term.id}
         </condition>
-        <expression/>
+        <module name="singular_parallel_allpfd"
+                require_function_unloads_without_rest="false"
+                function="populate_left
+                            ( term
+                            , active
+                            )">
+          <cinclude href="iostream"/>
+          <code><![CDATA[
+            /*<>*/
+            std::cout << "Handing "
+                      << term.id
+                      << " "
+                      << term.term_id
+                      << " to left"
+                      << "\n";
+
+          ]]></code>
+        </module>
       </defun>
       <connect-in port="term" place="decomposed_terms"/>
       <connect-in port="active" place="l_active"/>
@@ -173,7 +191,24 @@
         <condition>
           ${active} :eq: ${term.id}
         </condition>
-        <expression/>
+        <module name="singular_parallel_allpfd"
+                require_function_unloads_without_rest="false"
+                function="populate_right
+                            ( term
+                            , active
+                            )">
+          <cinclude href="iostream"/>
+          <code><![CDATA[
+            /*<>*/
+            std::cout << "Handing "
+                      << term.id
+                      << " "
+                      << term.term_id
+                      << " to right"
+                      << "\n";
+
+          ]]></code>
+        </module>
       </defun>
       <connect-in port="term" place="decomposed_terms"/>
       <connect-in port="active" place="r_active"/>
@@ -189,13 +224,10 @@
         <in name="right" type="term"/>
         <in name="options" type="options_type"/>
         <in name="step" type="string"/>
-        <inout name="counts" type="term_count_type"/>
-        <out name="decomped" type="term"/>
+        <out name="merged" type="term"/>
 
         <condition>
-          ${counts.computing} :gt: 1U :and:
-          ${left.id} :eq: ${right.id} :and:
-          ${counts.id} :eq: ${left.id}
+          ${left.id} :eq: ${right.id}
         </condition>
 
         <module name="singular_parallel_allpfd"
@@ -204,23 +236,35 @@
                             ( options
                             , left
                             , right
-                            , counts
                             , step
-                            , decomped
+                            , merged
                             )">
           <cinclude href="interface/singular_pnet-interface.hpp"/>
           <cinclude href="util-generic/dynamic_linking.hpp"/>
           <cinclude href="iostream"/>
           <code><![CDATA[
             /*<>*/
+            std::cout << "Merging for problem"
+                      << left.id
+                      << " terms "
+                      << left.term_id
+                      << " and "
+                      << right.term_id
+                      << "\n";
 
-            decomped.id = left.id;
-            decomped.term_id = RESOLVE_INTERFACE_FUNCTION
+            merged.id = left.id;
+            merged.term_id = RESOLVE_INTERFACE_FUNCTION
                (pfd_fork_merge_pair)
                ( left.id, left.term_id, right.term_id, options, step);
 
+            std::cout << "Merging for problem"
+                      << left.id
+                      << " terms "
+                      << left.term_id
+                      << " and "
+                      << right.term_id
+                      << " done! \n";
 
-            counts.computing -= 1;
 
           ]]></code>
         </module>
@@ -229,8 +273,25 @@
       <connect-in port="right" place="right"/>
       <connect-read port="options" place="options"/>
       <connect-read port="step" place="step"/>
+      <connect-out port="merged" place="merged"/>
+    </transition>
+
+    <transition name="hand_merged_back">
+      <defun>
+        <require key="worker" mandatory="true"/>
+        <inout name="term" type="term"/>
+        <inout name="counts" type="term_count_type"/>
+        <condition>
+          ${counts.computing} :gt: 1U :and:
+          ${counts.id} :eq: ${term.id}
+        </condition>
+        <expression>
+          ${counts.computing} := ${counts.computing} - 1U;
+        </expression>
+      </defun>
+      <connect-in port="term" place="merged"/>
       <connect-inout port="counts" place="term_counts"/>
-      <connect-out port="decomped" place="decomposed_terms"/>
+      <connect-out port="term" place="decomposed_terms"/>
     </transition>
 
     <transition name="finish_step">
