@@ -1,6 +1,7 @@
 #include <Singular/libsingular.h>
 
 #include <interface/singular_pnet-interface.hpp>
+#include <interface/pnet_logging.hpp>
 
 #include <iostream>
 #include <stdexcept>
@@ -11,7 +12,6 @@
 
 #include "singular_functions.hpp"
 #include <config.hpp>
-#include <chrono>
 #include <string>
 #include <pnetc/type/term/op.hpp>
 
@@ -709,113 +709,6 @@ namespace singular_parallel
                                      + ".ssi").c_str()
               );
         remove((options.tmpdir + "/input_" + std::to_string(id) + ".ssi").c_str());
-      }
-
-    NO_NAME_MANGLING
-      long get_current_time_milli()
-      {
-        return std::chrono::duration_cast
-                  <std::chrono::milliseconds>
-                  (std::chrono::system_clock::now()
-                                .time_since_epoch())
-                                .count();
-
-      }
-
-    NO_NAME_MANGLING
-      std::string get_problem_time_path( const int& id
-                                    , std::string measure_name
-                                    , std::string tmpdir
-                                    )
-    {
-      return tmpdir +
-             "/" + measure_name +
-             "_" + std::to_string(id) +
-             ".time";
-    }
-
-    NO_NAME_MANGLING
-      std::string get_term_time_path( const int& id
-                                    , const int& term_id
-                                    , std::string measure_name
-                                    , std::string tmpdir
-                                    )
-    {
-      return tmpdir +
-             "/" + measure_name +
-             "_" + std::to_string(id) +
-             "_" + std::to_string(term_id) +
-             ".time";
-    }
-
-    NO_NAME_MANGLING
-      void write_current_time
-      ( const std::string& path )
-      {
-        long t_now = get_current_time_milli();
-        std::ofstream time_file;
-        time_file.open(path, std::ofstream::trunc);
-        time_file << t_now <<  "\n";
-        time_file.close();
-      }
-
-    NO_NAME_MANGLING
-      long get_written_time (const std::string& path)
-      {
-        std::ifstream time_file(path);
-        std::string line;
-        std::getline(time_file, line);
-        long time_val = std::stol(line);
-        time_file.close();
-
-        remove(path.c_str());
-
-        return time_val;
-      }
-
-    NO_NAME_MANGLING
-      long get_duration_time
-      ( const std::string& path )
-      {
-        long t_now = get_current_time_milli();
-        long start_time = get_written_time(path);
-
-        return t_now - start_time;
-      }
-
-    NO_NAME_MANGLING
-      void write_duration_time
-      ( const long& duration
-      , const std::string& path )
-      {
-        std::ofstream time_file;
-        time_file.open(path, std::ofstream::trunc);
-        time_file << duration <<  "\n";
-        time_file.close();
-      }
-
-    NO_NAME_MANGLING
-      void log_duration
-      ( unsigned int const& id
-      , const pnet_options& options
-      , const std::string& measure_name
-      , const long& duration
-      )
-      {
-        init_singular ();
-
-        singular::register_struct(options.in_struct_name,
-                                  options.in_struct_desc);
-        singular::register_struct(options.out_struct_name,
-                                  options.out_struct_desc);
-        singular::load_library (options.needed_library);
-        boost::format command =
-              boost::format("pfd_singular_log_duration(%1%, %2%, %3%, %4%);")
-                            % id
-                            % duration
-                            % ("\"" + measure_name + "\"")
-                            % ("\"" + options.tmpdir + "\"");
-        singular::call_and_discard(command.str());
       }
   }
 }
