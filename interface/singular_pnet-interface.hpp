@@ -4,6 +4,7 @@
 
 #include <string>
 #include <interface/type_aliases.hpp>
+#include <interface/pnet_logging.hpp>
 #include <config.hpp>
 
 #define RESOLVE_INTERFACE_FUNCTION(function) \
@@ -162,47 +163,6 @@ namespace singular_parallel
       void pfd_write_result
       ( unsigned int const& id
       , const pnet_options& options
-      );
-
-    NO_NAME_MANGLING
-      long get_current_time_milli();
-
-    NO_NAME_MANGLING
-      std::string get_term_time_path( const int& id
-                                    , const int& term_id
-                                    , std::string measure_name
-                                    , std::string tmpdir
-                                    );
-    NO_NAME_MANGLING
-      std::string get_problem_time_path( const int& id
-                                    , std::string measure_name
-                                    , std::string tmpdir
-                                    );
-    
-
-    NO_NAME_MANGLING
-      void write_current_time
-      ( const std::string& path );
-      
-    NO_NAME_MANGLING
-      long get_written_time (const std::string& path);
-
-    NO_NAME_MANGLING
-      long get_duration_time
-      ( const std::string& path );
-
-    NO_NAME_MANGLING
-      void write_duration_time
-      ( const long& duration
-      , const std::string& path 
-      );
-
-    NO_NAME_MANGLING
-      void log_duration
-      ( unsigned int const& id
-      , const pnet_options& options
-      , const std::string& measure_name
-      , const long& duration
       );
   }
 }

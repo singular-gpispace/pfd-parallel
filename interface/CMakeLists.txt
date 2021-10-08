@@ -7,6 +7,7 @@ extended_add_library (
   TYPE MODULE
   SOURCES "singular_pnet-interface.cpp"
           "singular_functions.cpp"
+          "pnet_logging.cpp"
   INCLUDE_DIRECTORIES PRIVATE "${CMAKE_BINARY_DIR}/src"
   COMPILE_DEFINITIONS SING_NDEBUG OM_NDEBUG
   LIBRARIES GPISpace::workflow_development
