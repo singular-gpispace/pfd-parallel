@@ -392,6 +392,7 @@ proc pfd_fork_compute_term( int id
                           , string in_filename
                           , string out_filename
                           , string tmpdir
+                          , int loop_max
                           , list #
                           )
 {
@@ -414,7 +415,8 @@ proc pfd_fork_compute_term( int id
           " instead.  Check for error in term split process.");
   }
 
-  list result = generic_dec_onestep(step, get_loop_strat(step), terms, dec, q, debug, l);
+  list result = generic_dec_nstep(step, get_loop_strat(step), terms, dec, q,
+  loop_max, debug, l);
 
   write("ssi:w " + tmpdir +
                    "/" + out_filename + "_" +
@@ -468,8 +470,17 @@ proc pfd_fork_merge_pair( int id
                               string(id) + "_" + string(right) +
                               ".ssi");
 
-  list terms = mergepfd(leftl[1], rightl[1]);
-  list dec = mergepfd(leftl[2], rightl[2]);
+  list terms = mergepfd_sorted(leftl[1], rightl[1]);
+  list dec = mergepfd_sorted(leftl[2], rightl[2]);
+  if (size(terms) == 0 && size(dec) == 0) {
+    ERROR("no terms after merge, even though " +
+          string(size(leftl[1]))  + ", " +
+          string(size(rightl[1]))  + ", " +
+          string(size(leftl[2]))  + ", " +
+          string(size(rightl[2]))
+          );
+
+  }
 
   write( "ssi:w " + tmpdir +
                     "/" + filename + "_result_" +

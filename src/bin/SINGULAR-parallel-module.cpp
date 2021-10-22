@@ -100,6 +100,7 @@ namespace
       int procsPerNode() const;
       std::size_t numTasks() const;
       std::size_t splitMax() const;
+      std::size_t loopMax() const;
 
       std::string tmpDir() const;
       std::string nodeFile() const;
@@ -138,6 +139,7 @@ namespace
       /* derived variables */
       std::size_t num_tasks;
       std::size_t split_max;
+      std::size_t loop_max;
       int out_token;
 
       singular_parallel::installation singular_parallel_installation;
@@ -147,6 +149,7 @@ namespace
   int fetch_token_value_from_sing_scope (std::string token_s);
   int get_num_tasks(lists arg_list, std::string graph_type);
   int get_split_max(leftv args, std::string graph_type);
+  int get_loop_max(leftv args, std::string graph_type);
 
   /*** ArgumentState implementations ***/
   int ArgumentState::outToken() const {
@@ -163,6 +166,10 @@ namespace
 
   std::size_t ArgumentState::splitMax() const {
     return split_max;
+  }
+
+  std::size_t ArgumentState::loopMax() const {
+    return loop_max;
   }
 
   std::string ArgumentState::tmpDir() const {
@@ -233,6 +240,7 @@ namespace
   , graph_type (graph_type)
   , num_tasks (get_num_tasks(arg_list, graph_type))
   , split_max(get_split_max(args, graph_type))
+  , loop_max(get_loop_max(args, graph_type))
   , out_token (fetch_token_value_from_sing_scope (outstructname))
   , singular_parallel_installation ()
   {
@@ -255,6 +263,15 @@ namespace
   {
     if (graph_type == "pfd") {
       return get_singular_int_argument(args, 12, "splitmax");
+    } else {
+      return 0;
+    }
+  }
+
+  int get_loop_max(leftv args, std::string graph_type)
+  {
+    if (graph_type == "pfd") {
+      return get_singular_int_argument(args, 13, "loopmax");
     } else {
       return 0;
     }
@@ -327,6 +344,7 @@ std::optional<std::multimap<std::string, pnet::type::value::value_type>>
     poke( "tmpdir", problem_token_type, as.tmpDir());
     poke( "task_count", problem_token_type, static_cast<unsigned int> (as.numTasks()));
     poke( "split_max", problem_token_type, static_cast<unsigned int> (as.splitMax()));
+    poke( "loop_max", problem_token_type, static_cast<unsigned int> (as.loopMax()));
 
     std::multimap<std::string, value_type> values_on_ports
       ( {

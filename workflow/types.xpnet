@@ -10,6 +10,7 @@
     <field name="tmpdir" type="string"/>
     <field name="task_count" type="unsigned int"/>
     <field name="split_max" type="unsigned int"/>
+    <field name="loop_max" type="unsigned int"/>
   </struct>
 
   <struct name="task_status">

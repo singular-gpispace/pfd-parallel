@@ -558,13 +558,14 @@ namespace singular_parallel
                                   options.out_struct_desc);
         singular::load_library (options.needed_library);
         boost::format command =
-              boost::format("pfd_fork_compute_term(%1%, %2%, %3%, %4%, %5%, %6%);")
+              boost::format("pfd_fork_compute_term(%1%, %2%, %3%, %4%, %5%, %6%, %7%);")
                             % id
                             % term_id
                             % ("\"" + step + "\"")
                             % ("\"" + from_file + "\"")
                             % ("\"" + to_file + "\"")
-                            % ("\"" + options.tmpdir + "\"");
+                            % ("\"" + options.tmpdir + "\"")
+                            % options.loop_max;
 
         singular::call_and_discard(command.str());
       }

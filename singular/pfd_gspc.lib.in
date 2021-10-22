@@ -24,6 +24,7 @@ proc mod_init()
             "string functionname, " +
             "string expandnodefunction, " +
             "int upperbound, " +
+            "int loopmax, " +
             "int splitmax");
 }
 
@@ -107,7 +108,7 @@ proc get_parallel_launch_command(string ret_name, string tmpdir, string pnet_id)
   }
   if (pnet_id == "pfd") {
     return ("def " + ret_name + " = sggspc_pfd(l, " + common_args +
-      ", pc.options.splitmax);");
+      ", pc.options.splitmax, pc.options.loopmax);");
   }
 }
 
@@ -251,7 +252,7 @@ PURPOSE:  apply @code{pfd} in parallel to the rational function saved in the
 "
 {
   configToken gc, pc;
-  int i, parallelize, split_max;
+  int i, parallelize, split_max, loop_max;
   list l;
   string todir, suffix;
 
@@ -288,11 +289,20 @@ PURPOSE:  apply @code{pfd} in parallel to the rational function saved in the
     }
     split_max = #[5];
   } else {
-    split_max = 8; // default 8
+    split_max = 8; // default value
+  }
+  if (size(#) >= 6) {
+    if ( typeof(#[6]) != "int") {
+      ERROR("loop_max requires an int");
+    }
+    loop_max = #[6];
+  } else {
+    loop_max = 20; // default value
   }
 
   pc = pfd_structs_config();
   pc.options.splitmax = split_max;
+  pc.options.loopmax = loop_max;
 
   newstruct(pc.options.instructname, pc.options.instructdesc);
   newstruct(pc.options.outstructname, pc.options.outstructdesc);

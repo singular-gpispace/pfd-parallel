@@ -486,11 +486,16 @@ proc generic_dec_loop(string decomp, string mergetype, list terms, ideal q, list
   return(dec);
 }
 
-proc generic_dec_onestep(string decomp, string mergetype, list terms, list in_dec, ideal q, list #)
+proc generic_dec_nstep(string decomp,
+                       string mergetype,
+                       list terms,
+                       list in_dec,
+                       ideal q,
+                       int n,
+                       list #)
 {
-  list result;
-  list dec = in_dec;
-  int i;
+  list dec,newterms,result;
+  int term_count, loop_count, i;
   int counter,tt,ttt;
   string command;
   list merged;
@@ -501,26 +506,35 @@ proc generic_dec_onestep(string decomp, string mergetype, list terms, list in_de
     link l  = #[2];
   }
 
-  if(debug) {tt = rtimer; counter++;}
-  int imax = size(terms);
-  list newterms = list();
+  for ( loop_count = 0; (size(terms)>0) and (loop_count < n); loop_count++) {
+    if(debug) {tt = rtimer; counter++;}
+    term_count = size(terms);
+    newterms = list();
 
-  for(i=1; i<=imax; i++) {
-    command = "result = " + decomp + "(terms[i],q,#);";
-    execute(command);
+    for(i=1; i<=term_count; i++) {
+      command = "result = " + decomp + "(terms[i],q,#);";
+      execute(command);
 
-    if(debug) {ttt = rtimer;}
-    merged = general_merge_step(mergetype, newterms, dec, result);
-    dec = merged[1];
-    newterms = merged[2];
+      if(debug) {ttt = rtimer;}
+      merged = general_merge_step(mergetype, newterms, dec, result);
+      dec = merged[1];
+      newterms = merged[2];
+      if(debug)
+        {fprintf(l,"      merging: %s ms, %s new terms", rtimer-ttt, size(result));}
+    }
+    terms = newterms;
     if(debug)
-    {fprintf(l,"      merging: %s ms, %s new terms", rtimer-ttt, size(result));}
+      {fprintf(l,"  %s: %s ms, %s terms, %s unfinished",
+       counter, rtimer-tt, size(terms)+size(dec),size(terms));}
   }
-  if(debug) {
-    fprintf( l , "  %s: %s ms, %s terms, %s unfinished"
-           , counter, rtimer-tt, size(terms)+size(dec),size(newterms));
-  }
-  return(list(newterms, dec));
+
+  return(list(terms, dec));
+
+}
+
+proc generic_dec_onestep(string decomp, string mergetype, list terms, list in_dec, ideal q, list #)
+{
+  return (generic_dec_nstep(decomp, mergetype, terms, in_dec, q, 1, #));
 }
 
 proc general_merge_step(string mergetype, list newterms, list dec, list result)
@@ -822,8 +836,10 @@ proc mergepfd(list dec1, list dec2)
     entry = dec2[i];
     if(n1==0)
     {
-      dec1=list(entry); n1++;
-      i++; continue;
+      dec1=list(entry);
+      n1++;
+      i++; // Required with for loop continue in Singular because... reasons?
+      continue;
     }
 
     a=1;
@@ -853,6 +869,51 @@ proc mergepfd(list dec1, list dec2)
       {dec1=insert(dec1,entry,a-1); n1++;}}
   }
   return(dec1);
+}
+
+proc mergepfd_sorted(list dec1, list dec2)
+{
+  // Note: assumes both are already sorted w.r.t. dp in the denominator exponents
+  int n1=size(dec1);
+  int n2=size(dec2);
+  if(n2==0) {return(dec1);}
+  if(n1==0) {return(dec2);}
+
+  list merged = list();
+
+  int i1 = 1;
+  int i2 = 1;
+  while (i1 <= n1 || i2 <= n2) {
+    if (i1 > n1) {
+      merged = merged + list(dec2[i2]);
+      i2++;
+      continue;
+    }
+    if (i2 > n2) {
+      merged = merged + list(dec1[i1]);
+      i1++;
+      continue;
+    }
+    // Both indices are valid for the lists
+    if(is_dp_smaller(dec1[i1][2], dec1[i1][3], dec2[i2][2], dec2[i2][3])) {
+      // dec1 is smaller
+      merged = merged + list(dec1[i1]);
+      i1++;
+    } else{if (dec2[i2][2]==dec1[i1][2] && dec2[i2][3]==dec1[i1][3]) {
+      def coeff = dec1[i1][1] + dec2[i2][1];
+      if (coeff != 0) {
+        merged = merged + list(list(coeff, dec1[i1][2], dec1[i1][3]));
+      }
+      i1++;
+      i2++;
+    } else {
+      // dec2 is smaller
+      merged = merged + list(dec2[i2]);
+      i2++;
+    }}
+  }
+
+  return(merged);
 }
 
 static proc is_dp_smaller(intvec indices1, intvec e1, intvec indices2, intvec e2)
