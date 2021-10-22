@@ -697,16 +697,9 @@ namespace singular_parallel
         std::string from_name(get_from_name(step));
         std::string to_name(get_to_name(step));
 
-        /*
-        pfd_fork_compute_term_( id
-                              , term_id
-                              , options
-                              , step
-                              , from_name + "_result"
-                              , from_name + "_result"
-                              );
-        */
-
+        std::string dec_temp_file(options.tmpdir + "/" + from_name + "_dectemp_" +
+                       std::to_string(id) +
+                       ".ssi");
         std::string from_file(options.tmpdir + "/" + from_name + "_result_" +
                        std::to_string(id) + "_" + std::to_string(term_id) +
                        ".ssi");
@@ -714,17 +707,28 @@ namespace singular_parallel
         std::string to_file(options.tmpdir + "/" + to_name +
                                                "_" + std::to_string(id) +
                                                ".ssi");
+        
+        init_singular ();
+        singular::load_library (options.needed_library);
+        boost::format command = 
+            boost::format("pfd_merge_decs_and_write(%1%, %2%, %3%);")
+                            % ("\"" + dec_temp_file + "\"")
+                            % ("\"" + from_file + "\"")
+                            % ("\"" + to_file + "\"");
+        singular::call_and_discard(command.str());
 
+        
+        remove(from_file.c_str());
+        remove(dec_temp_file.c_str());
+        /*
         if (rename(from_file.c_str(), to_file.c_str()))
         {
           throw("Could not rename " + from_file + " to " + to_file);
         }
+        */
 
-        init_singular ();
-        singular::load_library (options.needed_library);
 
-         boost::format command =
-              boost::format("int i = pfd_singular_terms_left(%1%);")
+        command = boost::format("int i = pfd_singular_terms_left(%1%);")
                             % ("\"" + to_file + "\"");
         singular::call_and_discard(command.str());
 

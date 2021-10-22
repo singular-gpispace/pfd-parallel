@@ -354,7 +354,7 @@ proc pfd_split_terms(int id,
   list dec = terms_read[2];
 
   int term_count = size(terms);
-  int dec_count = size(dec);
+  //int dec_count = size(dec);
 
   int split_count = min(split_max, term_count);
 
@@ -364,24 +364,28 @@ proc pfd_split_terms(int id,
   int i;
 
   list term_lists = list();
-  list dec_lists = list();
+  //list dec_lists = list();
   for(i = 1; i <= split_count; i++) {
     term_lists[i] = list();
-    dec_lists[i] = list();
+    //dec_lists[i] = list();
   }
 
   for(i = 0; i < term_count; i++) {
     term_lists[1 + i % split_count][1 + i div split_count] = terms[1 + i];
   }
-  for(i = 0; i < dec_count; i++) {
-    dec_lists[1 + i % split_count][1 + i div split_count] = dec[1 + i];
-  }
+  //for(i = 0; i < dec_count; i++) {
+  //  dec_lists[1 + i % split_count][1 + i div split_count] = dec[1 + i];
+  //}
 
   for(i = 1; i <= split_count; i++) {
     write("ssi:w " + tmpdir + "/" + out_filename + "_" +
               string(id) + "_" + string(i) + ".ssi",
-          list(term_lists[i], dec_lists[i]));
+          //list(term_lists[i], dec_lists[i]));
+          term_lists[i]);
   }
+  write("ssi:w " + tmpdir + "/" + out_filename + "_dectemp_" +
+              string(id) + ".ssi", dec);
+
 
   return (split_count);
 }
@@ -402,11 +406,12 @@ proc pfd_fork_compute_term( int id
 
   int debug=0;
   link l=":w ";
+  list dec = list();
 
-  list terms_read = read("ssi:r " + tmpdir + "/" + in_filename + "_" +
+  list terms = read("ssi:r " + tmpdir + "/" + in_filename + "_" +
           string(id) + "_" + string(term_id) + ".ssi");
-  list terms = terms_read[1];
-  list dec = terms_read[2];
+  //list terms = terms_read[1];
+  //list dec = terms_read[2];
   list input = read("ssi:r " + tmpdir + "/input_" + string(id) + ".ssi");
   ideal q = input[1];
 
@@ -487,6 +492,16 @@ proc pfd_fork_merge_pair( int id
                     string(id) + "_" + string(left) +
                     ".ssi"
        , list(terms, dec));
+}
+
+proc pfd_merge_decs_and_write(string dec_tmp_file,
+                              string result_file,
+                              string to_file)
+{
+  list dec = read("ssi:r " + dec_tmp_file);
+  list result = read("ssi:r " + result_file);
+  dec = mergepfd_sorted(dec, result[2]);
+  write("ssi:w " + to_file, list(result[1], dec));
 }
 
 proc pfd_singular_log_duration(int id,
