@@ -25,7 +25,8 @@ proc mod_init()
             "string expandnodefunction, " +
             "int upperbound, " +
             "int loopmax, " +
-            "int splitmax");
+            "int splitmax"
+            );
 }
 
 proc configure_gspc()

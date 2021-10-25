@@ -199,6 +199,9 @@ namespace singular_parallel
       ( const std::string& path );
 
     NO_NAME_MANGLING
+      long read_written_time (const std::string& path);
+
+    NO_NAME_MANGLING
       long get_written_time (const std::string& path);
 
     NO_NAME_MANGLING
@@ -245,5 +248,12 @@ namespace singular_parallel
       , const std::string& file
       , const pnet_options& options
       );
+
+    NO_NAME_MANGLING
+      void init_logging_for_step(
+                                 unsigned int const& id,
+                                 const std::string& step,
+                                 const pnet_options& options
+                                );
   }
 }

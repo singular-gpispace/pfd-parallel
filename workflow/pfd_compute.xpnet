@@ -124,18 +124,14 @@
           <cinclude href="iostream"/>
           <code><![CDATA[
             /*<>*/
-            RESOLVE_INTERFACE_FUNCTION (write_duration_time)
-                ( 0, RESOLVE_INTERFACE_FUNCTION (get_problem_time_path)
-                ( in.id, "NSSdecompStep", options.tmpdir));
-            RESOLVE_INTERFACE_FUNCTION (write_duration_time)
-                ( 0, RESOLVE_INTERFACE_FUNCTION (get_problem_time_path)
-                ( in.id, "shortNumeratorDecompStep", options.tmpdir));
-            RESOLVE_INTERFACE_FUNCTION (write_duration_time)
-                ( 0, RESOLVE_INTERFACE_FUNCTION (get_problem_time_path)
-                ( in.id, "algDependDecompStep", options.tmpdir));
-            RESOLVE_INTERFACE_FUNCTION (write_duration_time)
-                ( 0, RESOLVE_INTERFACE_FUNCTION (get_problem_time_path)
-                ( in.id, "numeratorDecompStep", options.tmpdir));
+            RESOLVE_INTERFACE_FUNCTION (init_logging_for_step)
+                ( in.id, "NSSdecompStep", options);
+            RESOLVE_INTERFACE_FUNCTION (init_logging_for_step)
+                ( in.id, "shortNumeratorDecompStep", options);
+            RESOLVE_INTERFACE_FUNCTION (init_logging_for_step)
+                ( in.id, "algDependDecompStep", options);
+            RESOLVE_INTERFACE_FUNCTION (init_logging_for_step)
+                ( in.id, "numeratorDecompStep", options);
 
             out.id = in.id;
             out.status = 1;

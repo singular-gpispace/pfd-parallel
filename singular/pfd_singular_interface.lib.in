@@ -377,11 +377,11 @@ proc pfd_split_terms(int id,
   //  dec_lists[1 + i % split_count][1 + i div split_count] = dec[1 + i];
   //}
 
-  for(i = 1; i <= split_count; i++) {
+  for(i = 0; i < split_count; i++) {
     write("ssi:w " + tmpdir + "/" + out_filename + "_" +
               string(id) + "_" + string(i) + ".ssi",
           //list(term_lists[i], dec_lists[i]));
-          term_lists[i]);
+          term_lists[i + 1]);
   }
   write("ssi:w " + tmpdir + "/" + out_filename + "_dectemp_" +
               string(id) + ".ssi", dec);
@@ -421,7 +421,7 @@ proc pfd_fork_compute_term( int id
   }
 
   list result = generic_dec_nstep(step, get_loop_strat(step), terms, dec, q,
-  loop_max, debug, l);
+    loop_max, debug, l);
 
   write("ssi:w " + tmpdir +
                    "/" + out_filename + "_" +

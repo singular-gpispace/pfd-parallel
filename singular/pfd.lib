@@ -515,10 +515,13 @@ proc generic_dec_nstep(string decomp,
       command = "result = " + decomp + "(terms[i],q,#);";
       execute(command);
 
+
       if(debug) {ttt = rtimer;}
+
       merged = general_merge_step(mergetype, newterms, dec, result);
       dec = merged[1];
       newterms = merged[2];
+
       if(debug)
         {fprintf(l,"      merging: %s ms, %s new terms", rtimer-ttt, size(result));}
     }
@@ -539,13 +542,23 @@ proc generic_dec_onestep(string decomp, string mergetype, list terms, list in_de
 
 proc general_merge_step(string mergetype, list newterms, list dec, list result)
 {
-  list merged;
-
   if (mergetype == "size") {
     return (merge_by_size(newterms, dec, result));
   }
   if (mergetype == "index") {
     return (merge_by_index(newterms, dec, result));
+  }
+  return (list());
+}
+
+proc general_sort_step(string mergetype, list result)
+{
+  if (mergetype == "size") {
+    if (size(result) > 1) {return(list(), result)}
+    else {return (result, list())}
+  }
+  if (mergetype == "index") {
+    return (result[2], result[1]);
   }
   return (list());
 }
