@@ -853,10 +853,11 @@ namespace singular_parallel
         log_duration( id
                     , options
                     , last_step
-                    , init_time +
-                    compute_time +
-                    merge_time +
-                    finish_time);
+                    , init_time
+                      + compute_time
+                      + merge_time
+                      + finish_time
+                    );
 
 
         long step1( get_written_time(get_problem_time_path( id
@@ -868,12 +869,9 @@ namespace singular_parallel
         long step3( get_written_time(get_problem_time_path( id
                                                           , "algDependDecompStep"
                                                           , options.tmpdir)) );
-        long step4(
-                    init_time +
-                    compute_time +
-                    //merge_time +
-                    finish_time
-                  );
+        long step4( get_written_time(get_problem_time_path( id
+                                                          , "numeratorDecompStep"
+                                                          , options.tmpdir)) );
         log_duration(id, options, "total cpu", step1 + step2 + step3 + step4);
 
         remove((options.tmpdir + "/" + get_to_name(last_step) +"_"
