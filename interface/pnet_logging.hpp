@@ -52,6 +52,13 @@ namespace singular_parallel
       , const std::string& measure_name
       , const long& duration
       );
+
+    NO_NAME_MANGLING
+      void init_logging_for_step
+      ( unsigned int const& id
+      , const std::string& step
+      , const pnet_options& options
+      );
   }
 }
 

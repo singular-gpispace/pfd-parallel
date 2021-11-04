@@ -100,6 +100,8 @@ namespace
       int procsPerNode() const;
       std::size_t numTasks() const;
       std::size_t splitMax() const;
+      std::size_t loopMax() const;
+      std::size_t sortInput() const;
 
       std::string tmpDir() const;
       std::string nodeFile() const;
@@ -110,6 +112,8 @@ namespace
       std::string outStructDesc() const;
       std::string neededLibrary() const;
       std::string functionName() const;
+      std::string fromDir() const;
+      std::string toDir() const;
       std::string graphType() const;
 
       singular_parallel::installation singPI() const;
@@ -132,12 +136,16 @@ namespace
       std::string outstructdesc;
       std::string neededlibrary;
       std::string functionname;
+      std::string fromdir;
+      std::string todir;
 
       std::string graph_type;
 
       /* derived variables */
       std::size_t num_tasks;
       std::size_t split_max;
+      std::size_t loop_max;
+      std::size_t sort_input;
       int out_token;
 
       singular_parallel::installation singular_parallel_installation;
@@ -147,6 +155,7 @@ namespace
   int fetch_token_value_from_sing_scope (std::string token_s);
   int get_num_tasks(lists arg_list, std::string graph_type);
   int get_split_max(leftv args, std::string graph_type);
+  int get_loop_max(leftv args, std::string graph_type);
 
   /*** ArgumentState implementations ***/
   int ArgumentState::outToken() const {
@@ -163,6 +172,14 @@ namespace
 
   std::size_t ArgumentState::splitMax() const {
     return split_max;
+  }
+
+  std::size_t ArgumentState::loopMax() const {
+    return loop_max;
+  }
+
+  std::size_t ArgumentState::sortInput() const {
+    return sort_input;
   }
 
   std::string ArgumentState::tmpDir() const {
@@ -201,6 +218,14 @@ namespace
     return functionname;
   }
 
+  std::string ArgumentState::fromDir() const {
+    return fromdir;
+  }
+
+  std::string ArgumentState::toDir() const {
+    return todir;
+  }
+
   std::string ArgumentState::graphType() const {
     return graph_type;
   }
@@ -230,9 +255,13 @@ namespace
   , outstructdesc (get_singular_string_argument(args, 9, "output struct description"))
   , neededlibrary (get_singular_string_argument(args, 10, "needed library"))
   , functionname (get_singular_string_argument(args, 11, "function name"))
+  , fromdir (get_singular_string_argument(args, 12, "fromdir"))
+  , todir (get_singular_string_argument(args, 13, "todir"))
   , graph_type (graph_type)
   , num_tasks (get_num_tasks(arg_list, graph_type))
   , split_max(get_split_max(args, graph_type))
+  , loop_max(get_loop_max(args, graph_type))
+  , sort_input (get_singular_int_argument(args, 16, "sortinput"))
   , out_token (fetch_token_value_from_sing_scope (outstructname))
   , singular_parallel_installation ()
   {
@@ -254,7 +283,16 @@ namespace
   int get_split_max(leftv args, std::string graph_type)
   {
     if (graph_type == "pfd") {
-      return get_singular_int_argument(args, 12, "splitmax");
+      return get_singular_int_argument(args, 14, "splitmax");
+    } else {
+      return 0;
+    }
+  }
+
+  int get_loop_max(leftv args, std::string graph_type)
+  {
+    if (graph_type == "pfd") {
+      return get_singular_int_argument(args, 15, "loopmax");
     } else {
       return 0;
     }
@@ -320,6 +358,8 @@ std::optional<std::multimap<std::string, pnet::type::value::value_type>>
     value_type problem_token_type;
     poke( "function_name", problem_token_type, as.functionName());
     poke( "needed_library", problem_token_type, as.neededLibrary());
+    poke( "from_dir", problem_token_type, as.fromDir());
+    poke( "to_dir", problem_token_type, as.toDir());
     poke( "in_struct_name", problem_token_type, as.inStructName());
     poke( "in_struct_desc", problem_token_type, as.inStructDesc());
     poke( "out_struct_name", problem_token_type, as.outStructName());
@@ -327,6 +367,8 @@ std::optional<std::multimap<std::string, pnet::type::value::value_type>>
     poke( "tmpdir", problem_token_type, as.tmpDir());
     poke( "task_count", problem_token_type, static_cast<unsigned int> (as.numTasks()));
     poke( "split_max", problem_token_type, static_cast<unsigned int> (as.splitMax()));
+    poke( "loop_max", problem_token_type, static_cast<unsigned int> (as.loopMax()));
+    poke( "sort_input", problem_token_type, static_cast<unsigned int> (as.sortInput()));
 
     std::multimap<std::string, value_type> values_on_ports
       ( {
@@ -520,6 +562,7 @@ extern "C" int mod_init (SModulFunctions* psModulFunctions)
 BOOLEAN sggspc_wait_all (leftv res, leftv args)
 try {
 
+  std::cout << "Starting sggspc_wait_all\n";
   ArgumentState as (args, "list_all");
 
   auto result = gpis_launch_with_workflow (as.singPI().workflow_all(), as);
@@ -550,6 +593,13 @@ try {
     ssi_close_and_remove (l);
     out_list->m[i].rtyp = as.outToken();
     out_list->m[i].data = entry;
+
+    remove( (get_out_struct_filename( as.tmpDir()
+                                    , basename
+                                    , i)).c_str() );
+    remove( (get_in_struct_filename( as.tmpDir()
+                                   , basename
+                                   , i)).c_str() );
   }
 
 
@@ -591,7 +641,6 @@ try {
 
   std::string basename = get_base_file_name(as.graphType());
 
-  singular::call_and_discard("def internal_placeholder;");
   for (std::size_t i = 0; i < as.numTasks(); i++)
   {
     si_link l = ssi_open_for_read(get_out_struct_filename( as.tmpDir()
@@ -656,6 +705,16 @@ try
 
   lists entry = ssi_read_newstruct (l, as.outStructName());
   ssi_close_and_remove (l);
+
+  for (i = 0; i < as.numTasks(); i++)
+  {
+    remove( (get_out_struct_filename( as.tmpDir()
+                                    , basename
+                                    , i)).c_str() );
+    remove( (get_in_struct_filename( as.tmpDir()
+                                   , basename
+                                   , i)).c_str() );
+  }
 
   res->rtyp = as.outToken();
   res->data = entry;
