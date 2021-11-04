@@ -66,13 +66,21 @@ namespace singular_parallel
       }
 
     NO_NAME_MANGLING
-      long get_written_time (const std::string& path)
+      long read_written_time (const std::string& path)
       {
         std::ifstream time_file(path);
         std::string line;
         std::getline(time_file, line);
         long time_val = std::stol(line);
         time_file.close();
+
+        return time_val;
+      }
+
+    NO_NAME_MANGLING
+      long get_written_time (const std::string& path)
+      {
+        long time_val = read_written_time(path);
 
         remove(path.c_str());
 
@@ -126,5 +134,30 @@ namespace singular_parallel
 
 
 
+
+    NO_NAME_MANGLING
+      void init_logging_for_step(
+                                 unsigned int const& id,
+                                 const std::string& step,
+                                 const pnet_options& options
+                                )
+      {
+            write_duration_time ( 0, get_problem_time_path ( id
+                                                           , "init_" + step
+                                                           , options.tmpdir
+                                                           ));
+            write_duration_time ( 0, get_problem_time_path ( id
+                                                           , "compute_" + step
+                                                           , options.tmpdir
+                                                           ));
+            write_duration_time ( 0, get_problem_time_path ( id
+                                                           , "merge_" + step
+                                                           , options.tmpdir
+                                                           ));
+            write_duration_time ( 0, get_problem_time_path ( id
+                                                           , "finish_" + step
+                                                           , options.tmpdir
+                                                           ));
+      }
   }
 }
