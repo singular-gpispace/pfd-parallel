@@ -578,6 +578,21 @@ namespace singular {
 
   }
 
+  std::string getString(const std::string& symbol)
+  {
+    idhdl h = ggetid(symbol.c_str());
+    if (IDTYP(h) != STRING_CMD)
+    {
+      throw std::runtime_error(
+          "Symbol " + symbol + " does not represent a string.");
+    }
+    else
+    {
+      return std::string(IDSTRING(h));
+    }
+
+  }
+
   void put(const std::string& symbol, lists list)
   {
     idhdl handle = enterid(symbol.c_str(), 1, LIST_CMD, &IDROOT, FALSE);

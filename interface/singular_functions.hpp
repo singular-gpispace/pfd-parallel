@@ -141,6 +141,8 @@ namespace singular {
 
   int getInt(const std::string& symbol);
 
+  std::string getString(const std::string& symbol);
+
   void put(const std::string& symbol, lists list);
 
   void put(const std::string& symbol, intvec* iv);

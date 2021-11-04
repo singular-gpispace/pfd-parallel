@@ -65,15 +65,6 @@
                       << in.id
                       << "\n";
 
-            //singular_parallel::pnet_list t_degrees = RESOLVE_INTERFACE_FUNCTION
-            //  (pfd_fork_get_tdegrees_before)
-            //  (in.id, step, options);
-            //std::cout << "before: t_degrees = { ";
-            //for (singular_parallel::pnet_value n : t_degrees) {
-            //  std::cout << boost::get<int>(n) << ", ";
-            //}
-            //std::cout << "};\n";
-
             singular_parallel::pnet_list indices = RESOLVE_INTERFACE_FUNCTION
                (pfd_fork_init)
                ( in.id

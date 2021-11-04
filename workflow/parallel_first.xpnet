@@ -76,7 +76,10 @@
           <cinclude href="util-generic/dynamic_linking.hpp"/>
           <cinclude href="iostream"/>
           <code><![CDATA[
-          std::cout << "in compute" << std::endl;
+          /*<>*/
+          std::cout << "Starting "
+                    << in
+                    << std::endl;
           try
           {
             _pnetc_context->execute_and_kill_on_cancel_DO_NOT_OUTPUT_TO_STANDARD_STREAMS_FROM_WITHIN
@@ -99,7 +102,9 @@
           }
           catch (drts::worker::context::cancelled const&)
           {
-            std::cout << "task has been cancelled" << std::endl;
+            std::cout << "Task "
+                      << in
+                      <<" has been cancelled" << std::endl;
           }
           out = in;
           ]]></code>

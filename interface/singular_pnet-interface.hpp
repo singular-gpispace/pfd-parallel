@@ -35,6 +35,24 @@ namespace singular_parallel
        );
 
     NO_NAME_MANGLING
+      long get_filesize
+      ( std::string path );
+
+    NO_NAME_MANGLING
+      long get_input_file_size
+      ( unsigned int id
+      , const pnet_options& options
+      , const std::string net_type
+      );
+
+    NO_NAME_MANGLING
+      singular_parallel::pnet_list pfd_sorted_input_by_size
+      ( unsigned int count
+      , const pnet_options& options
+      , const std::string net_type
+      );
+
+    NO_NAME_MANGLING
       void singular_parallel_compute
        ( unsigned int const& id
        , const pnet_options& options

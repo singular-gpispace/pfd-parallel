@@ -2,6 +2,7 @@
 
 #include <interface/singular_pnet-interface.hpp>
 
+#include <sys/stat.h>
 #include <iostream>
 #include <stdexcept>
 #include <unistd.h>
@@ -39,6 +40,34 @@ namespace singular_parallel
       , const std::string from_file
       , const std::string to_file
       );
+
+    NO_NAME_MANGLING
+      void pfd_merge_sort
+      ( unsigned int *input
+      , long *sizes
+      , unsigned int low
+      , unsigned int high
+      , unsigned int *buffer
+      );
+
+    NO_NAME_MANGLING
+      void pfd_merge_lists
+      ( unsigned int *input
+      , long *sizes
+      , unsigned int low
+      , unsigned int mid
+      , unsigned int high
+      , unsigned int *buffer
+      );
+
+    NO_NAME_MANGLING
+      void sort_input_files_by_size
+      ( unsigned int *input
+      , unsigned int count
+      , const pnet_options& options
+      , const std::string net_type
+      );
+
 
     /*** local function impementations ***/
 
@@ -120,6 +149,127 @@ namespace singular_parallel
         }
       }
 
+    NO_NAME_MANGLING
+      void pfd_merge_lists
+      ( unsigned int *input
+      , long *sizes
+      , unsigned int low
+      , unsigned int mid
+      , unsigned int high
+      , unsigned int *buffer
+      )
+      {
+        unsigned int i, l, r, count;
+        if (mid < low) {
+          throw std::runtime_error("merge needs low <= mid");
+        }
+        if (high < mid) {
+          throw std::runtime_error("merge needs mid <= high");
+        }
+        if (low == high) {
+          throw std::runtime_error("low == high: This should never happen in merging");
+        }
+        count = high - low + 1;
+        l = low;
+        r = mid + 1;
+
+        if (buffer == NULL) {
+          throw std::runtime_error("malloc fail in sorting's merge step");
+        }
+        for (i = 0; i < count ; i++) {
+          if (l > mid) {
+              buffer[i] = input[r++];
+          } else if (r > high) {
+              buffer[i] = input[l++];
+          } else {
+            if (sizes[input[l]] > sizes[input[r]]) {
+              buffer[i] = input[r++];
+            } else {
+              buffer[i] = input[l++];
+            }
+          }
+        }
+        for (i = 0; i < count; i++) {
+          input[low + i] = buffer[i];
+          buffer[i] = 0;
+        }
+      }
+
+    NO_NAME_MANGLING
+      void pfd_merge_sort
+      ( unsigned int *input
+      , long * sizes
+      , unsigned int low
+      , unsigned int high
+      , unsigned int *buffer
+      )
+      {
+        unsigned int mid;
+
+        if ( high > low) {
+          mid = (unsigned int)((low + high) / 2);
+          pfd_merge_sort(input, sizes, low, mid, buffer);
+          pfd_merge_sort(input, sizes, mid + 1, high, buffer);
+          pfd_merge_lists(input, sizes, low, mid, high, buffer);
+
+        } else if (high == low) {
+          return;
+        } else {
+          std::cout << "weird in sorting\n";
+          throw std::runtime_error ("This should never happen when sorting");
+        }
+      }
+
+    NO_NAME_MANGLING
+      void sort_input_files_by_size
+      ( unsigned int *input
+      , unsigned int count
+      , const pnet_options& options
+      , const std::string net_type
+      )
+      {
+        unsigned int i;
+        long *sizes =
+          (long *)malloc(sizeof(long) * count);
+        unsigned int *buffer =
+          (unsigned int *)malloc(sizeof(unsigned int) * count);
+        for (i = 0; i < count; i++) {
+          sizes[i] = get_input_file_size(i, options, net_type);
+          buffer[i] = 0;
+        }
+        pfd_merge_sort(input, sizes, 0, count - 1, buffer);
+        free(sizes);
+        free(buffer);
+        sizes = NULL;
+        buffer = NULL;
+      }
+
+    NO_NAME_MANGLING
+      void sort_term_files_by_size
+      ( unsigned int *input
+      , unsigned int count
+      , const pnet_options& options
+      , const std::string net_type
+      )
+      {
+        unsigned int i;
+        long *sizes =
+          (long *)malloc(sizeof(long) * count);
+        unsigned int *buffer =
+          (unsigned int *)malloc(sizeof(unsigned int) * count);
+        for (i = 0; i < count; i++) {
+          sizes[i] = get_input_file_size(i, options, net_type);
+          buffer[i] = 0;
+        }
+        pfd_merge_sort(input, sizes, 0, count - 1, buffer);
+        free(sizes);
+        free(buffer);
+        sizes = NULL;
+        buffer = NULL;
+      }
+
+
+
     /*** Interface functions (declared in interface/singular_pnet-interface.hpp) ***/
 
 
@@ -139,6 +289,85 @@ namespace singular_parallel
          return get_to_name(step_name);
        }
 
+
+    NO_NAME_MANGLING
+      long get_filesize
+      ( std::string path )
+      {
+        struct stat stat_buf;
+        int rc = stat(path.c_str(), &stat_buf);
+        return rc == 0 ? stat_buf.st_size : -1;
+      }
+
+    NO_NAME_MANGLING
+      long get_input_file_size
+      ( unsigned int id
+      , const pnet_options& options
+      , const std::string net_type
+      )
+      {
+        int row, col;
+        std::string matrix_name;
+        init_singular ();
+        singular::register_struct(options.in_struct_name,
+                                  options.in_struct_desc);
+        if (net_type == "pfd") {
+          singular::load_ssi("input", get_in_struct_filename( options.tmpdir
+                                        , config::parallel_pfd_base_name()
+                                        , id));
+        } else if (net_type == "list") {
+          singular::load_ssi("input", get_in_struct_filename( options.tmpdir
+                                        , config::parallel_list_base_name()
+                                        , id));
+        }
+
+        singular::call_and_discard("int r = input.row;");
+        singular::call_and_discard("int c = input.col;");
+        singular::call_and_discard("string matrixname = input.matrixname;");
+        row = singular::getInt("r");
+        col = singular::getInt("c");
+        matrix_name = singular::getString("matrixname");
+
+        singular::call_and_discard("kill r;");
+        singular::call_and_discard("kill c;");
+        singular::call_and_discard("kill input;");
+
+        return get_filesize(options.from_dir + "/" +
+                            matrix_name + "_" +
+                            std::to_string(row) + "_" +
+                            std::to_string(col) + ".ssi"
+                            );
+      }
+
+    NO_NAME_MANGLING
+      singular_parallel::pnet_list pfd_sorted_input_by_size
+      ( unsigned int count
+      , const pnet_options& options
+      , const std::string net_type
+      )
+      {
+        unsigned int id;
+        singular_parallel::pnet_list sorted_list;
+        unsigned int *input =
+          (unsigned int *)malloc(sizeof(unsigned int) * count);
+        for (id = 0; id < count; id++) {
+          input[id] = id;
+        }
+
+        // sort
+        sort_input_files_by_size(input, count, options, net_type);
+        // sorted
+
+        for (id = 0; id < count; id++) {
+          sorted_list.push_back(input[id]);
+          input[id] = 0;
+        }
+
+        free(input);
+        input = NULL;
+
+        return sorted_list;
+      }
 
 
     NO_NAME_MANGLING
@@ -331,7 +560,7 @@ namespace singular_parallel
           } else { if (prepstat == 2) {
             singular::call_and_discard(" internal_temp_o.result = \"Trivially done!\";");
           } else {
-            throw("Unrecognised return value from general prepare");
+            throw std::runtime_error("Unrecognised return value from general prepare");
           }}
           singular::write_ssi( "internal_temp_o"
                              , get_out_struct_filename( options.tmpdir
@@ -479,7 +708,7 @@ namespace singular_parallel
 
         if (rename(to_path.c_str(), from_path.c_str()))
         {
-          throw("Could not rename " + to_path + " to " + from_path);
+          throw std::runtime_error("Could not rename " + to_path + " to " + from_path);
         }
       }
 

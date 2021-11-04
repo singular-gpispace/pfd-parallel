@@ -23,9 +23,12 @@ proc mod_init()
             "string neededlibrary, " +
             "string functionname, " +
             "string expandnodefunction, " +
+            "string fromdir, " +
+            "string todir, " +
             "int upperbound, " +
             "int loopmax, " +
-            "int splitmax"
+            "int splitmax, " +
+            "int sortinput"
             );
 }
 
@@ -100,16 +103,20 @@ proc get_parallel_launch_command(string ret_name, string tmpdir, string pnet_id)
             "pc.options.outstructname, " +
             "pc.options.outstructdesc, " +
             "pc.options.neededlibrary, " +
-            "pc.options.functionname";
+            "pc.options.functionname, " +
+            "pc.options.fromdir, " +
+            "pc.options.todir";
   if (pnet_id == "wait_first") {
-    return ("def " + ret_name + " = sggspc_wait_first(l, " + common_args + ");");
+    return ("def " + ret_name + " = sggspc_wait_first(l, " + common_args +
+      ", 0, 0, pc.options.sortinput);");
   }
   if (pnet_id == "wait_all") {
-    return ("def " + ret_name + " = sggspc_wait_all(l, " + common_args + ");");
+    return ("def " + ret_name + " = sggspc_wait_all(l, " + common_args +
+      ", 0, 0, pc.options.sortinput);");
   }
   if (pnet_id == "pfd") {
     return ("def " + ret_name + " = sggspc_pfd(l, " + common_args +
-      ", pc.options.splitmax, pc.options.loopmax);");
+      ", pc.options.splitmax, pc.options.loopmax, pc.options.sortinput);");
   }
 }
 
@@ -253,7 +260,7 @@ PURPOSE:  apply @code{pfd} in parallel to the rational function saved in the
 "
 {
   configToken gc, pc;
-  int i, parallelize, split_max, loop_max;
+  int i, parallelize, split_max, loop_max, sort_input;
   list l;
   string todir, suffix;
 
@@ -301,9 +308,21 @@ PURPOSE:  apply @code{pfd} in parallel to the rational function saved in the
     loop_max = 20; // default value
   }
 
+  if (size(#) >= 7) {
+    if ( typeof(#[7]) != "int") {
+      ERROR("sortinput requires an int");
+    }
+    sort_input = #[7];
+  } else {
+    sort_input = 1; // default value
+  }
+
   pc = pfd_structs_config();
+  pc.options.fromdir = fromdir;
+  pc.options.todir = todir;
   pc.options.splitmax = split_max;
   pc.options.loopmax = loop_max;
+  pc.options.sortinput = sort_input;
 
   newstruct(pc.options.instructname, pc.options.instructdesc);
   newstruct(pc.options.outstructname, pc.options.outstructdesc);
