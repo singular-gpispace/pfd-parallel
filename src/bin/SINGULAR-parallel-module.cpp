@@ -102,6 +102,7 @@ namespace
       std::size_t splitMax() const;
       std::size_t loopMax() const;
       std::size_t sortInput() const;
+      std::size_t parProp() const;
 
       std::string tmpDir() const;
       std::string nodeFile() const;
@@ -146,6 +147,7 @@ namespace
       std::size_t split_max;
       std::size_t loop_max;
       std::size_t sort_input;
+      std::size_t par_prop;
       int out_token;
 
       singular_parallel::installation singular_parallel_installation;
@@ -180,6 +182,10 @@ namespace
 
   std::size_t ArgumentState::sortInput() const {
     return sort_input;
+  }
+
+  std::size_t ArgumentState::parProp() const {
+    return par_prop;
   }
 
   std::string ArgumentState::tmpDir() const {
@@ -262,6 +268,7 @@ namespace
   , split_max(get_split_max(args, graph_type))
   , loop_max(get_loop_max(args, graph_type))
   , sort_input (get_singular_int_argument(args, 16, "sortinput"))
+  , par_prop (get_singular_int_argument(args, 17, "parprop"))
   , out_token (fetch_token_value_from_sing_scope (outstructname))
   , singular_parallel_installation ()
   {
@@ -365,6 +372,8 @@ std::optional<std::multimap<std::string, pnet::type::value::value_type>>
     poke( "out_struct_name", problem_token_type, as.outStructName());
     poke( "out_struct_desc", problem_token_type, as.outStructDesc());
     poke( "tmpdir", problem_token_type, as.tmpDir());
+    poke( "parallel_proportion", problem_token_type,
+            static_cast<float> (((float)as.parProp())/100.0));
     poke( "task_count", problem_token_type, static_cast<unsigned int> (as.numTasks()));
     poke( "split_max", problem_token_type, static_cast<unsigned int> (as.splitMax()));
     poke( "loop_max", problem_token_type, static_cast<unsigned int> (as.loopMax()));

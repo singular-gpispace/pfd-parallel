@@ -47,6 +47,9 @@
             control = options.task_count;
             if (options.sort_input) {
               std::cout << "Sorting input by filesize\n";
+              std::cout << "Split proportion: "
+                        << options.parallel_proportion
+                        << "\n";
               elist = RESOLVE_INTERFACE_FUNCTION
                       (pfd_sorted_input_by_size)
                       (ecount, options, "pfd");
