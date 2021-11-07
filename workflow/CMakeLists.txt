@@ -78,5 +78,6 @@ addinstall_pnet(parallel_first)
 addinstall_pnet(parallel_allpfd
                 pfd_compute.xpnet
                 pfd_fork_compute_step.xpnet
-                pfd_serial_compute_step.xpnet)
+                pfd_serial_compute_step.xpnet
+                pfd_serial_compute_pfd.xpnet)
 

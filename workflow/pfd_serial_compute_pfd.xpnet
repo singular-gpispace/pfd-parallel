@@ -1,0 +1,35 @@
+<defun name="pfd_serial_compute_all">
+
+  <include-structs href="types.xpnet"/>
+
+  <require key="worker" mandatory="true"/>
+  <inout name="id" type="unsigned int"/>
+  <in name="options" type="options_type"/>
+
+  <module name="singular_parallel_allpfd"
+          require_function_unloads_without_rest="false"
+          function="serial_compute_all
+                      ( options
+                      , id
+                      )">
+    <cinclude href="interface/singular_pnet-interface.hpp"/>
+    <cinclude href="util-generic/dynamic_linking.hpp"/>
+    <cinclude href="iostream"/>
+    <code><![CDATA[
+      /*<>*/
+
+      std::cout << "Computing all for"
+                << id
+                << "\n";
+
+      RESOLVE_INTERFACE_FUNCTION
+        (pfd_serial_compute_pfd)
+        (id, options);
+
+      std::cout << "Computing "  << id << "serially done!\n";
+
+    ]]></code>
+  </module>
+
+</defun>
+

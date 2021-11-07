@@ -28,7 +28,8 @@ proc mod_init()
             "int upperbound, " +
             "int loopmax, " +
             "int splitmax, " +
-            "int sortinput"
+            "int sortinput, " +
+            "int parprop"
             );
 }
 
@@ -108,15 +109,16 @@ proc get_parallel_launch_command(string ret_name, string tmpdir, string pnet_id)
             "pc.options.todir";
   if (pnet_id == "wait_first") {
     return ("def " + ret_name + " = sggspc_wait_first(l, " + common_args +
-      ", 0, 0, pc.options.sortinput);");
+      ", 0, 0, pc.options.sortinput, 0);");
   }
   if (pnet_id == "wait_all") {
     return ("def " + ret_name + " = sggspc_wait_all(l, " + common_args +
-      ", 0, 0, pc.options.sortinput);");
+      ", 0, 0, pc.options.sortinput, 0);");
   }
   if (pnet_id == "pfd") {
     return ("def " + ret_name + " = sggspc_pfd(l, " + common_args +
-      ", pc.options.splitmax, pc.options.loopmax, pc.options.sortinput);");
+      ", pc.options.splitmax, pc.options.loopmax, " +
+      "pc.options.sortinput, pc.options.parprop);");
   }
 }
 
@@ -260,7 +262,8 @@ PURPOSE:  apply @code{pfd} in parallel to the rational function saved in the
 "
 {
   configToken gc, pc;
-  int i, parallelize, split_max, loop_max, sort_input;
+  int i, parallelize, split_max, loop_max, sort_input, par_prop;
+
   list l;
   string todir, suffix;
 
@@ -317,12 +320,22 @@ PURPOSE:  apply @code{pfd} in parallel to the rational function saved in the
     sort_input = 1; // default value
   }
 
+  if (size(#) >= 8) {
+    if ( typeof(#[8]) != "int") {
+      ERROR("parallel proportion requires an int");
+    }
+    par_prop = #[8];
+  } else {
+    par_prop = 5; // default value
+  }
+
   pc = pfd_structs_config();
   pc.options.fromdir = fromdir;
   pc.options.todir = todir;
   pc.options.splitmax = split_max;
   pc.options.loopmax = loop_max;
   pc.options.sortinput = sort_input;
+  pc.options.parprop = par_prop;
 
   newstruct(pc.options.instructname, pc.options.instructdesc);
   newstruct(pc.options.outstructname, pc.options.outstructdesc);
