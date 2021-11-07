@@ -60,6 +60,12 @@ namespace singular_parallel
        );
 
     NO_NAME_MANGLING
+      void pfd_serial_compute_pfd
+       ( unsigned int const& id
+       , const pnet_options& options
+       );
+
+    NO_NAME_MANGLING
       unsigned int pfd_general_prepare
       ( unsigned int const& id
       , const pnet_options& options

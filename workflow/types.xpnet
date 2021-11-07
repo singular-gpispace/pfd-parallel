@@ -31,8 +31,12 @@
     <field name="computing" type="unsigned int"/>
     <field name="id" type="unsigned int"/>
     <field name="total_degrees" type="list"/>
-    <!--
-    -->
   </struct>
+
+  <struct name="extract_control_type">
+    <field name="parallel" type="unsigned int"/>
+    <field name="serial" type="unsigned int"/>
+  </struct>
+
 
 </structs>

@@ -61,6 +61,24 @@ namespace singular_parallel
       );
 
     NO_NAME_MANGLING
+      void pfd_quick_sort
+      ( unsigned int *input
+      , long *sizes
+      , int low
+      , int high
+      );
+
+    NO_NAME_MANGLING
+      int pfd_quick_partition
+      ( unsigned int *input
+      , long *sizes
+      , int low
+      , int high
+      );
+
+
+
+    NO_NAME_MANGLING
       void sort_input_files_by_size
       ( unsigned int *input
       , unsigned int count
@@ -150,6 +168,18 @@ namespace singular_parallel
       }
 
     NO_NAME_MANGLING
+      void pfd_swap
+      ( unsigned int *input
+      , int index1
+      , int index2
+      )
+      {
+        unsigned int temp = input[index1];
+        input[index1] = input[index2];
+        input[index2] = temp;
+      }
+
+    NO_NAME_MANGLING
       void pfd_merge_lists
       ( unsigned int *input
       , long *sizes
@@ -221,6 +251,64 @@ namespace singular_parallel
       }
 
     NO_NAME_MANGLING
+      void pfd_quick_sort
+      ( unsigned int *input
+      , long *sizes
+      , int low
+      , int high
+      )
+      {
+        if (low >= high) {
+          return;
+        }
+        if ((low < 0) or (high < 0)) {
+          // this should never happen
+          throw std::runtime_error("Bad indices, should have been caught");
+        }
+        unsigned int pivot = pfd_quick_partition(input, sizes, low, high);
+        pfd_quick_sort(input, sizes, low, pivot - 1);
+        pfd_quick_sort(input, sizes, pivot + 1, high);
+
+      }
+
+    NO_NAME_MANGLING
+      int pfd_quick_partition
+      ( unsigned int *input
+      , long *sizes
+      , int low
+      , int high
+      )
+      {
+        // the real workhorse
+        int i, j;
+        unsigned int pivot = input[high];
+        long pivot_size = sizes[pivot];
+
+        i = low;
+        j = high - 1;
+
+        while (i < j) {
+          while (i < high and sizes[input[i]] < pivot_size) {
+            i++;
+          }
+          while (j > low and sizes[input[j]] >= pivot_size) {
+            j--;
+          }
+          if (i < j) {
+            pfd_swap(input, i, j);
+          }
+        }
+
+        if (sizes[input[i]] > pivot_size) {
+            pfd_swap(input, i, high);
+        }
+
+        return i;
+      }
+
+
+
+    NO_NAME_MANGLING
       void sort_input_files_by_size
       ( unsigned int *input
       , unsigned int count
@@ -231,17 +319,16 @@ namespace singular_parallel
         unsigned int i;
         long *sizes =
           (long *)malloc(sizeof(long) * count);
-        unsigned int *buffer =
-          (unsigned int *)malloc(sizeof(unsigned int) * count);
         for (i = 0; i < count; i++) {
           sizes[i] = get_input_file_size(i, options, net_type);
-          buffer[i] = 0;
         }
-        pfd_merge_sort(input, sizes, 0, count - 1, buffer);
+        pfd_quick_sort(input, sizes, 0, count - 1);
+
+        for (i = 0; i < count; i++) {
+          sizes[i] = 0;
+        }
         free(sizes);
-        free(buffer);
         sizes = NULL;
-        buffer = NULL;
       }
 
     NO_NAME_MANGLING
@@ -395,6 +482,33 @@ namespace singular_parallel
                                             );
         singular::call_and_discard("kill output;");
       }
+
+    NO_NAME_MANGLING
+      void pfd_serial_compute_pfd
+      ( unsigned int const& id
+      , const pnet_options& options
+      )
+      {
+        init_singular ();
+
+        singular::register_struct(options.in_struct_name,
+                                  options.in_struct_desc);
+        singular::register_struct(options.out_struct_name,
+                                  options.out_struct_desc);
+        singular::load_library (options.needed_library);
+        singular::load_ssi("input", get_in_struct_filename( options.tmpdir
+                                        , config::parallel_pfd_base_name()
+                                        , id));
+        singular::call_and_discard(options.out_struct_name + " output = " +
+                                    options.function_name +
+                                    "(input);");
+        singular::write_ssi("output", get_out_struct_filename( options.tmpdir
+                                            , config::parallel_pfd_base_name()
+                                            , id)
+                                            );
+        singular::call_and_discard("kill output;");
+      }
+
 
     NO_NAME_MANGLING
       unsigned int pfd_already_done

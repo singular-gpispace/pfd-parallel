@@ -109,11 +109,11 @@ proc get_parallel_launch_command(string ret_name, string tmpdir, string pnet_id)
             "pc.options.todir";
   if (pnet_id == "wait_first") {
     return ("def " + ret_name + " = sggspc_wait_first(l, " + common_args +
-      ", 0, 0, pc.options.sortinput);");
+      ", 0, 0, pc.options.sortinput, 0);");
   }
   if (pnet_id == "wait_all") {
     return ("def " + ret_name + " = sggspc_wait_all(l, " + common_args +
-      ", 0, 0, pc.options.sortinput);");
+      ", 0, 0, pc.options.sortinput, 0);");
   }
   if (pnet_id == "pfd") {
     return ("def " + ret_name + " = sggspc_pfd(l, " + common_args +
