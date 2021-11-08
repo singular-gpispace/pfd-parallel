@@ -272,6 +272,33 @@ namespace singular_parallel
       }
 
     NO_NAME_MANGLING
+      unsigned int pfd_quick_pivot
+      ( unsigned int *input
+      , long *sizes
+      , int low
+      , int high
+      )
+      {
+        // local function
+        int mid = (int)((low + high) / 2);
+
+        if(sizes[input[mid]] < sizes[input[low]]) {
+          pfd_swap(input, low, mid);
+        }
+
+        if(sizes[input[high]] < sizes[input[low]]) {
+          pfd_swap(input, low, high);
+        }
+
+        if(sizes[input[mid]] < sizes[input[high]]) {
+          // make sure the "median of three" is in position of high
+          pfd_swap(input, low, high);
+        }
+
+        return input[high];
+      }
+
+    NO_NAME_MANGLING
       int pfd_quick_partition
       ( unsigned int *input
       , long *sizes
@@ -279,9 +306,10 @@ namespace singular_parallel
       , int high
       )
       {
+        //local function
         // the real workhorse
         int i, j;
-        unsigned int pivot = input[high];
+        unsigned int pivot = pfd_quick_pivot(input, sizes, low, high);
         long pivot_size = sizes[pivot];
 
         i = low;
