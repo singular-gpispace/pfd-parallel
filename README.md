@@ -623,7 +623,7 @@ rm temp.sh
 EOF
 
 chmod a+x shell_expand_script.sh
-./shell_expand_script.sh test_pfd.sing.temp test_pfd.sing
+./shell_expand_script.sh test_parallel_pfd.sing.temp test_parallel_pfd.sing
 
 ```
 
@@ -670,7 +670,7 @@ Finally, the test may be started with
 cat > run_pfd_example.sh << "EOF"
 SINGULARPATH="$PFD_INSTALL_DIR/LIB"                               \
         $SINGULAR_INSTALL_DIR/bin/Singular                        \
-        test_pfd.sing
+        test_parallel_pfd.sing
 EOF
 chmod a+x run_pfd_example.sh
 ./run_pfd_example.sh
