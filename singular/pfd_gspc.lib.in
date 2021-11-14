@@ -262,7 +262,7 @@ PURPOSE:  apply @code{pfd} in parallel to the rational function saved in the
 "
 {
   configToken gc, pc;
-  int i, parallelize, split_max, loop_max, sort_input, par_prop;
+  int i, split_max, loop_max, sort_input, par_prop;
 
   list l;
   string todir, suffix;
@@ -290,41 +290,36 @@ PURPOSE:  apply @code{pfd} in parallel to the rational function saved in the
     suffix = "txt";
   }
   if (size(#) >= 4) {
-    parallelize = #[4];
-  } else {
-    parallelize = 1; // false
-  }
-  if (size(#) >= 5) {
-    if ( typeof(#[5]) != "int") {
+    if ( typeof(#[4]) != "int") {
       ERROR("split_max requires an int");
     }
-    split_max = #[5];
+    split_max = #[4];
   } else {
     split_max = 8; // default value
   }
-  if (size(#) >= 6) {
-    if ( typeof(#[6]) != "int") {
+  if (size(#) >= 5) {
+    if ( typeof(#[5]) != "int") {
       ERROR("loop_max requires an int");
     }
-    loop_max = #[6];
+    loop_max = #[5];
   } else {
     loop_max = 20; // default value
   }
 
-  if (size(#) >= 7) {
-    if ( typeof(#[7]) != "int") {
+  if (size(#) >= 6) {
+    if ( typeof(#[6]) != "int") {
       ERROR("sortinput requires an int");
     }
-    sort_input = #[7];
+    sort_input = #[6];
   } else {
     sort_input = 1; // default value
   }
 
-  if (size(#) >= 8) {
-    if ( typeof(#[8]) != "int") {
+  if (size(#) >= 7) {
+    if ( typeof(#[7]) != "int") {
       ERROR("parallel proportion requires an int");
     }
-    par_prop = #[8];
+    par_prop = #[7];
   } else {
     par_prop = 5; // default value
   }
@@ -353,11 +348,7 @@ PURPOSE:  apply @code{pfd} in parallel to the rational function saved in the
       l[i] = ins;
   }
 
-  if (parallelize) {
-    def re_all = parallel_waitpfd(l,gc,pc);
-  } else {
-    def re_all = parallel_waitall(l,gc,pc);
-  }
+  def re_all = parallel_waitpfd(l,gc,pc);
 
   if (size(#) < 1) {
     system("sh", "rm -rv " + gc.options.tmpdir);
@@ -365,6 +356,125 @@ PURPOSE:  apply @code{pfd} in parallel to the rational function saved in the
   print (re_all);
 
   return (1);
+}
+
+proc  pfd_internal_serial( string matrixname
+                         , list entry_indices
+                         , string fromdir
+                         , list #
+                         )
+{
+  configToken gc;
+
+  int sort_input;
+
+  string todir, suffix;
+
+
+
+  if (size(#) >= 1) {
+    gc = #[1];
+  } else {
+    gc = default_gspc_config();
+  }
+  if (size(#) >= 2) {
+    todir = #[2];
+  } else {
+    todir = fromdir;
+  }
+  if (size(#) >= 3) {
+    suffix = #[3];
+  } else {
+    suffix = "txt";
+  }
+
+  if (size(#) >= 4) {
+    if ( typeof(#[4]) != "int") {
+      ERROR("sortinput requires an int");
+    }
+    sort_input = #[4];
+  } else {
+    sort_input = 1; // default value: True
+  }
+
+  parallel_pfd( matrixname
+              , entry_indices
+              , fromdir
+              , gc
+              , todir
+              , suffix
+              , 1 // max_split irrelevant in serial
+              , 1 // max_loop irrelevant in serial
+              , sort_input
+              , 0 // serial, so 0% internal parallel
+              );
+}
+
+proc  pfd_internal_parallel( string matrixname
+                           , list entry_indices
+                           , string fromdir
+                           , list #
+                           )
+{
+  configToken gc;
+
+  int split_max, loop_max, sort_input;
+
+  string todir, suffix;
+
+  if (size(#) >= 1) {
+    gc = #[1];
+  } else {
+    gc = default_gspc_config();
+  }
+  if (size(#) >= 2) {
+    todir = #[2];
+  } else {
+    todir = fromdir;
+  }
+  if (size(#) >= 3) {
+    suffix = #[3];
+  } else {
+    suffix = "txt";
+  }
+
+  if (size(#) >= 4) {
+    if ( typeof(#[4]) != "int") {
+      ERROR("split_max requires an int");
+    }
+    split_max = #[4];
+  } else {
+    split_max = 8; // default value
+  }
+  if (size(#) >= 5) {
+    if ( typeof(#[5]) != "int") {
+      ERROR("loop_max requires an int");
+    }
+    loop_max = #[5];
+  } else {
+    loop_max = 50; // default value
+  }
+
+  if (size(#) >= 6) {
+    if ( typeof(#[6]) != "int") {
+      ERROR("sortinput requires an int");
+    }
+    sort_input = #[6];
+  } else {
+    sort_input = 1; // default value: True
+  }
+
+  parallel_pfd( matrixname
+              , entry_indices
+              , fromdir
+              , gc
+              , todir
+              , suffix
+              , split_max
+              , loop_max
+              , sort_input
+              , 100 // parallel, so 100% internal parallel
+              );
 }
 
 /*** companion functions ***/

@@ -82,6 +82,8 @@ export PFD_ROOT=$SOFTWARE_ROOT/pfd
 export PFD_REPO=$PFD_ROOT/pfd
 export PFD_INSTALL_DIR=$INSTALL_ROOT/pfd
 export PFD_BUILD_DIR=$PFD_ROOT/build
+export PFD_INPUT_DIR=$PFD_ROOT/input
+export PFD_OUTPUT_DIR=$PFD_ROOT/output
 EOF
 
 ```
@@ -563,13 +565,13 @@ preferably with the optional argument for the path to where the input files are
 found.  The user may also provide in a separate argument the path of where the
 output files should be written.
 
-An example script `test_pfd.sing` for a 4 by 4 matrix might be
+An example script `test_parallel_pfd.sing` for a 4 by 4 matrix might be
 
 ```bash
 mkdir -p $PFD_ROOT/tmpdir
 echo $(hostname) > $PFD_ROOT/nodefile
 
-cat > test_pfd.sing.temp << "EOF"
+cat > test_parallel_pfd.sing.temp << "EOF"
 LIB "pfd_gspc.lib";
 
 configToken gc = configure_gspc();
@@ -599,12 +601,12 @@ list l = list( list(1, 1)
              , list(4, 3)
              , list(4, 4)
              );
-parallel_pfd( "fraction"
-            , l
-            , "$PFD_ROOT/input"
-            , gc
-            , "$PFD_ROOT/results" // optional, only necessary if diff from input dir
-            );
+pfd_internal_parallel( "fraction"
+                     , l
+                     , "$PFD_INPUT_DIR"
+                     , gc
+                     , "$PFD_OUTPUT_DIR" // optional, only necessary if diff from input dir
+                     );
 exit;
 EOF
 
@@ -649,9 +651,9 @@ is enabled.
 
 Create the input files:
 ```bash
-mkdir -p $PFD_ROOT/input
-mkdir -p $PFD_ROOT/results
-pushd $PFD_ROOT/input
+mkdir -p $PFD_INPUT_DIR
+mkdir -p $PFD_OUTPUT_DIR
+pushd $PFD_INPUT_DIR
 for r in {1..4}
 do
   for c in {1..4}
