@@ -748,6 +748,10 @@ It can now be started with
 
 ```
 
+Note, to run the same computation, but without the internal parallelism on each
+entry, the `pfd_fullyparallel` function in `real_pfd.sing` may be changed to
+`pfd_waitall` with the arguments unchanged.
+
 
 
 ## Appendix: Standard packages required to build the framework
