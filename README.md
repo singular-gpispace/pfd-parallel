@@ -601,12 +601,12 @@ list l = list( list(1, 1)
              , list(4, 3)
              , list(4, 4)
              );
-pfd_internal_parallel( "fraction"
-                     , l
-                     , "$PFD_INPUT_DIR"
-                     , gc
-                     , "$PFD_OUTPUT_DIR" // optional, only necessary if diff from input dir
-                     );
+pfd_fullyparallel( "fraction"
+                 , l
+                 , "$PFD_INPUT_DIR"
+                 , gc
+                 , "$PFD_OUTPUT_DIR" // optional, only necessary if diff from input dir
+                 );
 exit;
 EOF
 
@@ -671,6 +671,65 @@ cat > run_pfd_example.sh << "EOF"
 SINGULARPATH="$PFD_INSTALL_DIR/LIB"                               \
         $SINGULAR_INSTALL_DIR/bin/Singular                        \
         test_parallel_pfd.sing
+EOF
+chmod a+x run_pfd_example.sh
+./run_pfd_example.sh
+
+```
+
+An example with real PFD data, can be run with the following script:
+j
+```bash
+mkdir -p $PFD_ROOT/tmpdir
+echo $(hostname) > $PFD_ROOT/nodefile
+
+cat > real_pfd.sing.temp << "EOF"
+LIB "pfd_gspc.lib";
+
+configToken gc = configure_gspc();
+
+gc.options.tmpdir = "$PFD_ROOT/tmpdir";
+gc.options.nodefile = "$PFD_ROOT/nodefile";
+gc.options.procspernode = 8;
+gc.options.loghost = "$(hostname)";
+gc.options.logport = 6439;
+
+ring r = 0, x, lp;
+
+list l = list( list(1, 1)
+             , list(1, 2)
+             , list(1, 3)
+             , list(1, 4)
+             , list(1, 5)
+             , list(1, 6)
+             , list(1, 7)
+             , list(1, 8)
+             , list(1, 9)
+             , list(1, 10)
+             );
+pfd_fullyparallel( "xb_deg5"
+                 , l
+                 , "$PFD_REPO/example_data/ssi"
+                 , gc
+                 , "$PFD_OUTPUT_DIR" // optional, only necessary if should differ from input dir
+                 );
+exit;
+EOF
+
+```
+
+Expanding the bash variables is again achieved as follows:
+```
+./shell_expand_script.sh real_pfd.sing.temp real_pfd.sing
+
+```
+
+Assuming the monitor is still running, start the computation with
+```bash
+cat > run_real_pfd.sh << "EOF"
+SINGULARPATH="$PFD_INSTALL_DIR/LIB"                               \
+        $SINGULAR_INSTALL_DIR/bin/Singular                        \
+        real_pfd.sing
 EOF
 chmod a+x run_pfd_example.sh
 ./run_pfd_example.sh
