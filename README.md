@@ -688,8 +688,8 @@ which can be started with
 ```
 
 To run more an example with real PFD data, some data is provided as `ssi`
-("simple Singular interface") files under example_data/ssi, which can be
-decomposed with the following Singular script:
+("simple Singular interface") files under `example_data/ssi`, which can be
+decomposed with the Singular script `real_pfd.sing`:
 ```bash
 mkdir -p $PFD_ROOT/tmpdir
 echo $(hostname) > $PFD_ROOT/nodefile
@@ -722,15 +722,12 @@ pfd_fullyparallel( "xb_deg5"
                  , l
                  , "$PFD_REPO/example_data/ssi"
                  , gc
-                 , "$PFD_OUTPUT_DIR" // optional, only necessary if should differ from input dir
+                 , "$PFD_OUTPUT_DIR" // optional, only necessary
+                                     // if should differ from
+                                     // input dir
                  );
 exit;
 EOF
-
-```
-
-Expanding the bash variables is again achieved as follows:
-```
 ./shell_expand_script.sh real_pfd.sing.temp real_pfd.sing
 
 ```
@@ -745,7 +742,7 @@ EOF
 chmod a+x run_pfd_example.sh
 
 ```
-It can now be run with
+It can now be started with
 ```
 ./run_real_pfd.sh
 
