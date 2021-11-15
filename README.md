@@ -82,6 +82,8 @@ export PFD_ROOT=$SOFTWARE_ROOT/pfd
 export PFD_REPO=$PFD_ROOT/pfd
 export PFD_INSTALL_DIR=$INSTALL_ROOT/pfd
 export PFD_BUILD_DIR=$PFD_ROOT/build
+export PFD_INPUT_DIR=$PFD_ROOT/input
+export PFD_OUTPUT_DIR=$PFD_ROOT/output
 EOF
 
 ```
@@ -563,16 +565,17 @@ preferably with the optional argument for the path to where the input files are
 found.  The user may also provide in a separate argument the path of where the
 output files should be written.
 
-An example script `test_pfd.sing` for a 4 by 4 matrix might be
+An example script `test_parallel_pfd.sing` in Singular for a 4 by 4 matrix might
+be
 
 ```bash
 mkdir -p $PFD_ROOT/tmpdir
 echo $(hostname) > $PFD_ROOT/nodefile
 
-cat > test_pfd.sing.temp << "EOF"
+cat > test_parallel_pfd.sing.temp << "EOF"
 LIB "pfd_gspc.lib";
 
-configToken gc = configure_gspc();
+configToken gc = configure_gspc(); // the struct to give configure GPI-space
 
 gc.options.tmpdir = "$PFD_ROOT/tmpdir";
 gc.options.nodefile = "$PFD_ROOT/nodefile";
@@ -599,12 +602,12 @@ list l = list( list(1, 1)
              , list(4, 3)
              , list(4, 4)
              );
-parallel_pfd( "fraction"
-            , l
-            , "$PFD_ROOT/input"
-            , gc
-            , "$PFD_ROOT/results" // optional, only necessary if diff from input dir
-            );
+pfd_fullyparallel( "fraction"
+                 , l
+                 , "$PFD_INPUT_DIR"
+                 , gc
+                 , "$PFD_OUTPUT_DIR" // optional, only necessary if diff from input dir
+                 );
 exit;
 EOF
 
@@ -621,11 +624,12 @@ rm temp.sh
 EOF
 
 chmod a+x shell_expand_script.sh
-./shell_expand_script.sh test_pfd.sing.temp test_pfd.sing
+./shell_expand_script.sh test_parallel_pfd.sing.temp test_parallel_pfd.sing
 
 ```
 
-Next, if you wish to start a monitor, this may be done as follows:
+Next, if you wish to start a monitor, this may be done with the following
+script:
 ```bash
 cat > start_monitor.sh << "EOF"
 #!/usr/bin/bash
@@ -640,18 +644,23 @@ QT_DEBUG_PLUGINS=0                                                \
 
 EOF
 chmod a+x start_monitor.sh
+
+```
+It may simply be run as
+```
 ./start_monitor.sh
 
 ```
+
 Ensure that the `--port` number matches the one set in the singular script.
 Also, if this is run over ssh on a remote machine, make sure that x forwarding
 is enabled.
 
 Create the input files:
 ```bash
-mkdir -p $PFD_ROOT/input
-mkdir -p $PFD_ROOT/results
-pushd $PFD_ROOT/input
+mkdir -p $PFD_INPUT_DIR
+mkdir -p $PFD_OUTPUT_DIR
+pushd $PFD_INPUT_DIR
 for r in {1..4}
 do
   for c in {1..4}
@@ -663,15 +672,79 @@ popd
 
 ```
 
-Finally, the test may be started with
+Finally, the test may be run with the script
 ```bash
 cat > run_pfd_example.sh << "EOF"
 SINGULARPATH="$PFD_INSTALL_DIR/LIB"                               \
         $SINGULAR_INSTALL_DIR/bin/Singular                        \
-        test_pfd.sing
+        test_parallel_pfd.sing
 EOF
 chmod a+x run_pfd_example.sh
+```
+which can be started with
+```
 ./run_pfd_example.sh
+
+```
+
+To run more an example with real PFD data, some data is provided as `ssi`
+("simple Singular interface") files under `example_data/ssi`, which can be
+decomposed with the Singular script `real_pfd.sing`:
+```bash
+mkdir -p $PFD_ROOT/tmpdir
+echo $(hostname) > $PFD_ROOT/nodefile
+
+cat > real_pfd.sing.temp << "EOF"
+LIB "pfd_gspc.lib";
+
+configToken gc = configure_gspc();
+
+gc.options.tmpdir = "$PFD_ROOT/tmpdir";
+gc.options.nodefile = "$PFD_ROOT/nodefile";
+gc.options.procspernode = 8;
+gc.options.loghost = "$(hostname)";
+gc.options.logport = 6439;
+
+ring r = 0, x, lp;
+
+list l = list( list(1, 1)
+             , list(1, 2)
+             , list(1, 3)
+             , list(1, 4)
+             , list(1, 5)
+             , list(1, 6)
+             , list(1, 7)
+             , list(1, 8)
+             , list(1, 9)
+             , list(1, 10)
+             );
+pfd_fullyparallel( "xb_deg5"
+                 , l
+                 , "$PFD_REPO/example_data/ssi"
+                 , gc
+                 , "$PFD_OUTPUT_DIR" // optional, only necessary
+                                     // if should differ from
+                                     // input dir
+                 );
+exit;
+EOF
+./shell_expand_script.sh real_pfd.sing.temp real_pfd.sing
+
+```
+
+To run the Singular Script, the following bash script may be used:
+```bash
+cat > run_real_pfd.sh << "EOF"
+SINGULARPATH="$PFD_INSTALL_DIR/LIB"                               \
+        $SINGULAR_INSTALL_DIR/bin/Singular                        \
+        real_pfd.sing
+EOF
+chmod a+x run_pfd_example.sh
+
+```
+It can now be started with
+```
+./run_real_pfd.sh
 
 ```
 
