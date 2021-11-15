@@ -358,7 +358,7 @@ PURPOSE:  apply @code{pfd} in parallel to the rational function saved in the
   return (1);
 }
 
-proc  pfd_internal_serial( string matrixname
+proc  pfd_waitall( string matrixname
                          , list entry_indices
                          , string fromdir
                          , list #
@@ -410,7 +410,7 @@ proc  pfd_internal_serial( string matrixname
               );
 }
 
-proc  pfd_internal_parallel( string matrixname
+proc  pfd_fullyparallel( string matrixname
                            , list entry_indices
                            , string fromdir
                            , list #
