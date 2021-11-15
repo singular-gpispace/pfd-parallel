@@ -565,7 +565,8 @@ preferably with the optional argument for the path to where the input files are
 found.  The user may also provide in a separate argument the path of where the
 output files should be written.
 
-An example script `test_parallel_pfd.sing` for a 4 by 4 matrix might be
+An example script `test_parallel_pfd.sing` in Singular for a 4 by 4 matrix might
+be
 
 ```bash
 mkdir -p $PFD_ROOT/tmpdir
@@ -574,7 +575,7 @@ echo $(hostname) > $PFD_ROOT/nodefile
 cat > test_parallel_pfd.sing.temp << "EOF"
 LIB "pfd_gspc.lib";
 
-configToken gc = configure_gspc();
+configToken gc = configure_gspc(); // the struct to give configure GPI-space
 
 gc.options.tmpdir = "$PFD_ROOT/tmpdir";
 gc.options.nodefile = "$PFD_ROOT/nodefile";
@@ -627,7 +628,8 @@ chmod a+x shell_expand_script.sh
 
 ```
 
-Next, if you wish to start a monitor, this may be done as follows:
+Next, if you wish to start a monitor, this may be done with the following
+script:
 ```bash
 cat > start_monitor.sh << "EOF"
 #!/usr/bin/bash
@@ -642,9 +644,14 @@ QT_DEBUG_PLUGINS=0                                                \
 
 EOF
 chmod a+x start_monitor.sh
+
+```
+It may simply be run as
+```
 ./start_monitor.sh
 
 ```
+
 Ensure that the `--port` number matches the one set in the singular script.
 Also, if this is run over ssh on a remote machine, make sure that x forwarding
 is enabled.
@@ -665,7 +672,7 @@ popd
 
 ```
 
-Finally, the test may be started with
+Finally, the test may be run with the script
 ```bash
 cat > run_pfd_example.sh << "EOF"
 SINGULARPATH="$PFD_INSTALL_DIR/LIB"                               \
@@ -673,12 +680,16 @@ SINGULARPATH="$PFD_INSTALL_DIR/LIB"                               \
         test_parallel_pfd.sing
 EOF
 chmod a+x run_pfd_example.sh
+```
+which can be started with
+```
 ./run_pfd_example.sh
 
 ```
 
-An example with real PFD data, can be run with the following script:
-j
+To run more an example with real PFD data, some data is provided as `ssi`
+("simple Singular interface") files under example_data/ssi, which can be
+decomposed with the following Singular script:
 ```bash
 mkdir -p $PFD_ROOT/tmpdir
 echo $(hostname) > $PFD_ROOT/nodefile
@@ -724,7 +735,7 @@ Expanding the bash variables is again achieved as follows:
 
 ```
 
-Assuming the monitor is still running, start the computation with
+To run the Singular Script, the following bash script may be used:
 ```bash
 cat > run_real_pfd.sh << "EOF"
 SINGULARPATH="$PFD_INSTALL_DIR/LIB"                               \
@@ -732,7 +743,11 @@ SINGULARPATH="$PFD_INSTALL_DIR/LIB"                               \
         real_pfd.sing
 EOF
 chmod a+x run_pfd_example.sh
-./run_pfd_example.sh
+
+```
+It can now be run with
+```
+./run_real_pfd.sh
 
 ```
 
