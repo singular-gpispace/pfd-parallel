@@ -95,6 +95,15 @@ proc get_tempdir(configToken gc)
   }
 }
 
+proc get_absolute_path(string path)
+{
+  if (path[1] == "/") {
+    return (path);
+  } else {
+    return (system("getenv", "PWD") + "/" + path);
+  }
+}
+
 proc get_parallel_launch_command(string ret_name, string tempdir, string pnet_id)
 {
   string common_args = "\"" + tempdir + "\"" + ", " +
@@ -274,8 +283,8 @@ proc parallel_pfd ( list entry_indices
     in_struct ins;
 
     ins.matrixname = pc.options.filename;
-    ins.inputdir = pc.options.inputdir;
-    ins.outputdir = pc.options.outputdir;
+    ins.inputdir = get_absolute_path (pc.options.inputdir);
+    ins.outputdir = get_absolute_path (pc.options.outputdir);
     ins.suffix = pc.options.suffix;
     if ((ins.suffix =="txt") and (! defined(basering))) {
       ERROR("Please set the applicable ring required for the underlying polynomials");
