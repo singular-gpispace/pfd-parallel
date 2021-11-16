@@ -24,6 +24,9 @@ proc pfd_singular_compute (in_struct input)
                                      , input.suffix
                                      , input.row
                                      , input.col);
+  if (input.suffix == "txt") {
+    execute("ring r = " + input.neededring + ";");
+  }
   pfdSingleEntry(filename, input.inputdir, input.outputdir);
 
   out_struct output;
