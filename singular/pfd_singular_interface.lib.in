@@ -24,7 +24,7 @@ proc pfd_singular_compute (in_struct input)
                                      , input.suffix
                                      , input.row
                                      , input.col);
-  pfdSingleEntry(filename, input.fromdir, input.todir);
+  pfdSingleEntry(filename, input.inputdir, input.outputdir);
 
   out_struct output;
   output.result = "success!";
@@ -51,12 +51,11 @@ proc pfd_singular_general_prepare (in_struct input, int id, string tmpdir, strin
 
 proc pfd_singular_is_already_computed (in_struct input)
 {
-  //execute("ring r = " + input.neededring);
   string filename = pfd_singular_filename_no_suffix( input.matrixname
                                                , input.row
                                                , input.col);
 
-  list args = parsePfdSingleEntryArgs(input.fromdir, input.todir);
+  list args = parsePfdSingleEntryArgs(input.inputdir, input.outputdir);
   string from_dir = args[1];
   string to_dir = args[2];
 
@@ -69,7 +68,7 @@ proc pfd_singular_is_already_computed (in_struct input)
 
 proc pfd_singular_prepareSingleEntryFraction (in_struct input)
 {
-  list args = parsePfdSingleEntryArgs(input.fromdir, input.todir);
+  list args = parsePfdSingleEntryArgs(input.inputdir, input.outputdir);
   string from_dir = args[1];
   string to_dir = args[2];
   int ignore_nonlin = args[3];
@@ -90,7 +89,11 @@ proc pfd_singular_prepareSingleEntryFraction (in_struct input)
                                                 , input.col)
                                                 )
                   ) {
-    ERROR("Preparation of ssi failed");
+    ERROR("Preparation of ssi failed for " + from_dir +
+                           pfd_singular_filename( input.matrixname
+                                                , "ssi"
+                                                , input.row
+                                                , input.col));
   }
 }
 
@@ -100,7 +103,7 @@ proc pfd_singular_is_trivial (in_struct input)
   system("--ticks-per-sec",1000);
   short = 0;
 
-  list args = parsePfdSingleEntryArgs(input.fromdir, input.todir);
+  list args = parsePfdSingleEntryArgs(input.inputdir, input.outputdir);
   string from_dir = args[1];
   string to_dir = args[2];
   int ignore_nonlin = args[3];
@@ -194,7 +197,7 @@ proc pfd_singular_prepare_input (in_struct input, int id, string tmpdir, string 
   system("--ticks-per-sec",1000);
   short = 0;
 
-  list args = parsePfdSingleEntryArgs(input.fromdir, input.todir);
+  list args = parsePfdSingleEntryArgs(input.inputdir, input.outputdir);
   string from_dir = args[1];
   string to_dir = args[2];
   int ignore_nonlin = args[3];
