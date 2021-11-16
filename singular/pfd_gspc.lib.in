@@ -23,8 +23,11 @@ proc mod_init()
             "string neededlibrary, " +
             "string functionname, " +
             "string expandnodefunction, " +
-            "string fromdir, " +
-            "string todir, " +
+            "string inputdir, " +
+            "string outputdir, " +
+            "string filename, " +
+            "string suffix, " +
+            "string algorithm, " +
             "int upperbound, " +
             "int loopmax, " +
             "int splitmax, " +
@@ -105,8 +108,8 @@ proc get_parallel_launch_command(string ret_name, string tmpdir, string pnet_id)
             "pc.options.outstructdesc, " +
             "pc.options.neededlibrary, " +
             "pc.options.functionname, " +
-            "pc.options.fromdir, " +
-            "pc.options.todir";
+            "pc.options.inputdir, " +
+            "pc.options.outputdir";
   if (pnet_id == "wait_first") {
     return ("def " + ret_name + " = sggspc_wait_first(l, " + common_args +
       ", 0, 0, pc.options.sortinput, 0);");
@@ -235,22 +238,80 @@ proc pfd_structs_config()
 
   pc.options.instructname = "in_struct";
   pc.options.instructdesc = "string matrixname, int row, int col, " +
-                            "string neededring, string fromdir, " +
-                            "string todir, string suffix";
+                            "string neededring, string inputdir, " +
+                            "string outputdir, string suffix";
   pc.options.outstructname = "out_struct";
   pc.options.outstructdesc = "string result";
   pc.options.neededlibrary = "@PFD_SING_LIB_PATH@/pfd_singular_interface.lib";
   pc.options.functionname = "pfd_singular_compute";
+  pc.options.splitmax = 8;
+  pc.options.loopmax = 50;
+  pc.options.sortinput = 1;
+  pc.options.parprop = 100;
+
+  pc.options.filename = "";
+  pc.options.suffix = "ssi";
+  pc.options.algorithm = "custom";
 
   return (pc);
 }
 
-proc parallel_pfd ( string matrixname
+proc parallel_pfd ( list entry_indices
+                  , configToken gc
+                  , configToken pc
+                  )
+{
+  int i;
+  list l;
+  check_gspc_token_type(gc);
+  check_parallel_token_type(pc);
+  if ( (gc.tokentype == "gspcConfigToken") and
+        (pc.tokentype == "parallelConfigToken") ) {
+
+    // prepare in structs
+    newstruct(pc.options.instructname, pc.options.instructdesc);
+    newstruct(pc.options.outstructname, pc.options.outstructdesc);
+    in_struct ins;
+
+    ins.matrixname = pc.options.filename;
+    ins.inputdir = pc.options.inputdir;
+    ins.outputdir = pc.options.outputdir;
+    ins.suffix = pc.options.suffix;
+    if ((ins.suffix =="txt") and (! defined(basering))) {
+      ERROR("Please set the applicable ring required for the underlying polynomials");
+      return(0);
+    } else{if (ins.suffix =="txt") {
+      ins.neededring = string(basering);
+    }}
+
+    for (i = 1; i <= size(entry_indices); i++) {
+      ins.row = entry_indices[i][1];
+      ins.col = entry_indices[i][2];
+      l[i] = ins;
+    }
+
+    if (pc.options.algorithm == "waitAll") {
+      pc.options.parprop=0;
+    } else{if (pc.options.algorithm == "fullyParallel") {
+      pc.options.parprop=100;
+    }}
+
+    def re_all = parallel_waitpfd(l,gc,pc);
+
+    return (re_all);
+
+  } else {
+    ERROR("Bad token types given as argument");
+  }
+}
+
+proc custom_pfd ( string matrixname
                   , list entry_indices
-                  , string fromdir
+                  , string inputdir
                   , list #
                   )
-"USAGE:   parallel_pfd(matrixname, entry_indices, fromdir[, gc[, todir[, suffix]]), matrixname,fromdir,todir,suffix string,  entry_indicies list, gc configToken
+"USAGE:   custom_pfd(matrixname, entry_indices, inputdir[, gc[, outputdir[,
+suffix]]), matrixname,inputdir,outputdir,suffix string,  entry_indicies list, gc configToken
 PURPOSE:  apply @code{pfd} in parallel to the rational function saved in the
           files identified by the entry_indices corresponding to the entries of
           some matrix of rational funcitons
@@ -262,15 +323,13 @@ PURPOSE:  apply @code{pfd} in parallel to the rational function saved in the
 "
 {
   configToken gc, pc;
-  int i, split_max, loop_max, sort_input, par_prop;
-
+  int i;
   list l;
-  string todir, suffix;
+  string outputdir;
 
-  if (! defined(basering)) {
-    ERROR("Please set the applicable ring required for the underlying polynomials");
-    return(0);
-  }
+  pc = pfd_structs_config();
+  pc.options.inputdir = inputdir;
+  pc.options.filename = matrixname;
 
   if (size(#) >= 1) {
     gc = #[1];
@@ -278,77 +337,48 @@ PURPOSE:  apply @code{pfd} in parallel to the rational function saved in the
     gc = default_gspc_config();
   }
 
-
   if (size(#) >= 2) {
-    todir = #[2];
+    pc.options.outputdir = #[2];
   } else {
-    todir = fromdir;
+    pc.options.outputdir = pc.options.inputdir;
   }
   if (size(#) >= 3) {
-    suffix = #[3];
-  } else {
-    suffix = "txt";
+    if ( typeof(#[3]) != "string") {
+      ERROR("suffix requires a string argument");
+    } else {
+      pc.options.suffix = #[3];
+    }
   }
   if (size(#) >= 4) {
     if ( typeof(#[4]) != "int") {
       ERROR("split_max requires an int");
+    } else {
+      pc.options.splitmax = #[4];
     }
-    split_max = #[4];
-  } else {
-    split_max = 8; // default value
   }
   if (size(#) >= 5) {
     if ( typeof(#[5]) != "int") {
       ERROR("loop_max requires an int");
+    } else {
+      pc.options.loopmax = #[5];
     }
-    loop_max = #[5];
-  } else {
-    loop_max = 20; // default value
   }
-
   if (size(#) >= 6) {
     if ( typeof(#[6]) != "int") {
       ERROR("sortinput requires an int");
+    } else {
+      pc.options.sortinput = #[6];
     }
-    sort_input = #[6];
-  } else {
-    sort_input = 1; // default value
   }
-
   if (size(#) >= 7) {
     if ( typeof(#[7]) != "int") {
       ERROR("parallel proportion requires an int");
+    } else {
+      pc.options.parprop = #[7];
     }
-    par_prop = #[7];
-  } else {
-    par_prop = 5; // default value
   }
 
-  pc = pfd_structs_config();
-  pc.options.fromdir = fromdir;
-  pc.options.todir = todir;
-  pc.options.splitmax = split_max;
-  pc.options.loopmax = loop_max;
-  pc.options.sortinput = sort_input;
-  pc.options.parprop = par_prop;
-
-  newstruct(pc.options.instructname, pc.options.instructdesc);
-  newstruct(pc.options.outstructname, pc.options.outstructdesc);
-  in_struct ins;
-
-  ins.matrixname = matrixname;
-  ins.neededring = string(basering);
-  ins.fromdir = fromdir;
-  ins.todir = todir;
-  ins.suffix = suffix;
-
-  for (i = 1; i <= size(entry_indices); i++) {
-      ins.row = entry_indices[i][1];
-      ins.col = entry_indices[i][2];
-      l[i] = ins;
-  }
-
-  def re_all = parallel_waitpfd(l,gc,pc);
+  def re_all = parallel_pfd(entry_indices, gc, pc);
 
   if (size(#) < 1) {
     system("sh", "rm -rv " + gc.options.tmpdir);
@@ -360,7 +390,7 @@ PURPOSE:  apply @code{pfd} in parallel to the rational function saved in the
 
 proc  pfd_waitall( string matrixname
                          , list entry_indices
-                         , string fromdir
+                         , string inputdir
                          , list #
                          )
 {
@@ -368,7 +398,7 @@ proc  pfd_waitall( string matrixname
 
   int sort_input;
 
-  string todir, suffix;
+  string outputdir, suffix;
 
 
 
@@ -378,9 +408,9 @@ proc  pfd_waitall( string matrixname
     gc = default_gspc_config();
   }
   if (size(#) >= 2) {
-    todir = #[2];
+    outputdir = #[2];
   } else {
-    todir = fromdir;
+    outputdir = inputdir;
   }
   if (size(#) >= 3) {
     suffix = #[3];
@@ -397,11 +427,11 @@ proc  pfd_waitall( string matrixname
     sort_input = 1; // default value: True
   }
 
-  parallel_pfd( matrixname
+  custom_pfd( matrixname
               , entry_indices
-              , fromdir
+              , inputdir
               , gc
-              , todir
+              , outputdir
               , suffix
               , 1 // max_split irrelevant in serial
               , 1 // max_loop irrelevant in serial
@@ -412,7 +442,7 @@ proc  pfd_waitall( string matrixname
 
 proc  pfd_fullyparallel( string matrixname
                            , list entry_indices
-                           , string fromdir
+                           , string inputdir
                            , list #
                            )
 {
@@ -420,7 +450,7 @@ proc  pfd_fullyparallel( string matrixname
 
   int split_max, loop_max, sort_input;
 
-  string todir, suffix;
+  string outputdir, suffix;
 
   if (size(#) >= 1) {
     gc = #[1];
@@ -428,9 +458,9 @@ proc  pfd_fullyparallel( string matrixname
     gc = default_gspc_config();
   }
   if (size(#) >= 2) {
-    todir = #[2];
+    outputdir = #[2];
   } else {
-    todir = fromdir;
+    outputdir = inputdir;
   }
   if (size(#) >= 3) {
     suffix = #[3];
@@ -464,11 +494,11 @@ proc  pfd_fullyparallel( string matrixname
     sort_input = 1; // default value: True
   }
 
-  parallel_pfd( matrixname
+  custom_pfd( matrixname
               , entry_indices
-              , fromdir
+              , inputdir
               , gc
-              , todir
+              , outputdir
               , suffix
               , split_max
               , loop_max
