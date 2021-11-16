@@ -77,7 +77,7 @@ proc get_loghost(configToken gc)
     {
       ERROR("logging requested, no loghost and no loghostfile given");
     }
-    return (extract_loghost_from_file(gc.options.loghostfile));
+    return (extract_loghost_from_file(get_absolute_path(gc.options.loghostfile)));
   } else {
     return (gc.options.loghost);
   }
