@@ -31,10 +31,10 @@ namespace singular_parallel
     NO_NAME_MANGLING
       std::string get_problem_time_path( const int& id
                                     , std::string measure_name
-                                    , std::string tmpdir
+                                    , std::string tempdir
                                     )
     {
-      return tmpdir +
+      return tempdir +
              "/" + measure_name +
              "_" + std::to_string(id) +
              ".time";
@@ -44,10 +44,10 @@ namespace singular_parallel
       std::string get_term_time_path( const int& id
                                     , const int& term_id
                                     , std::string measure_name
-                                    , std::string tmpdir
+                                    , std::string tempdir
                                     )
     {
-      return tmpdir +
+      return tempdir +
              "/" + measure_name +
              "_" + std::to_string(id) +
              "_" + std::to_string(term_id) +
@@ -128,7 +128,7 @@ namespace singular_parallel
                             % id
                             % duration
                             % ("\"" + measure_name + "\"")
-                            % ("\"" + options.tmpdir + "\"");
+                            % ("\"" + options.tempdir + "\"");
         singular::call_and_discard(command.str());
       }
 
@@ -144,19 +144,19 @@ namespace singular_parallel
       {
             write_duration_time ( 0, get_problem_time_path ( id
                                                            , "init_" + step
-                                                           , options.tmpdir
+                                                           , options.tempdir
                                                            ));
             write_duration_time ( 0, get_problem_time_path ( id
                                                            , "compute_" + step
-                                                           , options.tmpdir
+                                                           , options.tempdir
                                                            ));
             write_duration_time ( 0, get_problem_time_path ( id
                                                            , "merge_" + step
-                                                           , options.tmpdir
+                                                           , options.tempdir
                                                            ));
             write_duration_time ( 0, get_problem_time_path ( id
                                                            , "finish_" + step
-                                                           , options.tmpdir
+                                                           , options.tempdir
                                                            ));
       }
   }

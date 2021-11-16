@@ -7,7 +7,7 @@ proc mod_init()
   LIB "libSINGULAR-parallel-module.so";
   newstruct("configToken", "string tokentype, def options");
   newstruct("gspcConfigToken",
-            "string tmpdir, " +
+            "string tempdir, " +
             "string nodefile, " +
             "int procspernode, " +
             "string rifstrategy, " +
@@ -83,21 +83,21 @@ proc get_loghost(configToken gc)
   }
 }
 
-proc get_tmpdir(configToken gc)
+proc get_tempdir(configToken gc)
 {
-  if (gc.options.tmpdir[1] == "/")
+  if (gc.options.tempdir[1] == "/")
   {
-    return (gc.options.tmpdir);
+    return (gc.options.tempdir);
   }
   else
   {
-    return (system("getenv", "PWD") + "/" + gc.options.tmpdir);
+    return (system("getenv", "PWD") + "/" + gc.options.tempdir);
   }
 }
 
-proc get_parallel_launch_command(string ret_name, string tmpdir, string pnet_id)
+proc get_parallel_launch_command(string ret_name, string tempdir, string pnet_id)
 {
-  string common_args = "\"" + tmpdir + "\"" + ", " +
+  string common_args = "\"" + tempdir + "\"" + ", " +
             "gc.options.nodefile, " +
             "gc.options.procspernode, " +
             "gc.options.rifstrategy, " +
@@ -183,11 +183,11 @@ static proc parallel_wait(list l,
   gc.options.addargs = gc.options.addargs + get_log_opts(gc);
   gc.options.addargs = gc.options.addargs + get_ldpathopt();
 
-  string tmpdir = get_tmpdir(gc);
+  string tempdir = get_tempdir(gc);
 
   check_for_valid_pnet_id(pnet_id);
 
-  string s_command = get_parallel_launch_command("sm_result", tmpdir, pnet_id);
+  string s_command = get_parallel_launch_command("sm_result", tempdir, pnet_id);
   execute(s_command);
   return (sm_result);
 }
@@ -218,7 +218,7 @@ proc default_gspc_config()
 {
   configToken gc = configure_gspc();
 
-  gc.options.tmpdir = "/dev/shm/@USER@/pfd_tmpfile";
+  gc.options.tempdir = "/dev/shm/@USER@/pfd_tmpfile";
   gc.options.nodefile = "@HOME@/nodefile";
   gc.options.procspernode = 8;
   gc.options.loghost = "@HOSTNAME@";
@@ -227,7 +227,7 @@ proc default_gspc_config()
   while (gc.options.loghost[size(gc.options.loghost)] == newline) {
     gc.options.loghost = gc.options.loghost[1, size(gc.options.loghost) - 1];
   }
-  system("sh", "mkdir -p " + gc.options.tmpdir);
+  system("sh", "mkdir -p " + gc.options.tempdir);
 
   return (gc);
 }
@@ -381,7 +381,7 @@ PURPOSE:  apply @code{pfd} in parallel to the rational function saved in the
   def re_all = parallel_pfd(entry_indices, gc, pc);
 
   if (size(#) < 1) {
-    system("sh", "rm -rv " + gc.options.tmpdir);
+    system("sh", "rm -rv " + gc.options.tempdir);
   }
   print (re_all);
 
@@ -569,7 +569,7 @@ PURPOSE:  apply @code{companion} in parallel to the data saved in the
   def re_all = parallel_waitall(l,gc,pc);
 
   if (size(#) < 1) {
-    system("sh", "rm -rv " + gc.options.tmpdir);
+    system("sh", "rm -rv " + gc.options.tempdir);
   }
   print (re_all);
 

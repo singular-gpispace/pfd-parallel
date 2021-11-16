@@ -427,11 +427,11 @@ namespace singular_parallel
         singular::register_struct(options.in_struct_name,
                                   options.in_struct_desc);
         if (net_type == "pfd") {
-          singular::load_ssi("input", get_in_struct_filename( options.tmpdir
+          singular::load_ssi("input", get_in_struct_filename( options.tempdir
                                         , config::parallel_pfd_base_name()
                                         , id));
         } else if (net_type == "list") {
-          singular::load_ssi("input", get_in_struct_filename( options.tmpdir
+          singular::load_ssi("input", get_in_struct_filename( options.tempdir
                                         , config::parallel_list_base_name()
                                         , id));
         }
@@ -498,13 +498,13 @@ namespace singular_parallel
         singular::register_struct(options.out_struct_name,
                                   options.out_struct_desc);
         singular::load_library (options.needed_library);
-        singular::load_ssi("input", get_in_struct_filename( options.tmpdir
+        singular::load_ssi("input", get_in_struct_filename( options.tempdir
                                         , config::parallel_list_base_name()
                                         , id));
         singular::call_and_discard(options.out_struct_name + " output = " +
                                     options.function_name +
                                     "(input);");
-        singular::write_ssi("output", get_out_struct_filename( options.tmpdir
+        singular::write_ssi("output", get_out_struct_filename( options.tempdir
                                             , config::parallel_list_base_name()
                                             , id)
                                             );
@@ -524,13 +524,13 @@ namespace singular_parallel
         singular::register_struct(options.out_struct_name,
                                   options.out_struct_desc);
         singular::load_library (options.needed_library);
-        singular::load_ssi("input", get_in_struct_filename( options.tmpdir
+        singular::load_ssi("input", get_in_struct_filename( options.tempdir
                                         , config::parallel_pfd_base_name()
                                         , id));
         singular::call_and_discard(options.out_struct_name + " output = " +
                                     options.function_name +
                                     "(input);");
-        singular::write_ssi("output", get_out_struct_filename( options.tmpdir
+        singular::write_ssi("output", get_out_struct_filename( options.tempdir
                                             , config::parallel_pfd_base_name()
                                             , id)
                                             );
@@ -552,7 +552,7 @@ namespace singular_parallel
                                   options.out_struct_desc);
 
         singular::load_library (options.needed_library);
-        singular::load_ssi("input", get_in_struct_filename( options.tmpdir
+        singular::load_ssi("input", get_in_struct_filename( options.tempdir
                                         , config::parallel_pfd_base_name()
                                         , id));
         singular::call_and_discard(std::string("def already_done = ") +
@@ -566,7 +566,7 @@ namespace singular_parallel
                                       " internal_temp_o;" +
                                       " internal_temp_o.result = \"Already done!\";");
           singular::write_ssi( "internal_temp_o"
-                             , get_out_struct_filename( options.tmpdir
+                             , get_out_struct_filename( options.tempdir
                                               , config::parallel_pfd_base_name()
                                               , id)
                              );
@@ -590,7 +590,7 @@ namespace singular_parallel
         singular::register_struct(options.out_struct_name,
                                   options.out_struct_desc);
         singular::load_library (options.needed_library);
-        singular::load_ssi("input", get_in_struct_filename( options.tmpdir
+        singular::load_ssi("input", get_in_struct_filename( options.tempdir
                                         , config::parallel_pfd_base_name()
                                         , id));
         singular::call_and_discard( std::string("pfd_singular_prepareSingleEntryFraction")
@@ -611,7 +611,7 @@ namespace singular_parallel
         singular::register_struct(options.out_struct_name,
                                   options.out_struct_desc);
         singular::load_library (options.needed_library);
-        singular::load_ssi("input", get_in_struct_filename( options.tmpdir
+        singular::load_ssi("input", get_in_struct_filename( options.tempdir
                                         , config::parallel_pfd_base_name()
                                         , id));
         singular::call_and_discard("def output = "
@@ -622,7 +622,7 @@ namespace singular_parallel
                                    " { int trivial_pfd = 1; }"
                                    " else { int trivial_pfd = 0; }");
         if (singular::getInt("trivial_pfd")) {
-          singular::write_ssi("output", get_out_struct_filename( options.tmpdir
+          singular::write_ssi("output", get_out_struct_filename( options.tempdir
                                             , config::parallel_pfd_base_name()
                                             , id)
                                             );
@@ -651,14 +651,14 @@ namespace singular_parallel
         singular::register_struct(options.out_struct_name,
                                   options.out_struct_desc);
         singular::load_library (options.needed_library);
-        singular::load_ssi("input", get_in_struct_filename( options.tmpdir
+        singular::load_ssi("input", get_in_struct_filename( options.tempdir
                                         , config::parallel_pfd_base_name()
                                         , id));
         boost::format command =
               boost::format("pfd_singular_prepare_input(%1%, %2%, %3%, %4%);")
                             % "input"
                             % id
-                            % ("\"" + options.tmpdir + "\"")
+                            % ("\"" + options.tempdir + "\"")
                             % ("\"" + get_from_name(first_step) + "\"");
 
         singular::call_and_discard(command.str());
@@ -680,14 +680,14 @@ namespace singular_parallel
         singular::register_struct(options.out_struct_name,
                                   options.out_struct_desc);
         singular::load_library (options.needed_library);
-        singular::load_ssi("input", get_in_struct_filename( options.tmpdir
+        singular::load_ssi("input", get_in_struct_filename( options.tempdir
                                         , config::parallel_pfd_base_name()
                                         , id));
         boost::format command =
               boost::format("int prepstat = pfd_singular_general_prepare(%1%, %2%, %3%, %4%);")
                             % "input"
                             % id
-                            % ("\"" + options.tmpdir + "\"")
+                            % ("\"" + options.tempdir + "\"")
                             % ("\"" + get_from_name(first_step) + "\"");
 
         singular::call_and_discard(command.str());
@@ -705,7 +705,7 @@ namespace singular_parallel
             throw std::runtime_error("Unrecognised return value from general prepare");
           }}
           singular::write_ssi( "internal_temp_o"
-                             , get_out_struct_filename( options.tmpdir
+                             , get_out_struct_filename( options.tempdir
                                               , config::parallel_pfd_base_name()
                                               , id)
                              );
@@ -727,7 +727,7 @@ namespace singular_parallel
       {
         std::string time_path(get_problem_time_path( id
                                                 , "compute_" + step
-                                                , options.tmpdir));
+                                                , options.tempdir));
         write_current_time(time_path);
 
         init_singular ();
@@ -743,11 +743,11 @@ namespace singular_parallel
                             % ("\"" + step + "\"")
                             % ("\"" + get_from_name(step) + "\"")
                             % ("\"" + get_to_name(step) + "\"")
-                            % ("\"" + options.tmpdir + "\"");
+                            % ("\"" + options.tempdir + "\"");
 
         singular::call_and_discard(command.str());
 
-        remove((options.tmpdir + "/" + get_from_name(step) +"_"
+        remove((options.tempdir + "/" + get_from_name(step) +"_"
                                      + std::to_string(id)
                                      + ".ssi").c_str()
               );
@@ -776,12 +776,12 @@ namespace singular_parallel
                             % id
                             % ("\"" + in_file + "\"")
                             % ("\"" + out_file + "\"")
-                            % ("\"" + options.tmpdir + "\"")
+                            % ("\"" + options.tempdir + "\"")
                             % options.split_max;
 
         singular::call_and_discard(command.str());
 
-        remove((options.tmpdir + "/" + in_file + "_" + std::to_string(id) + ".ssi").c_str());
+        remove((options.tempdir + "/" + in_file + "_" + std::to_string(id) + ".ssi").c_str());
         int term_count = singular::getInt("count");
         singular::call_and_discard( "kill count;");
 
@@ -807,7 +807,7 @@ namespace singular_parallel
         std::string time_path(
             get_problem_time_path( id
                                  , "init_" + step
-                                 , options.tmpdir
+                                 , options.tempdir
                                  ));
         long prev_init_time(get_written_time(time_path));
         write_current_time(time_path);
@@ -822,7 +822,7 @@ namespace singular_parallel
           write_duration_time(0, get_term_time_path( id
                                                    , i
                                                    , "merge_" + step
-                                                   , options.tmpdir) );
+                                                   , options.tempdir) );
         }
         //
         long duration(get_duration_time (time_path));
@@ -841,10 +841,10 @@ namespace singular_parallel
         std::string to_name( get_to_name(step) );
         std::string from_name( get_from_name(step) );
 
-        std::string to_path( options.tmpdir +
+        std::string to_path( options.tempdir +
                              "/" + to_name + "_" + std::to_string(id) +
                              ".ssi");
-        std::string from_path( options.tmpdir +
+        std::string from_path( options.tempdir +
                              "/" + from_name + "_" + std::to_string(id) +
                              ".ssi");
 
@@ -864,7 +864,7 @@ namespace singular_parallel
         std::string time_path(
             get_problem_time_path( id
                                  , measure + step
-                                 , options.tmpdir) );
+                                 , options.tempdir) );
         long measure_time( get_written_time(time_path) );
 
         log_duration( id
@@ -883,10 +883,10 @@ namespace singular_parallel
       {
         std::string to_name( get_to_name(step) );
 
-        std::string from_path( options.tmpdir +
+        std::string from_path( options.tempdir +
                              "/" + to_name + "_" + std::to_string(id) +
                              ".ssi");
-        std::string to_path( options.tmpdir +
+        std::string to_path( options.tempdir +
                              "/" + to_name + "_" + std::to_string(id) +
                              ".ssi");
 
@@ -902,7 +902,7 @@ namespace singular_parallel
         std::string step_time_path(
             get_problem_time_path( id
                                  , step
-                                 , options.tmpdir) );
+                                 , options.tempdir) );
         long init_time( log_step_component(id, options, step, "init_") );
         long compute_time( log_step_component(id, options, step, "compute_") );
         long merge_time( log_step_component(id, options, step, "merge_") );
@@ -932,7 +932,7 @@ namespace singular_parallel
         std::string time_path(get_term_time_path( id
                                                 , term_id
                                                 , "compute_" + step
-                                                , options.tmpdir));
+                                                , options.tempdir));
         write_current_time(time_path);
 
         std::string file(get_from_name(step));
@@ -943,7 +943,7 @@ namespace singular_parallel
                              , file
                              , file + "_result"
                              );
-        remove((options.tmpdir + "/" + file + "_" + std::to_string(id) +
+        remove((options.tempdir + "/" + file + "_" + std::to_string(id) +
                         "_" + std::to_string(term_id) + ".ssi").c_str());
 
         long duration( get_duration_time(time_path) );
@@ -976,7 +976,7 @@ namespace singular_parallel
                             % ("\"" + step + "\"")
                             % ("\"" + from_file + "\"")
                             % ("\"" + to_file + "\"")
-                            % ("\"" + options.tmpdir + "\"")
+                            % ("\"" + options.tempdir + "\"")
                             % options.loop_max;
 
         singular::call_and_discard(command.str());
@@ -1007,12 +1007,12 @@ namespace singular_parallel
                             % term_count
                             % ("\"" + step + "\"")
                             % ("\"" + file + "\"")
-                            % ("\"" + options.tmpdir + "\"");
+                            % ("\"" + options.tempdir + "\"");
 
         singular::call_and_discard(command.str());
 
         for (i = 1; i <= term_count; i++) {
-          remove((options.tmpdir + "/" + file + "_result_" +
+          remove((options.tempdir + "/" + file + "_result_" +
                        std::to_string(id) + "_" + std::to_string(i) +
                        ".ssi").c_str());
         }
@@ -1032,11 +1032,11 @@ namespace singular_parallel
         std::string left_merge_time_path( get_term_time_path( id
                                                       , left
                                                       , "merge_" + step
-                                                      , options.tmpdir) );
+                                                      , options.tempdir) );
         std::string right_merge_time_path( get_term_time_path( id
                                                       , right
                                                       , "merge_" + step
-                                                      , options.tmpdir) );
+                                                      , options.tempdir) );
         long left_merge_time( get_written_time (left_merge_time_path) );
         long right_merge_time( get_written_time (right_merge_time_path) );
 
@@ -1052,11 +1052,11 @@ namespace singular_parallel
         std::string left_compute_time_path( get_term_time_path( id
                                                       , left
                                                       , "compute_" + step
-                                                      , options.tmpdir) );
+                                                      , options.tempdir) );
         std::string right_compute_time_path( get_term_time_path( id
                                                        , right
                                                        , "compute_" + step
-                                                       , options.tmpdir) );
+                                                       , options.tempdir) );
         long left_time( get_written_time (left_compute_time_path) );
         long right_time( get_written_time (right_compute_time_path) );
         write_duration_time(left_time + right_time, left_compute_time_path);
@@ -1077,11 +1077,11 @@ namespace singular_parallel
                            % left
                            % right
                            % ("\"" + file + "\"")
-                           % ("\"" + options.tmpdir + "\"");
+                           % ("\"" + options.tempdir + "\"");
 
         singular::call_and_discard(command.str());
 
-        remove((options.tmpdir + "/" + file + "_result_" +
+        remove((options.tempdir + "/" + file + "_result_" +
                        std::to_string(id) + "_" + std::to_string(right) +
                        ".ssi").c_str());
 
@@ -1106,13 +1106,13 @@ namespace singular_parallel
             get_term_time_path( id
                               , term_id
                               , measure + step
-                              , options.tmpdir) );
+                              , options.tempdir) );
         long term_time(get_written_time(term_time_path));
 
         std::string prev_time_path(
             get_problem_time_path( id
                               , measure + step
-                              , options.tmpdir) );
+                              , options.tempdir) );
         long previous_time(get_written_time(prev_time_path));
         write_duration_time(previous_time + term_time, prev_time_path);
     }
@@ -1134,7 +1134,7 @@ namespace singular_parallel
         std::string finish_time_path(
             get_problem_time_path( id
                                  , "finish_" + step
-                                 , options.tmpdir) );
+                                 , options.tempdir) );
         long previous_finish_time( get_written_time(finish_time_path) );
         write_current_time(finish_time_path);
 
@@ -1142,14 +1142,14 @@ namespace singular_parallel
         std::string from_name(get_from_name(step));
         std::string to_name(get_to_name(step));
 
-        std::string dec_temp_file(options.tmpdir + "/" + from_name + "_dectemp_" +
+        std::string dec_temp_file(options.tempdir + "/" + from_name + "_dectemp_" +
                        std::to_string(id) +
                        ".ssi");
-        std::string from_file(options.tmpdir + "/" + from_name + "_result_" +
+        std::string from_file(options.tempdir + "/" + from_name + "_result_" +
                        std::to_string(id) + "_" + std::to_string(term_id) +
                        ".ssi");
 
-        std::string to_file(options.tmpdir + "/" + to_name +
+        std::string to_file(options.tempdir + "/" + to_name +
                                                "_" + std::to_string(id) +
                                                ".ssi");
 
@@ -1199,10 +1199,10 @@ namespace singular_parallel
         boost::format command =
               boost::format("out_struct output = pfd_singular_write_result(%1%, %2%);")
                             % id
-                            % ("\"" + options.tmpdir + "\"");
+                            % ("\"" + options.tempdir + "\"");
         singular::call_and_discard(command.str());
 
-        singular::write_ssi("output", get_out_struct_filename( options.tmpdir
+        singular::write_ssi("output", get_out_struct_filename( options.tempdir
                                             , config::parallel_pfd_base_name()
                                             , id)
                                             );
@@ -1211,7 +1211,7 @@ namespace singular_parallel
         std::string step_time_path(
             get_problem_time_path( id
                                  , last_step
-                                 , options.tmpdir) );
+                                 , options.tempdir) );
         long init_time( log_step_component(id, options, last_step, "init_") );
         long compute_time( log_step_component(id, options, last_step, "compute_") );
         long merge_time( log_step_component(id, options, last_step, "merge_") );
@@ -1233,23 +1233,23 @@ namespace singular_parallel
 
         long step1( get_written_time(get_problem_time_path( id
                                                           , "NSSdecompStep"
-                                                          , options.tmpdir)) );
+                                                          , options.tempdir)) );
         long step2( get_written_time(get_problem_time_path( id
                                                           , "shortNumeratorDecompStep"
-                                                          , options.tmpdir)) );
+                                                          , options.tempdir)) );
         long step3( get_written_time(get_problem_time_path( id
                                                           , "algDependDecompStep"
-                                                          , options.tmpdir)) );
+                                                          , options.tempdir)) );
         long step4( get_written_time(get_problem_time_path( id
                                                           , "numeratorDecompStep"
-                                                          , options.tmpdir)) );
+                                                          , options.tempdir)) );
         log_duration(id, options, "total cpu", step1 + step2 + step3 + step4);
 
-        remove((options.tmpdir + "/" + get_to_name(last_step) +"_"
+        remove((options.tempdir + "/" + get_to_name(last_step) +"_"
                                      + std::to_string(id)
                                      + ".ssi").c_str()
               );
-        remove((options.tmpdir + "/input_" + std::to_string(id) + ".ssi").c_str());
+        remove((options.tempdir + "/input_" + std::to_string(id) + ".ssi").c_str());
       }
   }
 }

@@ -9,7 +9,7 @@
     <field name="in_struct_desc" type="string"/>
     <field name="out_struct_name" type="string"/>
     <field name="out_struct_desc" type="string"/>
-    <field name="tmpdir" type="string"/>
+    <field name="tempdir" type="string"/>
     <field name="parallel_proportion" type="float"/>
     <field name="task_count" type="unsigned int"/>
     <field name="split_max" type="unsigned int"/>

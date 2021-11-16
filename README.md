@@ -569,7 +569,7 @@ An example script `test_parallel_pfd.sing` in Singular for a 4 by 4 matrix might
 be
 
 ```bash
-mkdir -p $PFD_ROOT/tmpdir
+mkdir -p $PFD_ROOT/tempdir
 echo $(hostname) > $PFD_ROOT/nodefile
 
 cat > test_parallel_pfd.sing.temp << "EOF"
@@ -577,7 +577,7 @@ LIB "pfd_gspc.lib";
 
 configToken gc = configure_gspc(); // the struct to give configure GPI-space
 
-gc.options.tmpdir = "$PFD_ROOT/tmpdir";
+gc.options.tempdir = "$PFD_ROOT/tempdir";
 gc.options.nodefile = "$PFD_ROOT/nodefile";
 gc.options.procspernode = 8;
 gc.options.loghost = "$(hostname)";
@@ -691,7 +691,7 @@ To run more an example with real PFD data, some data is provided as `ssi`
 ("simple Singular interface") files under `example_data/ssi`, which can be
 decomposed with the Singular script `real_pfd.sing`:
 ```bash
-mkdir -p $PFD_ROOT/tmpdir
+mkdir -p $PFD_ROOT/tempdir
 echo $(hostname) > $PFD_ROOT/nodefile
 
 cat > real_pfd.sing.temp << "EOF"
@@ -699,7 +699,7 @@ LIB "pfd_gspc.lib";
 
 configToken gc = configure_gspc();
 
-gc.options.tmpdir = "$PFD_ROOT/tmpdir";
+gc.options.tempdir = "$PFD_ROOT/tempdir";
 gc.options.nodefile = "$PFD_ROOT/nodefile";
 gc.options.procspernode = 8;
 gc.options.loghost = "$(hostname)";

@@ -104,7 +104,7 @@ namespace
       std::size_t sortInput() const;
       std::size_t parProp() const;
 
-      std::string tmpDir() const;
+      std::string tempDir() const;
       std::string nodeFile() const;
       std::string showStrategy() const;
       std::string inStructName() const;
@@ -122,7 +122,7 @@ namespace
       lists addArgsList() const;
     private:
       lists arg_list;
-      std::string tmpdir;
+      std::string tempdir;
 
       /* gc.options.{*} */
       std::string nodefile;
@@ -188,8 +188,8 @@ namespace
     return par_prop;
   }
 
-  std::string ArgumentState::tmpDir() const {
-    return tmpdir;
+  std::string ArgumentState::tempDir() const {
+    return tempdir;
   }
 
   std::string ArgumentState::nodeFile() const {
@@ -250,7 +250,7 @@ namespace
 
   ArgumentState::ArgumentState (leftv args, std::string graph_type)
   : arg_list (get_singular_lists_argument(args, 0, "list of input structs"))
-  , tmpdir (get_singular_string_argument(args, 1, "temp directory"))
+  , tempdir (get_singular_string_argument(args, 1, "temp directory"))
   , nodefile (get_singular_string_argument(args, 2, "nodefile"))
   , procspernode (get_singular_int_argument(args, 3, "procs per node"))
   , strategy (get_singular_string_argument(args, 4, "rif strategy"))
@@ -371,7 +371,7 @@ std::optional<std::multimap<std::string, pnet::type::value::value_type>>
     poke( "in_struct_desc", problem_token_type, as.inStructDesc());
     poke( "out_struct_name", problem_token_type, as.outStructName());
     poke( "out_struct_desc", problem_token_type, as.outStructDesc());
-    poke( "tmpdir", problem_token_type, as.tmpDir());
+    poke( "tempdir", problem_token_type, as.tempDir());
     poke( "parallel_proportion", problem_token_type,
             static_cast<float> (((float)as.parProp())/100.0));
     poke( "task_count", problem_token_type, static_cast<unsigned int> (as.numTasks()));
@@ -395,7 +395,7 @@ std::optional<std::multimap<std::string, pnet::type::value::value_type>>
                     ArgumentState const &as)
 try
 {
-  std::string debugout = as.tmpDir() + " " + as.nodeFile() + " " +
+  std::string debugout = as.tempDir() + " " + as.nodeFile() + " " +
     std::to_string (as.procsPerNode()) + " " + as.showStrategy() + "\n" +
     as.inStructName() + " " + as.inStructDesc() + " " +
     as.outStructName() + " " + as.outStructDesc() + " " +
@@ -435,7 +435,7 @@ try
   std::string basename = get_base_file_name(as.graphType());
 
   write_in_structs_to_file( as.argList()
-                          , as.tmpDir()
+                          , as.tempDir()
                           , basename
                           , in_token
                           );
@@ -594,7 +594,7 @@ try {
 
   for (std::size_t i = 0; i < as.numTasks(); i++)
   {
-    si_link l = ssi_open_for_read(get_out_struct_filename(as.tmpDir(),
+    si_link l = ssi_open_for_read(get_out_struct_filename(as.tempDir(),
                                                           basename,
                                                           i));
     // later consider case of "wrong" output (and do not throw)
@@ -603,10 +603,10 @@ try {
     out_list->m[i].rtyp = as.outToken();
     out_list->m[i].data = entry;
 
-    remove( (get_out_struct_filename( as.tmpDir()
+    remove( (get_out_struct_filename( as.tempDir()
                                     , basename
                                     , i)).c_str() );
-    remove( (get_in_struct_filename( as.tmpDir()
+    remove( (get_in_struct_filename( as.tempDir()
                                    , basename
                                    , i)).c_str() );
   }
@@ -652,7 +652,7 @@ try {
 
   for (std::size_t i = 0; i < as.numTasks(); i++)
   {
-    si_link l = ssi_open_for_read(get_out_struct_filename( as.tmpDir()
+    si_link l = ssi_open_for_read(get_out_struct_filename( as.tempDir()
                                                          , basename
                                                          , i));
     // later consider case of "wrong" output (and do not throw)
@@ -661,10 +661,10 @@ try {
     out_list->m[i].rtyp = as.outToken();
     out_list->m[i].data = entry;
 
-    remove((get_out_struct_filename( as.tmpDir()
+    remove((get_out_struct_filename( as.tempDir()
                                      , basename
                                      , i)).c_str() );
-    remove((get_in_struct_filename( as.tmpDir()
+    remove((get_in_struct_filename( as.tempDir()
                                     , basename
                                     , i)).c_str() );
   }
@@ -708,7 +708,7 @@ try
   unsigned int i = boost::get<unsigned int> (sm_result_it->second);
 
   std::string basename = get_base_file_name(as.graphType());
-  si_link l = ssi_open_for_read (get_out_struct_filename(as.tmpDir(),
+  si_link l = ssi_open_for_read (get_out_struct_filename(as.tempDir(),
                                                           basename,
                                                           i));
 
@@ -717,10 +717,10 @@ try
 
   for (i = 0; i < as.numTasks(); i++)
   {
-    remove( (get_out_struct_filename( as.tmpDir()
+    remove( (get_out_struct_filename( as.tempDir()
                                     , basename
                                     , i)).c_str() );
-    remove( (get_in_struct_filename( as.tmpDir()
+    remove( (get_in_struct_filename( as.tempDir()
                                    , basename
                                    , i)).c_str() );
   }
