@@ -60,11 +60,20 @@
             }
             std::cout << "Parallel: "
                       << ecount.parallel
-                      << "\n";
+                      << " for proportion "
+                      << options.parallel_proportion * 100
+                      << "%\n";
 
             std::cout << "Serial: "
                       <<  ecount.serial
                       << "\n";
+            std::cout << "split_max: "
+                      << options.split_max
+                      << "\n";
+            std::cout << "loop_max: "
+                      << options.loop_max
+                      << "\n";
+            initiated = 1U;
             initiated = 1U;
           ]]></code>
         </module>

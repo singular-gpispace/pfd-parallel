@@ -31,7 +31,7 @@ proc pfd_singular_compute (in_struct input)
   return(output);
 }
 
-proc pfd_singular_general_prepare (in_struct input, int id, string tmpdir, string terms_name)
+proc pfd_singular_general_prepare (in_struct input, int id, string tempdir, string terms_name)
 {
   if (pfd_singular_is_already_computed(input)) {
     return(1);
@@ -44,7 +44,7 @@ proc pfd_singular_general_prepare (in_struct input, int id, string tmpdir, strin
     return (2);
   }
 
-  pfd_singular_prepare_input(input, id, tmpdir, terms_name);
+  pfd_singular_prepare_input(input, id, tempdir, terms_name);
 
   return (0);
 }
@@ -76,8 +76,8 @@ proc pfd_singular_prepareSingleEntryFraction (in_struct input)
   if (input.suffix == "txt") {
     execute("ring r = " + input.neededring);
     string filename = pfd_singular_filename_no_suffix( input.matrixname
-                                                 , input.row
-                                                 , input.col);
+                                                     , input.row
+                                                     , input.col);
     prepareSingleEntryFraction( filename
                               , from_dir
                               , ignore_nonlin
@@ -192,7 +192,7 @@ proc pfd_singular_is_trivial (in_struct input)
   }
 }
 
-proc pfd_singular_prepare_input (in_struct input, int id, string tmpdir, string terms_name)
+proc pfd_singular_prepare_input (in_struct input, int id, string tempdir, string terms_name)
 {
   system("--ticks-per-sec",1000);
   short = 0;
@@ -228,8 +228,8 @@ proc pfd_singular_prepare_input (in_struct input, int id, string tmpdir, string 
   list terms = list(list(poly(f),1..m,e));
   list prepared_input = list(q, ignore_nonlin, nonlin, filename, to_dir);
 
-  write("ssi:w " + tmpdir + "/input_" + string(id) + ".ssi", prepared_input);
-  write("ssi:w " + tmpdir + "/" + terms_name +"_" + string(id) + ".ssi",
+  write("ssi:w " + tempdir + "/input_" + string(id) + ".ssi", prepared_input);
+  write("ssi:w " + tempdir + "/" + terms_name +"_" + string(id) + ".ssi",
         list(terms, list()));
 }
 
@@ -248,7 +248,7 @@ proc pfd_singular_compute_step ( int id
                            , string step
                            , string from_terms
                            , string to_terms
-                           , string tmpdir
+                           , string tempdir
                            )
 {
   system("--ticks-per-sec",1000);
@@ -257,8 +257,8 @@ proc pfd_singular_compute_step ( int id
   int debug=0;
   link l=":w ";
 
-  list input = read("ssi:r " + tmpdir + "/input_" + string(id) + ".ssi");
-  list terms = read("ssi:r " + tmpdir + "/"  + from_terms + "_" + string(id) + ".ssi");
+  list input = read("ssi:r " + tempdir + "/input_" + string(id) + ".ssi");
+  list terms = read("ssi:r " + tempdir + "/"  + from_terms + "_" + string(id) + ".ssi");
 
   ideal q = input[1];
   string filename = input[4];
@@ -271,10 +271,10 @@ proc pfd_singular_compute_step ( int id
   t = rtimer-t;
 //  write(":a "+to_dir+"resources_"+filename+".txt",
 //        sprintf(step + " Time: %s ms,  Memory: %s Bytes",t,memory(2)));
-  write(":w "+tmpdir+"/"+step+"_"+string(id)+".time",
+  write(":w "+tempdir+"/"+step+"_"+string(id)+".time",
         string(t));
 
-  write("ssi:w " + tmpdir + "/" + to_terms +"_" + string(id) + ".ssi", list(list(), dec));
+  write("ssi:w " + tempdir + "/" + to_terms +"_" + string(id) + ".ssi", list(list(), dec));
 
 }
 
@@ -300,7 +300,7 @@ proc pfd_singular_terms_left(string path)
   return(size(terms[1]));
 }
 
-proc pfd_singular_write_result (int id, string tmpdir)
+proc pfd_singular_write_result (int id, string tempdir)
 {
   system("--ticks-per-sec",1000);
   short = 0;
@@ -308,8 +308,8 @@ proc pfd_singular_write_result (int id, string tmpdir)
   int debug=0;
   link l=":w ";
 
-  list input = read("ssi:r " + tmpdir + "/input_" + string(id) + ".ssi");
-  list terms = read("ssi:r " + tmpdir + "/terms_4_" + string(id) + ".ssi");
+  list input = read("ssi:r " + tempdir + "/input_" + string(id) + ".ssi");
+  list terms = read("ssi:r " + tempdir + "/terms_4_" + string(id) + ".ssi");
   if (size(terms[1]) > 0) {
     ERROR("Unprocessed terms at time of writing");
   }
@@ -349,10 +349,10 @@ proc pfd_singular_write_result (int id, string tmpdir)
 proc pfd_split_terms(int id,
                      string in_filename,
                      string out_filename,
-                     string tmpdir,
+                     string tempdir,
                      int split_max)
 {
-  list terms_read = read("ssi:r " + tmpdir + "/" + in_filename + "_" + string(id) + ".ssi");
+  list terms_read = read("ssi:r " + tempdir + "/" + in_filename + "_" + string(id) + ".ssi");
   list terms = terms_read[1];
   list dec = terms_read[2];
 
@@ -381,12 +381,12 @@ proc pfd_split_terms(int id,
   //}
 
   for(i = 0; i < split_count; i++) {
-    write("ssi:w " + tmpdir + "/" + out_filename + "_" +
+    write("ssi:w " + tempdir + "/" + out_filename + "_" +
               string(id) + "_" + string(i) + ".ssi",
           //list(term_lists[i], dec_lists[i]));
           term_lists[i + 1]);
   }
-  write("ssi:w " + tmpdir + "/" + out_filename + "_dectemp_" +
+  write("ssi:w " + tempdir + "/" + out_filename + "_dectemp_" +
               string(id) + ".ssi", dec);
 
 
@@ -398,7 +398,7 @@ proc pfd_fork_compute_term( int id
                           , string step
                           , string in_filename
                           , string out_filename
-                          , string tmpdir
+                          , string tempdir
                           , int loop_max
                           , list #
                           )
@@ -411,11 +411,11 @@ proc pfd_fork_compute_term( int id
   link l=":w ";
   list dec = list();
 
-  list terms = read("ssi:r " + tmpdir + "/" + in_filename + "_" +
+  list terms = read("ssi:r " + tempdir + "/" + in_filename + "_" +
           string(id) + "_" + string(term_id) + ".ssi");
   //list terms = terms_read[1];
   //list dec = terms_read[2];
-  list input = read("ssi:r " + tmpdir + "/input_" + string(id) + ".ssi");
+  list input = read("ssi:r " + tempdir + "/input_" + string(id) + ".ssi");
   ideal q = input[1];
 
   if (size(terms) < 1) {
@@ -426,7 +426,7 @@ proc pfd_fork_compute_term( int id
   list result = generic_dec_nstep(step, get_loop_strat(step), terms, dec, q,
     loop_max, debug, l);
 
-  write("ssi:w " + tmpdir +
+  write("ssi:w " + tempdir +
                    "/" + out_filename + "_" +
                    string(id) + "_" + string(term_id) +
                    ".ssi", list(result[1], result[2]) );
@@ -437,17 +437,17 @@ proc pfd_fork_merge( int id
                    , int term_count
                    , string step
                    , string filename
-                   , string tmpdir
+                   , string tempdir
                    )
 {
   int i;
-  list dec = read("ssi:r " + tmpdir +
+  list dec = read("ssi:r " + tempdir +
                              "/" + filename + "_dec_" +
                              string(id) +
                              ".ssi");
 
   for (i = 1; i <= term_count; i++) {
-    list result = read("ssi:r " + tmpdir +
+    list result = read("ssi:r " + tempdir +
                                 "/" + filename + "_result_" +
                                 string(id) + "_" + string(i) +
                                 ".ssi");
@@ -455,7 +455,7 @@ proc pfd_fork_merge( int id
     dec = mergepfd(dec, result);
   }
 
-  write( "ssi:w " + tmpdir +
+  write( "ssi:w " + tempdir +
                     "/" + filename + "_dec_" +
                     string(id) +
                     ".ssi"
@@ -466,14 +466,14 @@ proc pfd_fork_merge_pair( int id
                         , int left
                         , int right
                         , string filename
-                        , string tmpdir
+                        , string tempdir
                    )
 {
-  list leftl = read("ssi:r " + tmpdir +
+  list leftl = read("ssi:r " + tempdir +
                               "/" + filename + "_result_" +
                               string(id) + "_" + string(left) +
                               ".ssi");
-  list rightl = read("ssi:r " + tmpdir +
+  list rightl = read("ssi:r " + tempdir +
                               "/" + filename + "_result_" +
                               string(id) + "_" + string(right) +
                               ".ssi");
@@ -490,7 +490,7 @@ proc pfd_fork_merge_pair( int id
 
   }
 
-  write( "ssi:w " + tmpdir +
+  write( "ssi:w " + tempdir +
                     "/" + filename + "_result_" +
                     string(id) + "_" + string(left) +
                     ".ssi"
@@ -510,9 +510,9 @@ proc pfd_merge_decs_and_write(string dec_tmp_file,
 proc pfd_singular_log_duration(int id,
                            bigint duration,
                            string measure_name,
-                           string tmpdir)
+                           string tempdir)
 {
-  list input = read("ssi:r " + tmpdir + "/input_" + string(id) + ".ssi");
+  list input = read("ssi:r " + tempdir + "/input_" + string(id) + ".ssi");
   string filename = input[4];
   string to_dir = input[5];
     write(":a "+to_dir+"resources_"+filename+".txt",
@@ -521,10 +521,10 @@ proc pfd_singular_log_duration(int id,
 
 proc pfd_singular_get_tdegree_vector( int id
                                     , string file
-                                    , string tmpdir
+                                    , string tempdir
                                     )
 {
-  list terms = read("ssi:r " + tmpdir + "/" + file + "_" +
+  list terms = read("ssi:r " + tempdir + "/" + file + "_" +
           string(id) + ".ssi");
   terms = terms[1] + terms[2];
   int n = size(terms);

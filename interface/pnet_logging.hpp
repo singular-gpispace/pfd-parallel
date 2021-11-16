@@ -19,12 +19,12 @@ namespace singular_parallel
       std::string get_term_time_path( const int& id
                                     , const int& term_id
                                     , std::string measure_name
-                                    , std::string tmpdir
+                                    , std::string tempdir
                                     );
     NO_NAME_MANGLING
       std::string get_problem_time_path( const int& id
                                     , std::string measure_name
-                                    , std::string tmpdir
+                                    , std::string tempdir
                                     );
 
 
