@@ -232,7 +232,7 @@ proc default_gspc_config()
   return (gc);
 }
 
-proc pfd_structs_config()
+proc configure_pfd()
 {
   configToken pc = configure_parallel();
 
@@ -250,7 +250,7 @@ proc pfd_structs_config()
   pc.options.parprop = 100;
 
   pc.options.filename = "";
-  pc.options.suffix = "ssi";
+  pc.options.suffix = "txt";
   pc.options.algorithm = "custom";
 
   return (pc);
@@ -327,7 +327,7 @@ PURPOSE:  apply @code{pfd} in parallel to the rational function saved in the
   list l;
   string outputdir;
 
-  pc = pfd_structs_config();
+  pc = configure_pfd();
   pc.options.inputdir = inputdir;
   pc.options.filename = matrixname;
 
