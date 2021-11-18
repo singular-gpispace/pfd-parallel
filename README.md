@@ -570,44 +570,43 @@ be
 
 ```bash
 mkdir -p $PFD_ROOT/tempdir
-echo $(hostname) > $PFD_ROOT/nodefile
+hostname > $PFD_ROOT/nodefile
+hostname > $PFD_ROOT/loghostfile
 
 cat > test_parallel_pfd.sing.temp << "EOF"
 LIB "pfd_gspc.lib";
 
-configToken gc = configure_gspc(); // the struct to give configure GPI-space
+// configuration for gpispace
+configToken gspcconfig = configure_gspc();
 
-gc.options.tempdir = "$PFD_ROOT/tempdir";
-gc.options.nodefile = "$PFD_ROOT/nodefile";
-gc.options.procspernode = 8;
-gc.options.loghost = "$(hostname)";
-gc.options.logport = 6439;
+gspcconfig.options.tempdir = "$PFD_ROOT/tempdir";
+gspcconfig.options.nodefile = "$PFD_ROOT/nodefile";
+gspcconfig.options.procspernode = 8;
+
+// Should the user want to run withouth the gspc-monitor
+// the following two lines may be commented out.
+gspcconfig.options.loghostfile = "$PFD_ROOT/loghostfile";
+gspcconfig.options.logport = 6439;
+
+// configuration for the problem to be computed.
+configToken pfdconfig = configure_pfd();
+pfdconfig.options.filename = "fraction";
+pfdconfig.options.inputdir = "$PFD_INPUT_DIR";
+pfdconfig.options.outputdir = "$PFD_OUTPUT_DIR";
+pfdconfig.fdconfigptions.algorithm = "fullyParallel";
 
 ring r = 0, x, lp;
 
-list l = list( list(1, 1)
-             , list(1, 2)
-             , list(1, 3)
-             , list(1, 4)
-             , list(2, 1)
-             , list(2, 2)
-             , list(2, 3)
-             , list(2, 4)
-             , list(3, 1)
-             , list(3, 2)
-             , list(3, 3)
-             , list(3, 4)
-             , list(4, 1)
-             , list(4, 2)
-             , list(4, 3)
-             , list(4, 4)
-             );
-pfd_fullyparallel( "fraction"
-                 , l
-                 , "$PFD_INPUT_DIR"
-                 , gc
-                 , "$PFD_OUTPUT_DIR" // optional, only necessary if diff from input dir
-                 );
+list entries = list( list(1, 1), list(1, 2), list(1, 3), list(1, 4)
+                   , list(2, 1), list(2, 2), list(2, 3), list(2, 4)
+                   , list(3, 1), list(3, 2), list(3, 3), list(3, 4)
+                   , list(4, 1), list(4, 2), list(4, 3), list(4, 4)
+                   );
+
+parallel_pfd( entries
+            , gspcconfig
+            , pfdconfig
+            );
 exit;
 EOF
 
@@ -697,35 +696,35 @@ echo $(hostname) > $PFD_ROOT/nodefile
 cat > real_pfd.sing.temp << "EOF"
 LIB "pfd_gspc.lib";
 
-configToken gc = configure_gspc();
+// configuration for gpispace
+configToken gspcconfig = configure_gspc();
 
-gc.options.tempdir = "$PFD_ROOT/tempdir";
-gc.options.nodefile = "$PFD_ROOT/nodefile";
-gc.options.procspernode = 8;
-gc.options.loghost = "$(hostname)";
-gc.options.logport = 6439;
+gspcconfig.options.tempdir = "$PFD_ROOT/tempdir";
+gspcconfig.options.nodefile = "$PFD_ROOT/nodefile";
+gspcconfig.options.procspernode = 8;
+
+// Should the user want to run withouth the gspc-monitor
+// the following two lines may be commented out.
+gspcconfig.options.loghostfile = "$PFD_ROOT/loghostfile";
+gspcconfig.options.logport = 6439;
+
+// configuration for the problem to be computed.
+configToken pfdconfig = configure_pfd();
+pfdconfig.options.filename = "fraction";
+pfdconfig.options.inputdir = "$PFD_INPUT_DIR";
+pfdconfig.options.outputdir = "$PFD_OUTPUT_DIR";
+pfdconfig.fdconfigptions.algorithm = "fullyParallel";
 
 ring r = 0, x, lp;
 
-list l = list( list(1, 1)
-             , list(1, 2)
-             , list(1, 3)
-             , list(1, 4)
-             , list(1, 5)
-             , list(1, 6)
-             , list(1, 7)
-             , list(1, 8)
-             , list(1, 9)
-             , list(1, 10)
+list l = list( list(1, 1), list(1, 2), list(1, 3), list(1, 4)
+             , list(1, 5), list(1, 6), list(1, 7), list(1, 8)
+             , list(1, 9), list(1, 10)
              );
-pfd_fullyparallel( "xb_deg5"
-                 , l
-                 , "$PFD_REPO/example_data/ssi"
-                 , gc
-                 , "$PFD_OUTPUT_DIR" // optional, only necessary
-                                     // if should differ from
-                                     // input dir
-                 );
+parallel_pfd( l
+            , gspcconfig
+            , pfdconfig
+            );
 exit;
 EOF
 ./shell_expand_script.sh real_pfd.sing.temp real_pfd.sing
@@ -749,9 +748,8 @@ It can now be started with
 ```
 
 Note, to run the same computation, but without the internal parallelism on each
-entry, the `pfd_fullyparallel` function in `real_pfd.sing` may be changed to
-`pfd_waitall` with the arguments unchanged.
-
+entry, the `algorithm` field in the `pfdconfig` tokens `options` field may be changed to
+`waitAll`.
 
 
 ## Appendix: Standard packages required to build the framework
