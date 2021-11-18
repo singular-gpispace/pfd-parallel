@@ -280,7 +280,7 @@ cd $GPI_ROOT_DIR
 mkdir gpispace && cd gpispace
 git clone                                                         \
     --depth 1                                                     \
-    --branch v21.03                                               \
+    --branch v21.09                                               \
     https://github.com/cc-hpc-itwm/gpispace.git                   \
     gpispace
 
