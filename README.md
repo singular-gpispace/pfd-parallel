@@ -81,7 +81,7 @@ export SINGULAR_BUILD_DIR=$COMPILE_ROOT/Singular/build
 export PFD_ROOT=$SOFTWARE_ROOT/pfd
 export PFD_REPO=$PFD_ROOT/pfd
 export PFD_INSTALL_DIR=$INSTALL_ROOT/pfd
-export PFD_BUILD_DIR=$PFD_ROOT/build
+export PFD_BUILD_DIR=$COMPILE_ROOT/pfd/build
 export PFD_INPUT_DIR=$PFD_ROOT/input
 export PFD_OUTPUT_DIR=$PFD_ROOT/output
 EOF
