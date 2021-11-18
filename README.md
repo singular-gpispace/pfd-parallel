@@ -710,7 +710,7 @@ gspcconfig.options.logport = 6439;
 
 // configuration for the problem to be computed.
 configToken pfdconfig = configure_pfd();
-pfdconfig.options.filename = "fraction";
+pfdconfig.options.filename = "xb_deg5";
 pfdconfig.options.inputdir = "$PFD_INPUT_DIR";
 pfdconfig.options.outputdir = "$PFD_OUTPUT_DIR";
 pfdconfig.fdconfigptions.algorithm = "fullyParallel";
