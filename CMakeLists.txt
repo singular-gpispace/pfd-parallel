@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.13)
+cmake_minimum_required (VERSION 3.15)
 project (singular-parallel LANGUAGES C CXX)
 enable_testing()
 
@@ -10,11 +10,11 @@ set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wextra")
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
 
 add_subdirectory (${GPISPACE_REPO}/cmake cmake)
-include (add_macros)
-include (beautify_find_boost)
-include (beautify_find_GPISpace)
+include (util-cmake/add_macros)
+include (util-cmake/beautify_find_boost)
+include (util-cmake/beautify_find_GPISpace)
 
-find_package (GPISpace REQUIRED COMPONENTS)
+find_package (GPISpace 21.09 EXACT REQUIRED)
 find_boost (1.61 REQUIRED QUIET FROM_GPISPACE_INSTALLATION COMPONENTS
   date_time
   filesystem
@@ -58,13 +58,15 @@ include_directories ("${CMAKE_SOURCE_DIR}/src")
 include_directories ("${CMAKE_BINARY_DIR}")
 include_directories("${GPISPACE_REPO}/src")
 
-add_subdirectory (${GPISPACE_REPO}/src/util-generic src/util-generic)
+#add_subdirectory (${GPISPACE_REPO}/src/util-generic src/util-generic)
 
 extended_add_library (NAME installation
   TYPE SHARED
   NAMESPACE SINGULAR-parallel
   SOURCES "src/installation.cpp"
-  LIBRARIES Util::Generic GPISpace::execution
+  LIBRARIES Util::Generic
+            Util::Generic-Headers
+            GPISpace::execution
   POSITION_INDEPENDENT
   INSTALL
 )
@@ -82,6 +84,7 @@ extended_add_library (NAME module
   LIBRARIES SINGULAR-parallel::installation
             partial_static_parallel_allpfd_wrapper
             Util::Generic
+            Util::Generic-Headers
             GPISpace::execution
             GPISpace::workflow_development
             Singular
