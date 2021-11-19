@@ -34,54 +34,54 @@ computation nodes to be used for running the system.
 
 ```bash
 cat > env_vars_pfd.txt << "EOF"
-export SOFTWARE_ROOT=<software-root>
+export software_ROOT=<software-root>
 # Some fast location in local system for hosting build directories,
 # for example, something like /tmpbig/$USER/pfd or just $HOME/pfd if the user has a
 # fast home directory.
 
-export INSTALL_ROOT=<install-root>
+export install_ROOT=<install-root>
 # The install root is recommended to be some network (nfs) mountpoint, where
 # each node of the cluster should be able to read from, for example
 # something like /scratch/$USER/pfd
 
-export COMPILE_ROOT=$SOFTWARE_ROOT
+export compile_ROOT=$software_ROOT
 # Optionally, this might be set to something like /dev/shm/$USER/pfd that
 # stores files purely in memory, thus the contents of this
 # location will be lost after reboot.  It can speed up the computation times, as
 # all disk io becomes memory io.
 
 # GPI-Space dependencies:
-export BOOST_ROOT=$INSTALL_ROOT/boost
-export Libssh2_ROOT=$INSTALL_ROOT/libssh
-export Libssh2_BUILD_DIR=$COMPILE_ROOT/libssh/build
+export BOOST_ROOT=$install_ROOT/boost
+export Libssh2_ROOT=$install_ROOT/libssh
+export Libssh2_BUILD_DIR=$compile_ROOT/libssh/build
 export LD_LIBRARY_PATH="${Libssh2_ROOT}/lib"${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
-export GASPI_ROOT=$INSTALL_ROOT/gpi2
+export GASPI_ROOT=$install_ROOT/gpi2
 export cpu_arch=$(getconf LONG_BIT)
 export PKG_CONFIG_PATH="${GASPI_ROOT}/lib${cpu_arch}/pkgconfig"${PKG_CONFIG_PATH:+:${PKG_CONFIG_PATH}}
 export PKG_CONFIG_PATH="${Libssh2_ROOT}/lib/pkgconfig:${Libssh2_ROOT}/lib64/pkgconfig"${PKG_CONFIG_PATH:+:${PKG_CONFIG_PATH}}
 
 
 # GPI-Space:
-export GPI_ROOT_DIR=$SOFTWARE_ROOT
+export GPI_ROOT_DIR=$software_ROOT
 export GPISPACE_REPO=$GPI_ROOT_DIR/gpispace/gpispace
-export GPISPACE_BUILD_DIR=$COMPILE_ROOT/gpispace/build
-export GPISPACE_INSTALL_DIR=$INSTALL_ROOT/gpispace
+export GPISPACE_BUILD_DIR=$compile_ROOT/gpispace/build
+export GPISPACE_INSTALL_DIR=$install_ROOT/gpispace
 export GPISpace_ROOT=$GPISPACE_INSTALL_DIR # expected by cmake
 export GSPC_HOME=$GPISPACE_INSTALL_DIR # Set mostly for legacy reasons
 export SHARED_DIRECTORY_FOR_TESTS=$GPISPACE_BUILD_DIR/tests
 
 # Singular:
-export SING_ROOT=$SOFTWARE_ROOT/Singular
-export DEP_LIBS=$INSTALL_ROOT/sing_dep_libs
+export SING_ROOT=$software_ROOT/Singular
+export DEP_LIBS=$install_ROOT/sing_dep_libs
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$DEP_LIBS/lib
-export SINGULAR_INSTALL_DIR=$INSTALL_ROOT/Singular
-export SINGULAR_BUILD_DIR=$COMPILE_ROOT/Singular/build
+export SINGULAR_INSTALL_DIR=$install_ROOT/Singular
+export SINGULAR_BUILD_DIR=$compile_ROOT/Singular/build
 
 # PFD:
-export PFD_ROOT=$SOFTWARE_ROOT/pfd
+export PFD_ROOT=$software_ROOT/pfd
 export PFD_REPO=$PFD_ROOT/pfd
-export PFD_INSTALL_DIR=$INSTALL_ROOT/pfd
-export PFD_BUILD_DIR=$COMPILE_ROOT/pfd/build
+export PFD_INSTALL_DIR=$install_ROOT/pfd
+export PFD_BUILD_DIR=$compile_ROOT/pfd/build
 export PFD_INPUT_DIR=$PFD_ROOT/input
 export PFD_OUTPUT_DIR=$PFD_ROOT/output
 EOF
@@ -102,9 +102,9 @@ source env_vars_pfd.txt
 
 Ensure that the compile and install roots exist:
 ```bash
-mkdir -p $SOFTWARE_ROOT
-mkdir -p $INSTALL_ROOT
-mkdir -p $COMPILE_ROOT
+mkdir -p $software_ROOT
+mkdir -p $install_ROOT
+mkdir -p $compile_ROOT
 
 ```
 ## GPI-Space
@@ -423,14 +423,14 @@ make install
 
 ### 4ti2
 ```bash
-mkdir -p $COMPILE_ROOT/4ti2/build
+mkdir -p $compile_ROOT/4ti2/build
 
 cd $SING_ROOT
 mkdir 4ti2 && cd 4ti2
 wget http://www.4ti2.de/version_1.6/4ti2-1.6.tar.gz
 tar xvfz 4ti2-1.6.tar.gz
 
-pushd $COMPILE_ROOT/4ti2/build
+pushd $compile_ROOT/4ti2/build
 
 $SING_ROOT/4ti2/4ti2-1.6/configure --prefix=$DEP_LIBS
 make -j $(nproc)
@@ -443,14 +443,14 @@ popd
 ### cddlib
 
 ```bash
-mkdir -p $COMPILE_ROOT/cddlib/build
+mkdir -p $compile_ROOT/cddlib/build
 
 cd $SING_ROOT
 mkdir cddlib && cd cddlib
 wget https://github.com/cddlib/cddlib/releases/download/0.94j/cddlib-0.94j.tar.gz
 tar -xvf cddlib-0.94j.tar.gz
 
-pushd $COMPILE_ROOT/cddlib/build
+pushd $compile_ROOT/cddlib/build
 
 $SING_ROOT/cddlib/cddlib-0.94j/configure --prefix=$DEP_LIBS
 make -j $(nproc)
