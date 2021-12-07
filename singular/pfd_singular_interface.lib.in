@@ -27,10 +27,19 @@ proc pfd_singular_compute (in_struct input)
   if (input.suffix == "txt") {
     execute("ring r = " + input.neededring + ";");
   }
-  pfdSingleEntry(filename, input.inputdir, input.outputdir);
+  if ((input.pfdimplementation == "pfd1") ||
+      (input.pfdimplementation == "pfd2")) {
+    pfdSingleEntry( filename
+                  , input.inputdir
+                  , input.outputdir
+                  , 1
+                  , input.pfdimplementation);
+  } else {
+    ERROR ("invalid pfdimplementation");
+  }
 
   out_struct output;
-  output.result = "success!";
+  output.result = "success! (serially)";
   return(output);
 }
 

@@ -28,6 +28,7 @@ proc mod_init()
             "string filename, " +
             "string suffix, " +
             "string algorithm, " +
+            "string pfdimplementation, " +
             "int upperbound, " +
             "int loopmax, " +
             "int splitmax, " +
@@ -248,11 +249,13 @@ proc configure_pfd()
   pc.options.instructname = "in_struct";
   pc.options.instructdesc = "string matrixname, int row, int col, " +
                             "string neededring, string inputdir, " +
-                            "string outputdir, string suffix";
+                            "string outputdir, string suffix, " +
+                            "string pfdimplementation";
   pc.options.outstructname = "out_struct";
   pc.options.outstructdesc = "string result";
   pc.options.neededlibrary = "@PFD_SING_LIB_PATH@/pfd_singular_interface.lib";
   pc.options.functionname = "pfd_singular_compute";
+  pc.options.pfdimplementation = "pfd1";
   pc.options.splitmax = 8;
   pc.options.loopmax = 50;
   pc.options.sortinput = 1;
@@ -286,6 +289,7 @@ proc parallel_pfd ( list entry_indices
     ins.inputdir = get_absolute_path (pc.options.inputdir);
     ins.outputdir = get_absolute_path (pc.options.outputdir);
     ins.suffix = pc.options.suffix;
+    ins.pfdimplementation = pc.options.pfdimplementation;
     if ((ins.suffix =="txt") and (! defined(basering))) {
       ERROR("Please set the applicable ring required for the underlying polynomials");
       return(0);
@@ -386,6 +390,21 @@ PURPOSE:  apply @code{pfd} in parallel to the rational function saved in the
       pc.options.parprop = #[7];
     }
   }
+
+  if (size(#) >= 8) {
+    if ( typeof(#[8]) != "string") {
+      ERROR("pfdimplementation requires a string");
+    } else {
+      if ((#[8] == "pfd1") || 
+          (#[8] == "pfd2") ||
+          (#[8] == "both")) {
+        pc.options.pfdimplementation = #[8];
+      } else {
+        ERROR("pfdimplementation may only be 'pfd1', 'pfd2' or 'both'");
+      }
+    }
+  }
+
 
   def re_all = parallel_pfd(entry_indices, gc, pc);
 
