@@ -1,0 +1,526 @@
+<defun name="pfd_compute">
+
+  <include-structs href="types.xpnet"/>
+
+  <require key="worker" mandatory="true"/>
+
+  <in name="in" type="unsigned int" place="intask"/>
+  <in name="options" type="options_type"place="readoptions"/>
+  <out name="out" type="unsigned int" place="out"/>
+
+  <net>
+    <place name="intask" type="unsigned int"/>
+    <place name="gen_prep_status" type="task_status"/>
+    <place name="nullstellensatz_before" type="task_status"/>
+    <place name="nullstellensatz_after" type="task_status"/>
+    <place name="short_numerator_before" type="task_status"/>
+    <place name="short_numerator_after" type="task_status"/>
+    <place name="algebraic_dependence_before" type="task_status"/>
+    <place name="algebraic_dependence_after" type="task_status"/>
+    <place name="numerator_before" type="task_status"/>
+    <place name="numerator_after" type="task_status"/>
+    <place name="out" type="unsigned int"/>
+    <place name="readoptions" type="options_type"/>
+
+    <place name="null_step_name" type="string">
+      <token><value>"NSSdecompStep"</value></token>
+    </place>
+    <place name="short_num_name" type="string">
+      <token><value>"shortNumeratorDecompStep"</value></token>
+    </place>
+    <place name="algebraic_step_name" type="string">
+      <token><value>"algDependDecompStep"</value></token>
+    </place>
+    <place name="numerator_step_name" type="string">
+      <token><value>"numeratorDecompStep"</value></token>
+    </place>
+
+    <transition name="general_prepare">
+      <defun>
+        <require key="worker" mandatory="true"/>
+        <in name="in" type="unsigned int"/>
+        <in name="options" type="options_type"/>
+        <in name="first_step" type="string"/>
+        <out name="out" type="task_status"/>
+
+        <module name="singular_parallel_allpfd"
+                require_function_unloads_without_rest="false"
+                function="general_prepare
+                            ( options
+                            , in
+                            , first_step
+                            , out
+                            )">
+          <cinclude href="interface/singular_pnet-interface.hpp"/>
+          <cinclude href="util-generic/dynamic_linking.hpp"/>
+          <cinclude href="iostream"/>
+          <code><![CDATA[
+            //<>
+            std::cout << "Preparing " << in << "\n";
+
+            unsigned int prep_stat = RESOLVE_INTERFACE_FUNCTION
+              (pfd_general_prepare)
+              ( in, options, first_step);
+            if (prep_stat == 1) {
+              std::cout << in << " already done!\n";
+            } else if (prep_stat == 2) {
+              std::cout << in << " Trivially done!\n";
+            } else if (prep_stat == 0) {
+              std::cout << in << " still to be computed.\n";
+            } else {
+              std::cout << in << " has an incorrect return value.\n";
+            }
+            out.id = in;
+            out.status = prep_stat;
+
+          ]]></code>
+        </module>
+      </defun>
+      <connect-in port="in" place="intask"/>
+      <connect-read port="options" place="readoptions"/>
+      <connect-read port="first_step" place="null_step_name"/>
+      <connect-out port="out" place="gen_prep_status"/>
+    </transition>
+
+    <transition name="consume_non_compute">
+      <defun>
+        <require key="worker" mandatory="true"/>
+        <in name="in" type="task_status"/>
+        <out name="out" type="unsigned int"/>
+
+        <condition>
+          ${in.status} :gt: 0U
+        </condition>
+
+        <expression>
+            ${out} := ${in.id};
+        </expression>
+
+      </defun>
+      <connect-in port="in" place="gen_prep_status"/>
+      <connect-out port="out" place="out"/>
+    </transition>
+
+    <transition name="pass_on_to_compute">
+      <defun>
+        <require key="worker" mandatory="true"/>
+        <in name="in" type="task_status"/>
+        <in name="options" type="options_type"/>
+        <out name="out" type="task_status"/>
+
+        <condition>
+          ${in.status} :eq: 0U
+        </condition>
+
+        <module name="singular_parallel_allpfd"
+                require_function_unloads_without_rest="false"
+                function="pass_on_to_compute
+                            ( in
+                            , out
+                            , options
+                            )">
+          <cinclude href="interface/singular_pnet-interface.hpp"/>
+          <cinclude href="util-generic/dynamic_linking.hpp"/>
+          <cinclude href="iostream"/>
+          <code><![CDATA[
+            /*<>*/
+            RESOLVE_INTERFACE_FUNCTION (init_logging_for_step)
+                ( in.id, "NSSdecompStep", options);
+            RESOLVE_INTERFACE_FUNCTION (init_logging_for_step)
+                ( in.id, "shortNumeratorDecompStep", options);
+            RESOLVE_INTERFACE_FUNCTION (init_logging_for_step)
+                ( in.id, "algDependDecompStep", options);
+            RESOLVE_INTERFACE_FUNCTION (init_logging_for_step)
+                ( in.id, "numeratorDecompStep", options);
+
+            out.id = in.id;
+            out.status = 1;
+          ]]></code>
+        </module>
+      </defun>
+      <connect-in port="in" place="gen_prep_status"/>
+      <connect-read port="options" place="readoptions"/>
+      <connect-out port="out" place="nullstellensatz_before"/>
+    </transition>
+
+
+    <transition name="compute_nullstellensatz" inline="true">
+      <include-function href="pfd_serial_compute_step.xpnet"/>
+
+      <connect-in port="in" place="nullstellensatz_before"/>
+      <connect-read port="options" place="readoptions"/>
+      <connect-read port="step" place="null_step_name"/>
+      <connect-out port="out" place="nullstellensatz_after"/>
+    </transition>
+
+    <transition name="hand_nullstell_back">
+      <defun>
+        <require key="worker" mandatory="true"/>
+        <in name="options" type="options_type"/>
+        <in name="step" type="string"/>
+        <inout name="token" type="task_status"/>
+        <condition>
+          ${token.status} :ne: 0U
+        </condition>
+        <module name="singular_parallel_allpfd"
+                require_function_unloads_without_rest="false"
+                function="hand_nullstell_back
+                            ( token
+                            , step
+                            , options
+                            )">
+          <cinclude href="interface/singular_pnet-interface.hpp"/>
+          <cinclude href="util-generic/dynamic_linking.hpp"/>
+          <cinclude href="iostream"/>
+          <code><![CDATA[
+            /*<>*/
+
+            std::cout << "Handing back "
+                      << step
+                      << " for problem "
+                      << token.id
+                      <<"\n";
+            RESOLVE_INTERFACE_FUNCTION
+              (pfd_hand_back)
+              (token.id, options, step);
+
+            token.status = 1;
+          ]]></code>
+        </module>
+      </defun>
+      <connect-in port="token" place="nullstellensatz_after"/>
+      <connect-read port="options" place="readoptions"/>
+      <connect-read port="step" place="null_step_name"/>
+      <connect-out port="token" place="nullstellensatz_before"/>
+    </transition>
+
+    <transition name="hand_nullstell_to_short">
+      <defun>
+        <require key="worker" mandatory="true"/>
+        <in name="options" type="options_type"/>
+        <in name="step" type="string"/>
+        <inout name="token" type="task_status"/>
+        <condition>
+          ${token.status} :eq: 0U
+        </condition>
+        <module name="singular_parallel_allpfd"
+                require_function_unloads_without_rest="false"
+                function="hand_nullstell_to_short
+                            ( token
+                            , step
+                            , options
+                            )">
+          <cinclude href="interface/singular_pnet-interface.hpp"/>
+          <cinclude href="util-generic/dynamic_linking.hpp"/>
+          <cinclude href="iostream"/>
+          <code><![CDATA[
+            /*<>*/
+
+            std::cout << "Handing on after "
+                      << step
+                      << " for problem "
+                      << token.id
+                      <<"\n";
+            RESOLVE_INTERFACE_FUNCTION
+              (pfd_hand_forward)
+              (token.id, options, step);
+
+            token.status = 1;
+          ]]></code>
+        </module>
+
+      </defun>
+      <connect-in port="token" place="nullstellensatz_after"/>
+      <connect-read port="options" place="readoptions"/>
+      <connect-read port="step" place="null_step_name"/>
+      <connect-out port="token" place="short_numerator_before"/>
+    </transition>
+
+
+    <transition name="compute_short_numerator" inline="true">
+      <include-function href="pfd_fork_compute_step.xpnet"/>
+
+      <place-map virtual="in" real="short_numerator_before"/>
+      <place-map virtual="options" real="readoptions"/>
+      <place-map virtual="step" real="short_num_name"/>
+      <place-map virtual="decomposition" real="short_numerator_after"/>
+    </transition>
+
+    <transition name="hand_short_num_back">
+      <defun>
+        <require key="worker" mandatory="true"/>
+        <in name="options" type="options_type"/>
+        <in name="step" type="string"/>
+        <inout name="token" type="task_status"/>
+        <condition>
+          ${token.status} :ne: 0U
+        </condition>
+        <module name="singular_parallel_allpfd"
+                require_function_unloads_without_rest="false"
+                function="hand_short_num_back
+                            ( token
+                            , step
+                            , options
+                            )">
+          <cinclude href="interface/singular_pnet-interface.hpp"/>
+          <cinclude href="util-generic/dynamic_linking.hpp"/>
+          <cinclude href="iostream"/>
+          <code><![CDATA[
+            /*<>*/
+
+            std::cout << "Handing back "
+                      << step
+                      << " for problem "
+                      << token.id
+                      <<"\n";
+
+            RESOLVE_INTERFACE_FUNCTION
+              (pfd_hand_back)
+              (token.id, options, step);
+
+            token.status = 1;
+          ]]></code>
+        </module>
+      </defun>
+      <connect-in port="token" place="short_numerator_after"/>
+      <connect-read port="options" place="readoptions"/>
+      <connect-read port="step" place="short_num_name"/>
+      <connect-out port="token" place="short_numerator_before"/>
+    </transition>
+
+
+
+    <transition name="hand_short_to_algebraic">
+      <defun>
+        <require key="worker" mandatory="true"/>
+        <in name="options" type="options_type"/>
+        <in name="step" type="string"/>
+        <inout name="token" type="task_status"/>
+        <condition>
+          ${token.status} :eq: 0U
+        </condition>
+        <module name="singular_parallel_allpfd"
+                require_function_unloads_without_rest="false"
+                function="hand_short_to_algebraic
+                            ( token
+                            , step
+                            , options
+                            )">
+          <cinclude href="interface/singular_pnet-interface.hpp"/>
+          <cinclude href="util-generic/dynamic_linking.hpp"/>
+          <cinclude href="iostream"/>
+          <code><![CDATA[
+            /*<>*/
+
+            std::cout << "Handing on after "
+                      << step
+                      << " for problem "
+                      << token.id
+                      <<"\n";
+            RESOLVE_INTERFACE_FUNCTION
+              (pfd_hand_forward)
+              (token.id, options, step);
+
+            token.status = 1;
+          ]]></code>
+        </module>
+      </defun>
+      <connect-in port="token" place="short_numerator_after"/>
+      <connect-read port="options" place="readoptions"/>
+      <connect-read port="step" place="short_num_name"/>
+      <connect-out port="token" place="algebraic_dependence_before"/>
+    </transition>
+
+
+    <transition name="compute_algebraic_dependence" inline="true">
+      <include-function href="pfd_fork_compute_step.xpnet"/>
+
+      <place-map virtual="in" real="algebraic_dependence_before"/>
+      <place-map virtual="options" real="readoptions"/>
+      <place-map virtual="step" real="algebraic_step_name"/>
+      <place-map virtual="decomposition" real="algebraic_dependence_after"/>
+    </transition>
+
+    <transition name="hand_algebraic_back">
+      <defun>
+        <require key="worker" mandatory="true"/>
+        <in name="options" type="options_type"/>
+        <in name="step" type="string"/>
+        <inout name="token" type="task_status"/>
+        <condition>
+          ${token.status} :ne: 0U
+        </condition>
+        <module name="singular_parallel_allpfd"
+                require_function_unloads_without_rest="false"
+                function="hand_algebraic_back
+                            ( token
+                            , step
+                            , options
+                            )">
+          <cinclude href="interface/singular_pnet-interface.hpp"/>
+          <cinclude href="util-generic/dynamic_linking.hpp"/>
+          <cinclude href="iostream"/>
+          <code><![CDATA[
+            /*<>*/
+
+            std::cout << "Handing back "
+                      << step
+                      << " for problem "
+                      << token.id
+                      <<"\n";
+
+            RESOLVE_INTERFACE_FUNCTION
+              (pfd_hand_back)
+              (token.id, options, step);
+
+            token.status = 1;
+          ]]></code>
+        </module>
+      </defun>
+      <connect-in port="token" place="algebraic_dependence_after"/>
+      <connect-read port="options" place="readoptions"/>
+      <connect-read port="step" place="algebraic_step_name"/>
+      <connect-out port="token" place="algebraic_dependence_before"/>
+    </transition>
+
+
+
+    <transition name="hand_algebraic_to_numerator">
+      <defun>
+        <require key="worker" mandatory="true"/>
+        <in name="options" type="options_type"/>
+        <in name="step" type="string"/>
+        <inout name="token" type="task_status"/>
+        <condition>
+          ${token.status} :eq: 0U
+        </condition>
+        <module name="singular_parallel_allpfd"
+                require_function_unloads_without_rest="false"
+                function="hand__algebraic_to_numerator
+                            ( token
+                            , step
+                            , options
+                            )">
+          <cinclude href="interface/singular_pnet-interface.hpp"/>
+          <cinclude href="util-generic/dynamic_linking.hpp"/>
+          <cinclude href="iostream"/>
+          <code><![CDATA[
+            /*<>*/
+
+            std::cout << "Handing on after "
+                      << step
+                      << " for problem "
+                      << token.id
+                      <<"\n";
+            RESOLVE_INTERFACE_FUNCTION
+              (pfd_hand_forward)
+              (token.id, options, step);
+
+            token.status = 1;
+          ]]></code>
+        </module>
+      </defun>
+      <connect-in port="token" place="algebraic_dependence_after"/>
+      <connect-read port="options" place="readoptions"/>
+      <connect-read port="step" place="algebraic_step_name"/>
+      <connect-out port="token" place="numerator_before"/>
+    </transition>
+
+    <transition name="compute_numerator" inline="true">
+      <include-function href="pfd_fork_compute_step.xpnet"/>
+      <place-map virtual="in" real="numerator_before"/>
+      <place-map virtual="options" real="readoptions"/>
+      <place-map virtual="step" real="numerator_step_name"/>
+      <place-map virtual="decomposition" real="numerator_after"/>
+    </transition>
+
+    <transition name="hand_numerator_back">
+      <defun>
+        <require key="worker" mandatory="true"/>
+        <in name="options" type="options_type"/>
+        <in name="step" type="string"/>
+        <inout name="token" type="task_status"/>
+        <condition>
+          ${token.status} :ne: 0U
+        </condition>
+        <module name="singular_parallel_allpfd"
+                require_function_unloads_without_rest="false"
+                function="hand_numerator_back
+                            ( token
+                            , step
+                            , options
+                            )">
+          <cinclude href="interface/singular_pnet-interface.hpp"/>
+          <cinclude href="util-generic/dynamic_linking.hpp"/>
+          <cinclude href="iostream"/>
+          <code><![CDATA[
+            /*<>*/
+
+            std::cout << "Handing back "
+                      << step
+                      << " for problem "
+                      << token.id
+                      <<"\n";
+
+            RESOLVE_INTERFACE_FUNCTION
+              (pfd_hand_back)
+              (token.id, options, step);
+
+            token.status = 1;
+          ]]></code>
+        </module>
+      </defun>
+      <connect-in port="token" place="numerator_after"/>
+      <connect-read port="options" place="readoptions"/>
+      <connect-read port="step" place="numerator_step_name"/>
+      <connect-out port="token" place="numerator_before"/>
+    </transition>
+
+
+
+    <transition name="write_result">
+      <defun>
+        <require key="worker" mandatory="true"/>
+        <in name="in" type="task_status"/>
+        <in name="options" type="options_type"/>
+        <in name="last_step" type="string"/>
+        <out name="out" type="unsigned int"/>
+
+        <condition>
+          ${in.status} :eq: 0U
+        </condition>
+
+        <module name="singular_parallel_allpfd"
+                require_function_unloads_without_rest="false"
+                function="write_result
+                            ( options
+                            , in
+                            , out
+                            , last_step
+                            )">
+          <cinclude href="interface/singular_pnet-interface.hpp"/>
+          <cinclude href="util-generic/dynamic_linking.hpp"/>
+          <cinclude href="iostream"/>
+          <code><![CDATA[
+          //<>
+            std::cout << "Writing " << in.id << "\n";
+
+            RESOLVE_INTERFACE_FUNCTION
+              (pfd_write_result)
+              ( in.id, options, last_step );
+            std::cout << "Writing " << in.id << " done!\n";
+
+            out = in.id;
+
+          ]]></code>
+        </module>
+      </defun>
+      <connect-in port="in" place="numerator_after"/>
+      <connect-read port="options" place="readoptions"/>
+      <connect-read port="last_step" place="numerator_step_name"/>
+      <connect-out port="out" place="out"/>
+    </transition>
+
+  </net>
+</defun>
+

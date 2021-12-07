@@ -1,0 +1,187 @@
+<defun name="parallel_all">
+
+  <include-structs href="types.xpnet"/>
+
+  <in name="global_options" type="options_type" place="global_options"/>
+  <out name="output" type="string" place="output"/>
+
+  <net>
+    <place name="initiated" type="unsigned int">
+      <token><value>0U</value></token>
+    </place>
+    <place name="global_options" type="options_type"/>
+    <place name="extract_control" type="unsigned int"/>
+    <place name="extract_list" type="list"/>
+    <place name="control" type="unsigned int"/>
+    <place name="tasks" type="unsigned int"/>
+    <place name="results" type="unsigned int"/>
+    <place name="output" type="string"/>
+
+    <transition name="initialize">
+      <defun>
+        <in name="options" type="options_type"/>
+        <inout name="initiated" type="unsigned int"/>
+        <out name="ecount" type="unsigned int"/>
+        <out name="elist" type="list"/>
+        <out name="control" type="unsigned int"/>
+
+        <condition>
+          ${initiated} :eq: 0U
+        </condition>
+
+        <module name="singular_parallel_all"
+                require_function_unloads_without_rest="false"
+                function="initialize_all
+                            ( options
+                            , initiated
+                            , ecount
+                            , elist
+                            , control
+                            )">
+          <cinclude href="interface/singular_pnet-interface.hpp"/>
+          <cinclude href="util-generic/dynamic_linking.hpp"/>
+          <cinclude href="iostream"/>
+          <code><![CDATA[
+          /*<>*/
+            std::cout << "Starting Wait All PNET\n";
+            ecount = options.task_count;
+            control = options.task_count;
+            if (options.sort_input) {
+              std::cout << "Sorting input by filesize\n";
+              elist = RESOLVE_INTERFACE_FUNCTION
+                      (pfd_sorted_input_by_size)
+                      (ecount, options, "list");
+            } else {
+              elist = singular_parallel::pnet_list();
+              for (unsigned int i = 0; i < ecount; i++)
+                elist.push_back(i);
+            }
+            initiated = 1;
+          ]]></code>
+        </module>
+      </defun>
+      <connect-read port="options" place="global_options"/>
+      <connect-inout port="initiated" place="initiated"/>
+      <connect-out port="ecount" place="extract_control"/>
+      <connect-out port="elist" place="extract_list"/>
+      <connect-out port="control" place="control"/>
+    </transition>
+
+    <transition name="extract">
+      <defun>
+        <inout name="ecount" type="unsigned int"/>
+        <inout name="elist" type="list"/>
+        <out name="task" type="unsigned int"/>
+        <condition>
+          ${ecount} :gt: 0U
+        </condition>
+        <module name="singular_parallel_all"
+                require_function_unloads_without_rest="false"
+                function="extract
+                            ( ecount
+                            , elist
+                            , task
+                            )">
+          <cinclude href="interface/singular_pnet-interface.hpp"/>
+          <cinclude href="iostream"/>
+          <code><![CDATA[
+            /*<>*/
+            if (elist.size() <= 0) {
+              throw std::runtime_error("empty elist cannot be used");
+            }
+            task = boost::get<unsigned int> (elist.back());
+            elist.pop_back();
+            ecount -= 1;
+            std::cout << task
+                      << " sent to tasks.\n";
+          ]]></code>
+        </module>
+      </defun>
+      <connect-inout port="ecount" place="extract_control"/>
+      <connect-inout port="elist" place="extract_list"/>
+      <connect-out port="task" place="tasks"/>
+    </transition>
+
+    <transition name="done_extract">
+      <defun>
+        <in name="ecount" type="unsigned int"/>
+        <in name="elist" type="list"/>
+        <condition>
+          ${ecount} :eq: 0U
+        </condition>
+        <expression>
+        </expression>
+      </defun>
+      <connect-in port="ecount" place="extract_control"/>
+      <connect-in port="elist" place="extract_list"/>
+    </transition>
+
+    <transition name="compute">
+      <defun>
+        <require key="worker" mandatory="true"/>
+        <in name="in" type="unsigned int"/>
+        <in name="options" type="options_type"/>
+        <out name="out" type="unsigned int"/>
+        <module name="singular_parallel_all"
+                require_function_unloads_without_rest="false"
+                function="compute (options,
+                                   in,
+                                   out)">
+          <cinclude href="interface/singular_pnet-interface.hpp"/>
+          <cinclude href="util-generic/dynamic_linking.hpp"/>
+          <cinclude href="iostream"/>
+          <code><![CDATA[
+            /*<>*/
+            std::cout << "Computing "
+                      << in
+                      << "\n";
+            RESOLVE_INTERFACE_FUNCTION(singular_parallel_compute)
+                                      (in, options);
+            std::cout << "Finished computing "
+                      << in
+                      << "\n";
+            out = in;
+          ]]></code>
+        </module>
+      </defun>
+      <connect-in port="in" place="tasks"/>
+      <connect-read port="options" place="global_options"/>
+      <connect-out port="out" place="results"/>
+    </transition>
+
+    <transition name="collect">
+      <defun>
+        <in name="result" type="unsigned int"/>
+        <inout name="control" type="unsigned int"/>
+        <condition>
+          ${control} :gt: 0U
+        </condition>
+        <expression>
+          ${control} := ${control} - 1U;
+        </expression>
+      </defun>
+      <connect-in port="result" place="results"/>
+      <connect-inout port="control" place="control"/>
+    </transition>
+
+    <transition name="finish">
+      <defun>
+        <in name="control" type="unsigned int"/>
+        <in name="initiated" type="unsigned int"/>
+        <in name="options" type="options_type"/>
+        <out name="output" type="string"/>
+        <condition>
+          ${control} :eq: 0U
+        </condition>
+        <expression>
+          ${output} := "DONE";
+        </expression>
+      </defun>
+      <connect-in port="control" place="control"/>
+      <connect-in port="initiated" place="initiated"/>
+      <connect-in port="options" place="global_options"/>
+      <connect-out port="output" place="output"/>
+    </transition>
+
+  </net>
+</defun>

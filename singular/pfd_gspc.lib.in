@@ -1,0 +1,586 @@
+///////////////////////////////////////
+version="version pfd_gspc.lib 0.1 Feb_2021 ";
+category="Algebraic geometry";
+info="";
+proc mod_init()
+{
+  LIB "libSINGULAR-parallel-module.so";
+  newstruct("configToken", "string tokentype, def options");
+  newstruct("gspcConfigToken",
+            "string tempdir, " +
+            "string nodefile, " +
+            "int procspernode, " +
+            "string rifstrategy, " +
+            "string loghost, " +
+            "int logport, " +
+            "list addargs, " +
+            "string loghostfile");
+  newstruct("parallelConfigToken",
+            "string instructname, " +
+            "string instructdesc, " +
+            "string outstructname, " +
+            "string outstructdesc, " +
+            "string neededlibrary, " +
+            "string functionname, " +
+            "string expandnodefunction, " +
+            "string inputdir, " +
+            "string outputdir, " +
+            "string filename, " +
+            "string suffix, " +
+            "string algorithm, " +
+            "int upperbound, " +
+            "int loopmax, " +
+            "int splitmax, " +
+            "int sortinput, " +
+            "int parprop"
+            );
+}
+
+proc configure_gspc()
+{
+  gspcConfigToken gc;
+  gc.rifstrategy = "ssh";
+  configToken ct;
+  ct.tokentype = "gspcConfigToken";
+  ct.options = gc;
+  return(ct);
+}
+
+proc configure_parallel()
+{
+  parallelConfigToken pc;
+  configToken ct;
+  ct.tokentype = "parallelConfigToken";
+  ct.options = pc;
+  return(ct);
+}
+
+proc extract_loghost_from_file(string loghostfile)
+{
+  string loghost = read(loghostfile);
+  if ((loghost == "") || (loghost == newline))
+  {
+    ERROR("no hostname in loghostfile");
+  }
+  if (loghost[size(loghost)] == newline) // delete trailing LF
+  {
+    loghost = loghost[1..(size(loghost)-1)];
+  }
+  return (loghost);
+}
+
+proc get_loghost(configToken gc)
+{
+  if (gc.options.loghost == "") // no hostname given, so read from file
+  {
+    if (gc.options.loghostfile == "")
+    {
+      ERROR("logging requested, no loghost and no loghostfile given");
+    }
+    return (extract_loghost_from_file(get_absolute_path(gc.options.loghostfile)));
+  } else {
+    return (gc.options.loghost);
+  }
+}
+
+proc get_tempdir(configToken gc)
+{
+  if (gc.options.tempdir[1] == "/")
+  {
+    return (gc.options.tempdir);
+  }
+  else
+  {
+    return (system("getenv", "PWD") + "/" + gc.options.tempdir);
+  }
+}
+
+proc get_absolute_path(string path)
+{
+  if (path[1] == "/") {
+    return (path);
+  } else {
+    return (system("getenv", "PWD") + "/" + path);
+  }
+}
+
+proc get_parallel_launch_command(string ret_name, string tempdir, string pnet_id)
+{
+  string common_args = "\"" + tempdir + "\"" + ", " +
+            "gc.options.nodefile, " +
+            "gc.options.procspernode, " +
+            "gc.options.rifstrategy, " +
+            "gc.options.addargs, " +
+            "pc.options.instructname, " +
+            "pc.options.instructdesc, " +
+            "pc.options.outstructname, " +
+            "pc.options.outstructdesc, " +
+            "pc.options.neededlibrary, " +
+            "pc.options.functionname, " +
+            "pc.options.inputdir, " +
+            "pc.options.outputdir";
+  if (pnet_id == "wait_first") {
+    return ("def " + ret_name + " = sggspc_wait_first(l, " + common_args +
+      ", 0, 0, pc.options.sortinput, 0);");
+  }
+  if (pnet_id == "wait_all") {
+    return ("def " + ret_name + " = sggspc_wait_all(l, " + common_args +
+      ", 0, 0, pc.options.sortinput, 0);");
+  }
+  if (pnet_id == "pfd") {
+    return ("def " + ret_name + " = sggspc_pfd(l, " + common_args +
+      ", pc.options.splitmax, pc.options.loopmax, " +
+      "pc.options.sortinput, pc.options.parprop);");
+  }
+}
+
+proc check_for_valid_pnet_id(string pnet_id)
+{
+  if ((pnet_id != "wait_all") &&
+    (pnet_id != "wait_first") &&
+    (pnet_id != "pfd")) {
+    ERROR("Unknown function '" + pnet_id + ",' please give correct option");
+  }
+}
+
+proc get_log_opts(configToken gc)
+{
+  if (gc.options.logport != 0) // logging requested
+  {
+    list logopt = list("--log-host",
+                       get_loghost(gc),
+                       "--log-port",
+                       string(gc.options.logport));
+  } else {
+    list logopt = list();
+  }
+  return (logopt);
+}
+
+proc check_gspc_token_type(configToken gc)
+{
+  if (typeof(gc.options) != "gspcConfigToken") {
+    ERROR("Expected a gspcConfigToken.  Instead, got a " gc.options);
+  }
+}
+
+proc check_parallel_token_type(configToken pc)
+{
+  if (typeof(pc.options) != "parallelConfigToken") {
+    ERROR("Expected a parallelConfigToken.  Instead, got a " pc.options);
+  }
+}
+
+proc get_ldpathopt() {
+  if (system("getenv", "LD_LIBRARY_PATH") != "")
+  {
+    list ldpathopt = list("--worker-env-copy-variable", "LD_LIBRARY_PATH");
+  } else {
+    list ldpathopt = list();
+  }
+  return (ldpathopt);
+}
+
+static proc parallel_wait(list l,
+                          configToken gc,
+                          configToken pc,
+                          string pnet_id)
+{
+  check_gspc_token_type(gc);
+  check_parallel_token_type(pc);
+
+  gc.options.addargs = gc.options.addargs + get_log_opts(gc);
+  gc.options.addargs = gc.options.addargs + get_ldpathopt();
+
+  string tempdir = get_tempdir(gc);
+
+  check_for_valid_pnet_id(pnet_id);
+
+  string s_command = get_parallel_launch_command("sm_result", tempdir, pnet_id);
+  execute(s_command);
+  return (sm_result);
+}
+
+proc parallel_waitfirst(list l, configToken gc, configToken pc)
+{
+  return(parallel_wait(l, gc, pc, "wait_first"));
+}
+
+proc parallel_waitall(list l, configToken gc, configToken pc)
+{
+  return(parallel_wait(l, gc, pc, "wait_all"));
+}
+
+proc parallel_waitpfd(list l, configToken gc, configToken pc)
+{
+  return(parallel_wait(l, gc, pc, "pfd"));
+}
+
+/*** PFD functions ***/
+
+proc entry_filename(string matrixname, int row, int col)
+{
+  return (matrixname + "_" +string(row) + "_" + string(col))
+}
+
+proc default_gspc_config()
+{
+  configToken gc = configure_gspc();
+
+  gc.options.tempdir = "/dev/shm/@USER@/pfd_tmpfile";
+  gc.options.nodefile = "@HOME@/nodefile";
+  gc.options.procspernode = 8;
+  gc.options.loghost = "@HOSTNAME@";
+  gc.options.logport = 6439;
+
+  while (gc.options.loghost[size(gc.options.loghost)] == newline) {
+    gc.options.loghost = gc.options.loghost[1, size(gc.options.loghost) - 1];
+  }
+  system("sh", "mkdir -p " + gc.options.tempdir);
+
+  return (gc);
+}
+
+proc configure_pfd()
+{
+  configToken pc = configure_parallel();
+
+  pc.options.instructname = "in_struct";
+  pc.options.instructdesc = "string matrixname, int row, int col, " +
+                            "string neededring, string inputdir, " +
+                            "string outputdir, string suffix";
+  pc.options.outstructname = "out_struct";
+  pc.options.outstructdesc = "string result";
+  pc.options.neededlibrary = "@PFD_SING_LIB_PATH@/pfd_singular_interface.lib";
+  pc.options.functionname = "pfd_singular_compute";
+  pc.options.splitmax = 8;
+  pc.options.loopmax = 50;
+  pc.options.sortinput = 1;
+  pc.options.parprop = 100;
+
+  pc.options.filename = "";
+  pc.options.suffix = "txt";
+  pc.options.algorithm = "custom";
+
+  return (pc);
+}
+
+proc parallel_pfd ( list entry_indices
+                  , configToken gc
+                  , configToken pc
+                  )
+{
+  int i;
+  list l;
+  check_gspc_token_type(gc);
+  check_parallel_token_type(pc);
+  if ( (gc.tokentype == "gspcConfigToken") and
+        (pc.tokentype == "parallelConfigToken") ) {
+
+    // prepare in structs
+    newstruct(pc.options.instructname, pc.options.instructdesc);
+    newstruct(pc.options.outstructname, pc.options.outstructdesc);
+    in_struct ins;
+
+    ins.matrixname = pc.options.filename;
+    ins.inputdir = get_absolute_path (pc.options.inputdir);
+    ins.outputdir = get_absolute_path (pc.options.outputdir);
+    ins.suffix = pc.options.suffix;
+    if ((ins.suffix =="txt") and (! defined(basering))) {
+      ERROR("Please set the applicable ring required for the underlying polynomials");
+      return(0);
+    } else{if (ins.suffix =="txt") {
+      ins.neededring = string(basering);
+    }}
+
+    for (i = 1; i <= size(entry_indices); i++) {
+      ins.row = entry_indices[i][1];
+      ins.col = entry_indices[i][2];
+      l[i] = ins;
+    }
+
+    if (pc.options.algorithm == "waitAll") {
+      pc.options.parprop=0;
+    } else{if (pc.options.algorithm == "fullyParallel") {
+      pc.options.parprop=100;
+    }}
+
+    def re_all = parallel_waitpfd(l,gc,pc);
+
+    return (re_all);
+
+  } else {
+    ERROR("Bad token types given as argument");
+  }
+}
+
+proc custom_pfd ( string matrixname
+                  , list entry_indices
+                  , string inputdir
+                  , list #
+                  )
+"USAGE:   custom_pfd(matrixname, entry_indices, inputdir[, gc[, outputdir[,
+suffix]]), matrixname,inputdir,outputdir,suffix string,  entry_indicies list, gc configToken
+PURPOSE:  apply @code{pfd} in parallel to the rational function saved in the
+          files identified by the entry_indices corresponding to the entries of
+          some matrix of rational funcitons
+          @code{matrixname} is the prefix of the name of the txt-files containing
+          the rational functions as a string, or in ssi format.
+          @code{from_dir} and @{to_dir} are the directories (relative to current
+          directory) of the input and output files respectively (default:
+          current directory (?)).
+"
+{
+  configToken gc, pc;
+  int i;
+  list l;
+  string outputdir;
+
+  pc = configure_pfd();
+  pc.options.inputdir = inputdir;
+  pc.options.filename = matrixname;
+
+  if (size(#) >= 1) {
+    gc = #[1];
+  } else {
+    gc = default_gspc_config();
+  }
+
+  if (size(#) >= 2) {
+    pc.options.outputdir = #[2];
+  } else {
+    pc.options.outputdir = pc.options.inputdir;
+  }
+  if (size(#) >= 3) {
+    if ( typeof(#[3]) != "string") {
+      ERROR("suffix requires a string argument");
+    } else {
+      pc.options.suffix = #[3];
+    }
+  }
+  if (size(#) >= 4) {
+    if ( typeof(#[4]) != "int") {
+      ERROR("split_max requires an int");
+    } else {
+      pc.options.splitmax = #[4];
+    }
+  }
+  if (size(#) >= 5) {
+    if ( typeof(#[5]) != "int") {
+      ERROR("loop_max requires an int");
+    } else {
+      pc.options.loopmax = #[5];
+    }
+  }
+  if (size(#) >= 6) {
+    if ( typeof(#[6]) != "int") {
+      ERROR("sortinput requires an int");
+    } else {
+      pc.options.sortinput = #[6];
+    }
+  }
+  if (size(#) >= 7) {
+    if ( typeof(#[7]) != "int") {
+      ERROR("parallel proportion requires an int");
+    } else {
+      pc.options.parprop = #[7];
+    }
+  }
+
+  def re_all = parallel_pfd(entry_indices, gc, pc);
+
+  if (size(#) < 1) {
+    system("sh", "rm -rv " + gc.options.tempdir);
+  }
+  print (re_all);
+
+  return (1);
+}
+
+proc  pfd_waitall( string matrixname
+                         , list entry_indices
+                         , string inputdir
+                         , list #
+                         )
+{
+  configToken gc;
+
+  int sort_input;
+
+  string outputdir, suffix;
+
+
+
+  if (size(#) >= 1) {
+    gc = #[1];
+  } else {
+    gc = default_gspc_config();
+  }
+  if (size(#) >= 2) {
+    outputdir = #[2];
+  } else {
+    outputdir = inputdir;
+  }
+  if (size(#) >= 3) {
+    suffix = #[3];
+  } else {
+    suffix = "txt";
+  }
+
+  if (size(#) >= 4) {
+    if ( typeof(#[4]) != "int") {
+      ERROR("sortinput requires an int");
+    }
+    sort_input = #[4];
+  } else {
+    sort_input = 1; // default value: True
+  }
+
+  custom_pfd( matrixname
+              , entry_indices
+              , inputdir
+              , gc
+              , outputdir
+              , suffix
+              , 1 // max_split irrelevant in serial
+              , 1 // max_loop irrelevant in serial
+              , sort_input
+              , 0 // serial, so 0% internal parallel
+              );
+}
+
+proc  pfd_fullyparallel( string matrixname
+                           , list entry_indices
+                           , string inputdir
+                           , list #
+                           )
+{
+  configToken gc;
+
+  int split_max, loop_max, sort_input;
+
+  string outputdir, suffix;
+
+  if (size(#) >= 1) {
+    gc = #[1];
+  } else {
+    gc = default_gspc_config();
+  }
+  if (size(#) >= 2) {
+    outputdir = #[2];
+  } else {
+    outputdir = inputdir;
+  }
+  if (size(#) >= 3) {
+    suffix = #[3];
+  } else {
+    suffix = "txt";
+  }
+
+  if (size(#) >= 4) {
+    if ( typeof(#[4]) != "int") {
+      ERROR("split_max requires an int");
+    }
+    split_max = #[4];
+  } else {
+    split_max = 8; // default value
+  }
+  if (size(#) >= 5) {
+    if ( typeof(#[5]) != "int") {
+      ERROR("loop_max requires an int");
+    }
+    loop_max = #[5];
+  } else {
+    loop_max = 50; // default value
+  }
+
+  if (size(#) >= 6) {
+    if ( typeof(#[6]) != "int") {
+      ERROR("sortinput requires an int");
+    }
+    sort_input = #[6];
+  } else {
+    sort_input = 1; // default value: True
+  }
+
+  custom_pfd( matrixname
+              , entry_indices
+              , inputdir
+              , gc
+              , outputdir
+              , suffix
+              , split_max
+              , loop_max
+              , sort_input
+              , 100 // parallel, so 100% internal parallel
+              );
+}
+
+/*** companion functions ***/
+
+proc companion_structs_config()
+{
+  configToken pc = configure_parallel();
+
+  pc.options.instructname = "in_struct";
+  pc.options.instructdesc = "int index, " +
+                            "string rootdir";
+  pc.options.outstructname = "out_struct";
+  pc.options.outstructdesc = "string result";
+  pc.options.neededlibrary = "@PFD_SING_LIB_PATH@/companion_gspc_interface.lib";
+  pc.options.functionname = "companion_gspc_compute";
+
+  return (pc);
+}
+
+proc parallel_companion ( string rootdir
+                        , list file_indices
+                        , list #
+                        )
+"USAGE:   parallel_companion(rootdir, file_indices[, gc]), rootdir string,  file_indicies list, gc configToken
+PURPOSE:  apply @code{companion} in parallel to the data saved in the
+          files identified by the file_indices.
+          @code{rootdir} is the path to the directory relative to which the
+          input files will be found and the output will be written.
+"
+{
+  configToken gc, pc;
+  int i;
+  list l;
+
+  /*
+  if (! defined(basering)) {
+    ERROR("Please set the applicable ring required for the underlying polynomials");
+    return(0);
+  }
+  */
+
+  if (size(#) >= 1) {
+    gc = #[1];
+  } else {
+    gc = default_gspc_config();
+  }
+
+
+  pc = companion_structs_config();
+
+  newstruct(pc.options.instructname, pc.options.instructdesc);
+  newstruct(pc.options.outstructname, pc.options.outstructdesc);
+  in_struct ins;
+
+  ins.rootdir = rootdir;
+
+  for (i = 1; i <= size(file_indices); i++) {
+      ins.index = file_indices[i];
+      l[i] = ins;
+  }
+
+  def re_all = parallel_waitall(l,gc,pc);
+
+  if (size(#) < 1) {
+    system("sh", "rm -rv " + gc.options.tempdir);
+  }
+  print (re_all);
+
+  return (1);
+}

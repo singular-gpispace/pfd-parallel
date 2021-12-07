@@ -1,0 +1,150 @@
+<defun name="parallel_first">
+
+  <include-structs href="types.xpnet"/>
+
+  <in name="global_options" type="options_type" place="global_options"/>
+  <out name="output" type="unsigned int" place="output"/>
+  <net>
+    <place name="initiated" type="unsigned int">
+      <token><value>0U</value></token>
+    </place>
+    <place name="global_options" type="options_type"/>
+    <place name="extract_control" type="unsigned int"/>
+    <place name="tasks" type="unsigned int"/>
+    <place name="result_before" type="unsigned int"/>
+    <place name="result_after" type="unsigned int"/>
+    <place name="output" type="unsigned int"/>
+
+    <transition name="initialize">
+      <defun>
+        <inout name="initiated" type="unsigned int"/>
+        <in name="options" type="options_type"/>
+        <out name="extract_control" type="unsigned int"/>
+
+        <condition>
+          ${initiated} :eq: 0U
+        </condition>
+
+        <expression>
+          ${extract_control} := ${options.task_count};
+          ${initiated} := 1U;
+        </expression>
+      </defun>
+      <connect-read port="options" place="global_options"/>
+      <connect-inout port="initiated" place="initiated"/>
+      <connect-out port="extract_control" place="extract_control"/>
+    </transition>
+
+    <transition name="extract">
+      <defun>
+        <inout name="extract_control" type="unsigned int"/>
+        <out name="task" type="unsigned int"/>
+        <condition>
+          ${extract_control} :gt: 0U
+        </condition>
+        <expression>
+          ${task} := ${extract_control} - 1U;
+          ${extract_control} := ${extract_control} - 1U;
+        </expression>
+      </defun>
+      <connect-inout port="extract_control" place="extract_control"/>
+      <connect-out port="task" place="tasks"/>
+    </transition>
+
+    <transition name="done_extract">
+      <defun>
+        <in name="extract_control" type="unsigned int"/>
+        <condition>
+          ${extract_control} :eq: 0U
+        </condition>
+        <expression>
+        </expression>
+      </defun>
+      <connect-in port="extract_control" place="extract_control"/>
+    </transition>
+
+    <transition name="compute">
+      <defun>
+        <require key="worker" mandatory="true"/>
+        <in name="in" type="unsigned int"/>
+        <in name="options" type="options_type"/>
+        <out name="out" type="unsigned int"/>
+        <module name="singular_parallel_first" function="compute (
+          options, in, out)" eureka-group="wait_first"
+          pass_context="true">
+          <cinclude href="interface/singular_pnet-interface.hpp"/>
+          <cinclude href="util-generic/dynamic_linking.hpp"/>
+          <cinclude href="iostream"/>
+          <code><![CDATA[
+          /*<>*/
+          std::cout << "Starting "
+                    << in
+                    << std::endl;
+          try
+          {
+            _pnetc_context->execute_and_kill_on_cancel_DO_NOT_OUTPUT_TO_STANDARD_STREAMS_FROM_WITHIN
+              ( [in, options]()
+                {
+                  RESOLVE_INTERFACE_FUNCTION(singular_parallel_compute)
+                                            (in, options);
+                },
+                &drts::worker::throw_cancelled,
+                &drts::worker::on_signal_unexpected,
+                [] (int i)
+                {
+                  if (i)
+                  {
+                    drts::worker::on_exit_unexpected (i);
+                  }
+                }
+              )
+              ;
+          }
+          catch (drts::worker::context::cancelled const&)
+          {
+            std::cout << "Task "
+                      << in
+                      <<" has been cancelled" << std::endl;
+          }
+          out = in;
+          ]]></code>
+        </module>
+      </defun>
+      <connect-in port="in" place="tasks"/>
+      <connect-read port="options" place="global_options"/>
+      <connect-out port="out" place="result_before"/>
+    </transition>
+
+    <transition name="got_an_event_eureka">
+      <defun>
+        <in name="result_before" type="unsigned int"/>
+        <out name="result_after" type="unsigned int"/>
+        <out name="eureka_good" type="set"/> <!-- eureka, ID inserted for WE -->
+        <expression>
+          ${eureka_good} := set_insert (Set{}, "wait_first");
+          ${result_after} := ${result_before};
+        </expression>
+      </defun>
+      <connect-in port="result_before" place="result_before"/>
+      <connect-out port="result_after" place="result_after"/>
+      <connect-eureka port="eureka_good"/>
+    </transition>
+
+    <transition name="finish">
+      <defun>
+        <in name="result_after" type="unsigned int"/>
+        <in name="initiated" type="unsigned int"/>
+        <in name="options" type="options_type"/>
+        <out name="output" type="unsigned int"/>
+        <expression>
+          ${output} := ${result_after};
+        </expression>
+      </defun>
+      <connect-in port="result_after" place="result_after"/>
+      <connect-in port="initiated" place="initiated"/>
+      <connect-in port="options" place="global_options"/>
+      <connect-out port="output" place="output"/>
+    </transition>
+
+  </net>
+</defun>

@@ -1,0 +1,42 @@
+<structs>
+
+  <struct name="options_type">
+    <field name="function_name" type="string"/>
+    <field name="needed_library" type="string"/>
+    <field name="from_dir" type="string"/>
+    <field name="to_dir" type="string"/>
+    <field name="in_struct_name" type="string"/>
+    <field name="in_struct_desc" type="string"/>
+    <field name="out_struct_name" type="string"/>
+    <field name="out_struct_desc" type="string"/>
+    <field name="tempdir" type="string"/>
+    <field name="parallel_proportion" type="float"/>
+    <field name="task_count" type="unsigned int"/>
+    <field name="split_max" type="unsigned int"/>
+    <field name="loop_max" type="unsigned int"/>
+    <field name="sort_input" type="unsigned int"/>
+  </struct>
+
+  <struct name="task_status">
+    <field name="id" type="unsigned int"/>
+    <field name="status" type="unsigned int"/>
+  </struct>
+
+  <struct name="term">
+    <field name="id" type="unsigned int"/>
+    <field name="term_id" type="unsigned int"/>
+  </struct>
+
+  <struct name="term_count_type">
+    <field name="computing" type="unsigned int"/>
+    <field name="id" type="unsigned int"/>
+    <field name="total_degrees" type="list"/>
+  </struct>
+
+  <struct name="extract_control_type">
+    <field name="parallel" type="unsigned int"/>
+    <field name="serial" type="unsigned int"/>
+  </struct>
+
+
+</structs>
