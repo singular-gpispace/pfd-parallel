@@ -3326,7 +3326,7 @@ EXAMPLE:  example pfd2; shows an example"
           {
             if(deg(q[i])>deg(q[groups[j][k]]))
             {
-              groups[j] = insert(groups[j],i,k-1)
+              groups[j] = insert(groups[j],i,k-1);
               break;
             }
           }
