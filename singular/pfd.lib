@@ -2845,6 +2845,8 @@ SEE ALSO: pfdMat, pfdSingleEntrySSI
                              ignore_nonlin);
   list fraction = read("ssi:r " + from_dir + filename + ".ssi");
   list nonlin = prepareNonLin(fraction, ignore_nonlin);
+  fraction = nonlin[1];
+  nonlin = nonlin[2];
 
   int t = rtimer;
 
@@ -2994,7 +2996,7 @@ proc prepareNonLin(list fraction, int ignore_nonlin)
       }
     }
   }
-  return (nonlin);
+  return (list(fraction, nonlin));
 
 }
 
@@ -3326,7 +3328,7 @@ EXAMPLE:  example pfd2; shows an example"
           {
             if(deg(q[i])>deg(q[groups[j][k]]))
             {
-              groups[j] = insert(groups[j],i,k-1)
+              groups[j] = insert(groups[j],i,k-1);
               break;
             }
           }
