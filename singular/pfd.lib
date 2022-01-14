@@ -2905,7 +2905,7 @@ proc parsePfdSingleEntryArgs(list #)
   if (size(#)>2) {
     ignore_nonlin = #[3];
   } else {
-    ignore_nonlin = 1;
+    ignore_nonlin = 0;
   }
 
   if (size(#)>3) {

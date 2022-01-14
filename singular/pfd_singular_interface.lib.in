@@ -125,6 +125,8 @@ proc pfd_singular_is_trivial (in_struct input)
                                                , input.col);
   list fraction = read("ssi:r " + from_dir + filename + ".ssi");
   list nonlin = prepareNonLin(fraction, ignore_nonlin);
+  fraction = nonlin[1];
+  nonlin = nonlin[2];
 
   int t = rtimer;
 
@@ -219,6 +221,8 @@ proc pfd_singular_prepare_input (in_struct input, int id, string tempdir, string
                                                , input.col);
   list fraction = read("ssi:r " + from_dir + filename + ".ssi");
   list nonlin = prepareNonLin(fraction, ignore_nonlin);
+  fraction = nonlin[1];
+  nonlin = nonlin[2];
 
 
   poly f = fraction[1];
