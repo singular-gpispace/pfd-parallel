@@ -27,10 +27,19 @@ proc pfd_singular_compute (in_struct input)
   if (input.suffix == "txt") {
     execute("ring r = " + input.neededring + ";");
   }
-  pfdSingleEntry(filename, input.inputdir, input.outputdir);
+  if ((input.pfdimplementation == "pfd1") ||
+      (input.pfdimplementation == "pfd2")) {
+    pfdSingleEntry( filename
+                  , input.inputdir
+                  , input.outputdir
+                  , input.pfdimplementation
+                  );
+  } else {
+    ERROR ("invalid pfdimplementation");
+  }
 
   out_struct output;
-  output.result = "success!";
+  output.result = "success! (serially)";
   return(output);
 }
 
@@ -74,7 +83,8 @@ proc pfd_singular_prepareSingleEntryFraction (in_struct input)
   list args = parsePfdSingleEntryArgs(input.inputdir, input.outputdir);
   string from_dir = args[1];
   string to_dir = args[2];
-  int ignore_nonlin = args[3];
+  string implementation = args[3]; // not important, as we are obviously parallel
+  int ignore_nonlin = args[4];
 
   if (input.suffix == "txt") {
     execute("ring r = " + input.neededring);
@@ -109,13 +119,16 @@ proc pfd_singular_is_trivial (in_struct input)
   list args = parsePfdSingleEntryArgs(input.inputdir, input.outputdir);
   string from_dir = args[1];
   string to_dir = args[2];
-  int ignore_nonlin = args[3];
+  string approach = args[3];
+  int ignore_nonlin = args[4];
 
   string filename = pfd_singular_filename_no_suffix( input.matrixname
                                                , input.row
                                                , input.col);
   list fraction = read("ssi:r " + from_dir + filename + ".ssi");
   list nonlin = prepareNonLin(fraction, ignore_nonlin);
+  fraction = nonlin[1];
+  nonlin = nonlin[2];
 
   int t = rtimer;
 
@@ -203,13 +216,16 @@ proc pfd_singular_prepare_input (in_struct input, int id, string tempdir, string
   list args = parsePfdSingleEntryArgs(input.inputdir, input.outputdir);
   string from_dir = args[1];
   string to_dir = args[2];
-  int ignore_nonlin = args[3];
+  string approach = args[3];
+  int ignore_nonlin = args[4];
 
   string filename = pfd_singular_filename_no_suffix( input.matrixname
                                                , input.row
                                                , input.col);
   list fraction = read("ssi:r " + from_dir + filename + ".ssi");
   list nonlin = prepareNonLin(fraction, ignore_nonlin);
+  fraction = nonlin[1];
+  nonlin = nonlin[2];
 
 
   poly f = fraction[1];

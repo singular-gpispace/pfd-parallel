@@ -1,0 +1,64 @@
+LIB "pfd.lib";
+
+proc merge_inputs( string indir
+                 , string outdir
+                 , string filename
+                 , int id
+                 , int termcount
+                 )
+{
+  int i, f, k;
+  int nq;
+  list entry;
+  list summand;
+  ideal q;
+  intvec e;
+  intvec f_id;
+  list result;
+  int f_count;
+
+
+  // create global q for row
+  for (i = 1; i <= termcount; i++) {
+    entry = read("ssi:r " + indir + filename
+                          + "_" + string(id)
+                          + "_" + string(i)
+                          + ".ssi"
+                );
+    q = q + entry[2][1];
+  }
+  nq = size(q);
+
+  // read entries and collect in result list
+  for (i = 1; i <= termcount; i++) {
+    f_id = intvec(0);
+    e = intvec(0);
+    f_count = 0;
+    entry = read("ssi:r " + indir + filename
+                          + "_" + string(id)
+                          + "_" + string(i)
+                          + ".ssi"
+                );
+    summand[1] = entry[1]; //set numerator
+    for (k = 1; k <= nq; k++) { // iterate factors
+      for (f = 1; f <= size(entry[2][1]); f++) { // look for entry factors
+        if (entry[2][1][f] == q[k]) {
+          //found match
+          f_count++;
+          f_id[f_count] = k;
+          e[f_count] = entry[2][2][f];
+          break;
+        }
+      } // for over entry factors
+    } //  for over q factors
+    if (f_count != size(entry[2][1])) {
+      ERROR("All factors not found...");
+    }
+    summand[2] = f_id;
+    summand[3] = e;
+    result = mergepfd(result, list(summand)); // merging ensures the entries are
+                                              // sorted by denominators
+  } // for over entries
+
+  return (list(q, result));
+}

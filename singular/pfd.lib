@@ -2831,7 +2831,8 @@ SEE ALSO: pfdMat, pfdSingleEntrySSI
   list args = parsePfdSingleEntryArgs(#);
   string from_dir = args[1];
   string to_dir = args[2];
-  int ignore_nonlin = args[3];
+  string pfd_implementation = args[3];
+  int ignore_nonlin = args[4];
 
   int i = find(filename,".");
   if(i>0) {filename = filename[1,i-1];} // remove file ending if given
@@ -2844,14 +2845,19 @@ SEE ALSO: pfdMat, pfdSingleEntrySSI
                              ignore_nonlin);
   list fraction = read("ssi:r " + from_dir + filename + ".ssi");
   list nonlin = prepareNonLin(fraction, ignore_nonlin);
+  fraction = nonlin[1];
+  nonlin = nonlin[2];
 
   int t = rtimer;
 
   list result = pfd(fraction);
 
   t = rtimer-t;
-  write(":w "+to_dir+"resources_"+filename+".txt",
-        sprintf("Time: %s ms,  Memory: %s Bytes",t,memory(2)));
+  write(":a "+to_dir+"resources_"+filename+".txt",
+        sprintf( "Time: %s ms,  Memory: %s Bytes with implementation %s"
+               , t
+               , memory(2)
+               , pfd_implementation));
 
   // output as Singular objects
   if(ignore_nonlin)
@@ -2869,34 +2875,45 @@ SEE ALSO: pfdMat, pfdSingleEntrySSI
 
 proc parsePfdSingleEntryArgs(list #)
 {
+  string from_dir, to_dir, pfd_implementation;
+  int ignore_nonlin;
   // Set up to and from directories
-  if(size(#)>0) {
-
-    string from_dir = #[1]; // read file from this
-    if(from_dir[size(from_dir)]!="/") {from_dir = from_dir + "/";}
-
+  if (size(#) > 0) {
+    from_dir = #[1]; // read file from this
+    if (from_dir[size(from_dir)] != "/") {
+      from_dir = from_dir + "/";
+    }
   } else {
-
-    string from_dir = "";
+    from_dir = "";
   }
 
   if(size(#)>1) {
-
-    string to_dir = #[2];
-    if(to_dir[size(to_dir)]!="/") {to_dir = to_dir + "/";}
-
+    to_dir = #[2];
+    if (to_dir[size(to_dir)] != "/") {
+      to_dir = to_dir + "/";
+    }
   } else {
-
-    string to_dir = "";
-
+    to_dir = "";  // Default
   }
 
-  int ignore_nonlin=1;
   if (size(#)>2) {
-    ignore_nonlin = #[3];
+    pfd_implementation = #[3];
+    if ((pfd_implementation != "pfd1") &&
+        (pfd_implementation != "pfd2") &&
+        (pfd_implementation != "both")) {
+      ERROR("pfd_implementation should be 'pfd1' or 'pfd2' or 'both'");
+    }
+  } else {
+    pfd_implementation = "pfd1"; // Default
   }
 
-  return (list(from_dir, to_dir, ignore_nonlin));
+  if (size(#)>3) {
+    ignore_nonlin = #[4];
+  } else {
+    ignore_nonlin = 0; // Default
+  }
+
+  return (list(from_dir, to_dir, pfd_implementation, ignore_nonlin));
 
 }
 
@@ -2973,7 +2990,7 @@ proc prepareNonLin(list fraction, int ignore_nonlin)
       }
     }
   }
-  return (nonlin);
+  return (list(fraction, nonlin));
 
 }
 
@@ -3123,8 +3140,3 @@ SEE ALSO: pfdMat, pfdSingleEntry
   }
 }
 
-proc test_my_proc(list l, ideal q, list #) {
-    print ("hi!");
-
-    return (list());
-  }
