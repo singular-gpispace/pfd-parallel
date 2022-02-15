@@ -235,16 +235,18 @@ EXAMPLE:  example pfd; shows an example"
 
   if (debug) { t1 = rtimer; write(l,"factorizing "); }
 
-  list fqem = prepare_fqem(f, g, l);
+  list fqem = prepare_fqem(f, g);
   f = fqem[1];
   ideal q = fqem[2];
   intvec e = fqem[3];
   int m = fqem[4];
 
+  list terms = list(list(poly(f),1..m,e));
+
   if(debug) { t1 = rtimer-t1; fprintf(l,"done! (%s ms)", t1); }
   if(debug) {int t = rtimer; write(l,"Start PFD functional unit");}
 
-  list dec = pfd_functional_unit(f, q, e, m, debug, l);
+  list dec = pfd_functional_unit(terms, q, debug, l);
 
   if(debug) { t = rtimer-t; fprintf(l,"PFD functional unit done! (%s ms, %s terms)", t, size(dec));}
   if(debug) {fprintf(l,"%ntotal: %s ms", t1 + t); close(l);}
@@ -329,13 +331,13 @@ example
   size(getStringpfd(dec));
 }
 
-proc pfd_functional_unit(poly f, ideal q, intvec e, int m, list #)
+proc pfd_functional_unit(list terms, ideal q, list #)
 {
   int counter,tt,ttt;
   list dec;
-  list terms = list(list(poly(f),1..m,e));
 
   int debug = 0;
+  link l = ":w";
   if (size(#) > 0) {
     debug = #[1];
     link l = #[2];
@@ -384,10 +386,9 @@ proc pfd_functional_unit(poly f, ideal q, intvec e, int m, list #)
 proc prepare_fqem (poly f, list #)
 {
 
-  if (size(#) != 2) {
+  if (size(#) != 1) {
     ERROR("incorrect call to prepare_fqem");
   }
-  link l = #[2];
   if (typeof(#[1])=="poly") {
     // (1) factorization of the denominator ////////////////////////////////////
     // TODO: Test prepare_fqem_gpoly
@@ -395,7 +396,7 @@ proc prepare_fqem (poly f, list #)
 
   } else{if(typeof(#[1])=="list") {
 
-    list fqem = prepare_fqem_glist(f, #[1], l);
+    list fqem = prepare_fqem_glist(f, #[1]);
 
   } else {
     ERROR("wrong type for second argument, expected poly or list(ideal,intvec)");
@@ -429,7 +430,7 @@ proc prepare_fqem_gpoly (poly f, poly g)
   return (list(f, q, e, m));
 }
 
-proc prepare_fqem_glist (poly f, list g, link l)
+proc prepare_fqem_glist (poly f, list g)
 {
   int i;
   // denominator is already factorized
@@ -1012,6 +1013,9 @@ EXAMPLE:  example checkpfd; shows an example"
   {
     ideal q = dec[1];
     list terms = dec[2];
+    if (size(dec) >= 3) {
+      list nonlin = dec[3];
+    }
   }
   else{if(typeof(dec)=="partfrac")
   {
@@ -1083,6 +1087,19 @@ EXAMPLE:  example checkpfd; shows an example"
     sum_of_numerators = sum_of_numerators + num;
   }
   // the decomposition is now equal to sum_of_numerators/product(q[i]^e_max[i]) (i from 1 to imax)
+
+  // if nonlin is defined, then the denominator needs them as well
+  if (defined(nonlin)) {
+    for (i = 1; i <= size(nonlin[1]); i++) {
+      q = q + nonlin[1][i];
+      e_max[m + i] = nonlin[2][i];
+    }
+    m = size(q);
+    if (m != size(e_max)) {
+      ERROR("Badly formatted data?");
+    }
+  }
+
   // now: check if this equals f/g:
   if(typeof(g)=="poly" || typeof(g)=="number" || typeof(g)=="int" || typeof(g)=="bigint")
   {
@@ -1164,6 +1181,10 @@ EXAMPLE:  example evaluatepfd; shows an example"
   {
     ideal q = dec[1];
     list terms = dec[2];
+
+    if (size(dec) >= 3) {
+      list nonlin = dec[3];
+    }
   }
   else{if(typeof(dec)=="partfrac")
   {
@@ -1203,6 +1224,23 @@ EXAMPLE:  example evaluatepfd; shows an example"
     }
     val = val + number(substitute(terms[i][1],vars,values))/denom;
   }
+
+  // nonlins, if applicable
+  if (defined(nonlin)) {
+    number nonlinval = 1;
+    for (i = 1; i <= size(nonlin[1]); i++) {
+      nonlinval = nonlinval * number(substitute(nonlin[1][i], vars, values))^nonlin[2][i];
+    }
+    if (nonlinval == 0) {
+      if (mode == 1) {
+        ERROR("division by 0");
+      } else {
+        return (0, 1);
+      }
+    }
+    val = val / nonlinval;
+  }
+
   if(mode==1) {return(val);}
   else {return(val,0);}
 }
@@ -2843,15 +2881,20 @@ SEE ALSO: pfdMat, pfdSingleEntrySSI
                              from_dir,
                              //to_dir,
                              ignore_nonlin);
+
+
   list fraction = read("ssi:r " + from_dir + filename + ".ssi");
   list nonlin = prepareNonLin(fraction, ignore_nonlin);
   fraction = nonlin[1];
   nonlin = nonlin[2];
 
   int t = rtimer;
-
-  list result = pfd(fraction);
-
+  if (pfd_implementation == "pfd1") {
+                                      //terms         q
+    list result = pfd_functional_unit(fraction[2], fraction[1]);
+  } else {
+    ERROR(pfd_implementation + " not implemented.");
+  }
   t = rtimer-t;
   write(":a "+to_dir+"resources_"+filename+".txt",
         sprintf( "Time: %s ms,  Memory: %s Bytes with implementation %s"
@@ -2859,11 +2902,12 @@ SEE ALSO: pfdMat, pfdSingleEntrySSI
                , memory(2)
                , pfd_implementation));
 
+  if(ignore_nonlin) {
+    result[3] = nonlin;
+  }
+
   // output as Singular objects
-  if(ignore_nonlin)
-    {write("ssi:w "+to_dir+"result_"+filename+".ssi",list(nonlin,result));}
-  else
-    {write("ssi:w "+to_dir+"result_"+filename+".ssi",result);}
+  write("ssi:w "+to_dir+"result_"+filename+".ssi",result);
 
   if (ignore_nonlin) {
     write_pfd_as_txt(result, to_dir, filename, nonlin);
@@ -2910,7 +2954,7 @@ proc parsePfdSingleEntryArgs(list #)
   if (size(#)>3) {
     ignore_nonlin = #[4];
   } else {
-    ignore_nonlin = 0; // Default
+    ignore_nonlin = 1; // Default
   }
 
   return (list(from_dir, to_dir, pfd_implementation, ignore_nonlin));
@@ -2971,26 +3015,73 @@ proc write_pfd_as_txt(list result, string to_dir, string filename, list nonlin)
   fprintf(":w "+to_dir+"result_denominator_factors_"+filename+".txt", denom_fact,0);
 }
 
-proc prepareNonLin(list fraction, int ignore_nonlin)
+proc prepareNonLin(list formatted_fraction, int ignore_nonlin)
 {
+
+  if (size(formatted_fraction) == 3) {
+    // in this case, we assume the nonlinear factors have already been correctly
+    // removed
+    return (list(delete(formatted_fraction, 3), formatted_fraction[3]));
+  }
+
   list nonlin = list(list(),list());
-  int i, k;
   if(ignore_nonlin)
   {
+    int i, j, k, l, lcm;
     i = 1;
-    for(k=1; k<=size(fraction[2][1]); k++) // move nonlinear factors into nonlin
+    for(k=1; k<=size(formatted_fraction[1]); k++) // over factors
     {
-      if(deg(fraction[2][1][k])>1)
-      {
-        nonlin[1][i] = fraction[2][1][k];
-        nonlin[2][i] = fraction[2][2][k];
-        fraction[2][1] = delete(fraction[2][1],k);
-        fraction[2][2] = delete(fraction[2][2],k);
+      if(deg(formatted_fraction[1][k])>1) { // identify nonlinear
+
+        // find greatest power of factor.
+        lcm = 0;
+        for (j = 1; j <= size(formatted_fraction[2]); j++) { // over summands
+          for (l = 1; l <= size(formatted_fraction[2][j][2]); l++) { //over indices
+            if ((formatted_fraction[2][j][2][l] == k) && // factor in question
+                (formatted_fraction[2][j][3][l] > lcm)) { // greater power
+              lcm = formatted_fraction[2][j][3][l];
+            }
+          }
+        }
+
+        // multiply each summand with factor^lcm and delete the denominator part
+        for (j = 1; j <= size(formatted_fraction[2]); j++) { // over summands
+
+          // multiply with power lcm
+          formatted_fraction[2][j][1] = formatted_fraction[2][j][1] *
+                                              (formatted_fraction[1][k]^lcm);
+
+          for (l = 1; l <= size(formatted_fraction[2][j][2]); l++) { //over indices
+            if (formatted_fraction[2][j][2][l] == k) { // factor in question
+              // divide from numerator the part that is below the line
+              formatted_fraction[2][j][1] = formatted_fraction[2][j][1] /
+                    (formatted_fraction[1][k]^(formatted_fraction[2][j][3][l]));
+
+              // delete index and power that references to this factor
+              formatted_fraction[2][j][2] = delete(formatted_fraction[2][j][2], l);
+              formatted_fraction[2][j][3] = delete(formatted_fraction[2][j][3], l);
+
+              // handle fact we deleted entry, so l is now already on next entry
+              l--;
+            } else{if (formatted_fraction[2][j][2][l] > k) { // one of the larger indices
+              // we are deleting factor k from ideal, need to decrement the
+              // larger indices to still make sense
+              formatted_fraction[2][j][2][l] = formatted_fraction[2][j][2][l] - 1;
+            }}
+          }
+        }
+
+        nonlin[1][i] = formatted_fraction[1][k];
+        nonlin[2][i] = lcm;
+        formatted_fraction[1] = delete(formatted_fraction[1], k);
         i++;
+
+        // handle index arithmatic, as we deleted k
+        k--;
       }
     }
   }
-  return (list(fraction, nonlin));
+  return (list(formatted_fraction, nonlin));
 
 }
 
@@ -3000,11 +3091,10 @@ proc prepareSingleEntryFraction(string filename,
                                 int ignore_nonlin)
 {
   list fraction;
-  int j, k;
+  int i, j, k;
   if (file_exists(from_dir + filename + ".ssi"))
   {
-    //fraction = read("ssi:r " + from_dir + filename + ".ssi");
-    return();
+    list formatted_fraction = read("ssi:r " + from_dir + filename + ".ssi");
   }
   else
   {
@@ -3025,25 +3115,59 @@ proc prepareSingleEntryFraction(string filename,
     }
 
     list fact = factorize(fraction[2]);
-
-    number lcoeff;
     number constant = number(fact[1][1])^fact[2][1];
     fact[1] = delete(fact[1], 1);
     fact[2] = delete(fact[2], 1);
-    for (k=1; k<=size(fact[1]); k++) {
-      lcoeff = leadcoef(fact[1][k]);
-      fact[1][k] = fact[1][k] / lcoeff;
-      constant = constant * (lcoeff^fact[2][k]); // polynomial is monic (thus unique)
-      lcoeff = content(fact[1][k]);
-      fact[1][k] = fact[1][k]/lcoeff;
-      constant = constant * (lcoeff^fact[2][k]); // polynomial has nice coefficients
-    }
-
     fraction[1] = fraction[1] * (1/constant);
-    fraction[2] = fact;
 
-    write("ssi:w "+from_dir+filename+".ssi", fraction);
+    list formatted_fraction = list( fact[2] // the ideal
+                                  , list( list( fraction[1] // numerator
+                                              , 1..size(fact[1]) // index in ideal
+                                              , fact[2] // power in ideal
+                                              ) // one rational
+                                        ) // sum of rationals
+                                  );
   }
+
+  number lcoeff;
+  list lcoeffs;
+  list lcontents;
+  number constant;
+
+  //for (k=1; k<=size(fact[1]); k++) {
+  for (k=1; k<=size(formatted_fraction[1]); k++) {
+      //lcoeff = leadcoef(fact[1][k]);
+    lcoeffs[k] = leadcoef(formatted_fraction[1][k]);
+      //fact[1][k] = fact[1][k] / lcoeff;
+    formatted_fraction[1][k] = formatted_fraction[1][k] / lcoeffs[k];
+      //constant = constant * (lcoeff^fact[2][k]); // polynomial is monic (thus unique)
+      //lcoeff = content(fact[1][k]);
+    lcontents[k] = content(formatted_fraction[1][k]);
+      //fact[1][k] = fact[1][k]/lcoeff;
+    formatted_fraction[1][k] = formatted_fraction[1][k] / lcontents[k];
+      //constant = constant * (lcoeff^fact[2][k]); // polynomial has nice coefficients
+
+    // apply to the various numerators
+    for (i = 1; i <= size(formatted_fraction[2]); i++) {
+      for (j = 1; j <= size(formatted_fraction[2][i][2]); j++) {
+        // 2 -> summands; i -> summand; 2 -> ix in ideal; j -> factor id
+        if (formatted_fraction[2][i][2][j] == k) {
+          // this summand has factor k
+          formatted_fraction[2][i][1] = formatted_fraction[2][i][1] *
+                          (1/(lcoeffs[k]^formatted_fraction[2][i][3][j]));
+          formatted_fraction[2][i][1] = formatted_fraction[2][i][1] *
+                          (1/(lcontents[k]^formatted_fraction[2][i][3][j]));
+        }
+      }
+    }
+  }
+  //}
+
+    //fraction[1] = fraction[1] * (1/constant);
+    //fraction[2] = fact;
+
+    //write("ssi:w "+from_dir+filename+".ssi", fraction);
+  write("ssi:w "+from_dir+filename+".ssi", formatted_fraction);
 
   //link l = "ssi:w "+to_dir+ "prepared_" + filename+".ssi";
   //write(l, fraction);

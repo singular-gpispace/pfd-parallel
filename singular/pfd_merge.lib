@@ -1,57 +1,40 @@
 LIB "pfd.lib";
 
-proc merge_inputs( string indir
-                 , string outdir
-                 , string filename
-                 , int id
-                 , int termcount
-                 )
+proc merge_entries( list entries
+                  , ideal q
+                  )
 {
-  int i, f, k;
-  int nq;
-  list entry;
+  int i, factori, k;
   list summand;
-  ideal q;
   intvec e;
   intvec f_id;
   list result;
   int f_count;
+  ideal q_i;
 
+  int nq = size(q);
 
-  // create global q for row
-  for (i = 1; i <= termcount; i++) {
-    entry = read("ssi:r " + indir + filename
-                          + "_" + string(id)
-                          + "_" + string(i)
-                          + ".ssi"
-                );
-    q = q + entry[2][1];
-  }
-  nq = size(q);
-
-  // read entries and collect in result list
-  for (i = 1; i <= termcount; i++) {
-    f_id = intvec(0);
-    e = intvec(0);
+  // collect entries in result list
+  for (i = 1; i <= size(entries); i++) {
+    f_id = intvec(0:0);
+    e = intvec(0:0);
     f_count = 0;
-    entry = read("ssi:r " + indir + filename
-                          + "_" + string(id)
-                          + "_" + string(i)
-                          + ".ssi"
-                );
-    summand[1] = entry[1]; //set numerator
+
+    q_i = entries[i][1];
+
+    summand[1] = entries[i][2][1][1]; //set numerator
     for (k = 1; k <= nq; k++) { // iterate factors
-      for (f = 1; f <= size(entry[2][1]); f++) { // look for entry factors
-        if (entry[2][1][f] == q[k]) {
+      for (factori = 1; factori <= size(entries[i][2][1][2]); factori++) { // look for entry factors
+        if (q_i[entries[i][2][1][2][factori]] == q[k]) {
           //found match
           f_count++;
           f_id[f_count] = k;
-          e[f_count] = entry[2][2][f];
+          e[f_count] = entries[i][2][1][3][factori];
           break;
         }
       } // for over entry factors
     } //  for over q factors
-    if (f_count != size(entry[2][1])) {
+    if (f_count != size(entries[i][2][1][2])) {
       ERROR("All factors not found...");
     }
     summand[2] = f_id;
@@ -61,4 +44,167 @@ proc merge_inputs( string indir
   } // for over entries
 
   return (list(q, result));
+}
+
+proc merge_inputs( string indir
+                 , string outdir
+                 , string filename
+                 , int id
+                 , int termcount
+                 )
+{
+  int i;
+  list entry;
+  list entries;
+  ideal q;
+  list result;
+
+  if (file_exists(outdir + filename
+                  + "_" + string(id)
+                  + "_" + string(0)
+                  + ".ssi")) {
+    // already done this step
+    return(read("ssi:r " + outdir + filename
+                  + "_" + string(id)
+                  + "_" + string(0)
+                  + ".ssi"));
+  }
+
+  // create global q for row, collect entries
+  for (i = 1; i <= termcount; i++) {
+    entry = read("ssi:r " + indir + filename
+                          + "_" + string(id)
+                          + "_" + string(i)
+                          + ".ssi"
+                );
+    entries[i] = entry;
+    q = q + entry[1];
+  }
+
+  print(string(q));
+
+  def converted = merge_entries(entries, q);
+
+  write( "ssi:w " + outdir + filename
+                  + "_" + string(id)
+                  + "_" + string(0)
+                  + ".ssi"
+       , converted
+       );
+  return (converted);
+
+
+
+}
+
+proc sum_inputs(list sum)
+{
+
+  ideal q = sum[1];
+  list terms = sum[2];
+  list num_factors;
+
+  int m = size(q);
+  int index;
+  intvec e_max = 0:m;
+  int i, j;
+  for (i = 1; i <= size(terms); i++) {
+    for (j = 1; j <= size(terms[i][2]); j++) {
+      index = terms[i][2][j];
+      e_max[index] = max(e_max[index], terms[i][3][j]);
+    }
+  }
+
+  poly num;
+  poly sum_of_numerators = 0;
+  intvec e;
+
+  print("starting sum");
+
+  for (i = 1; i <= size(terms); i++) {
+    e = e_max;
+    for (j = 1; j <=size(terms[i][2]); j++) {
+      index = terms[i][2][j];
+      e[index] = e[index] - terms[i][3][j];
+    }
+
+    num = terms[i][1];
+    for (j = 1; j <= m; j++) {
+      num = num * q[j]^(e[j]);
+    }
+    sum_of_numerators = sum_of_numerators + num;
+  }
+
+  print("start making relatively prime");
+
+  print("factorizing numerator");
+  num_factors = factorize(sum_of_numerators);
+
+  number lcoeff_num = number(num_factors[1][1])^num_factors[2][1];
+  number constant;
+  num_factors[1] = delete(num_factors[1], 1);
+  num_factors[2] = delete(num_factors[2], 1);
+
+  // clean up factors, if need be
+  print("cleaning factors of numerator");
+  for (i = 1; i <= size(num_factors[1]); i++) {
+    constant = leadcoef(num_factors[1][i]);
+    if (constant != 1) {
+      num_factors[1][i] = num_factors[1][i] / constant;
+      lcoeff_num = lcoeff_num * (constant^num_factors[2][i]);
+    }
+  }
+  int power, multiple;
+  for (i = 1; i <= size(q); i++) {
+    for (j = 1; j <= size(num_factors[1]); j++) {
+      if (q[i] == num_factors[1][j]) {
+
+        power = num_factors[2][j] - e_max[i];
+        multiple = min(num_factors[2][j], e_max[i]);
+        print("Factor " + string(i) +  " occurs in num and denom with shared" +
+              " power " + string(multiple));
+
+        if (power >= 0) {
+          multiple = e_max[i];
+          e_max[i] = 0;
+          num_factors[2][j] = power;
+        }
+        if (power < 0) {
+          multiple = num_factors[2][j];
+          e_max[i] = -1 * power;
+          num_factors[2][j] = 0;
+        }
+      }
+    }
+  }
+
+  sum_of_numerators = poly(lcoeff_num);
+  for (i = 1; i <= size(num_factors[1]); i++) {
+    sum_of_numerators = sum_of_numerators * num_factors[1][i]^num_factors[2][i];
+  }
+
+  for (i = 1; i <= size(e_max); i++) {
+    if (e_max[i] == 0) {
+      e_max = delete(e_max, i);
+      q = delete(q, i);
+      m--;
+      i--;
+    }
+  }
+
+  if (m != size(q)) {
+    ERROR("m should be the size of q");
+  }
+
+  list summed_functions;
+  summed_functions[1] = q;
+  summed_functions[2] = list();
+
+  summed_functions[2][1] = list();
+  summed_functions[2][1][1] = sum_of_numerators;
+  summed_functions[2][1][2] = 1..m;
+  summed_functions[2][1][3] = e_max;
+
+  return (summed_functions);
+
 }

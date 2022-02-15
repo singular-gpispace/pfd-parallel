@@ -88,25 +88,16 @@ proc pfd_singular_prepareSingleEntryFraction (in_struct input)
 
   if (input.suffix == "txt") {
     execute("ring r = " + input.neededring);
-    string filename = pfd_singular_filename_no_suffix( input.matrixname
-                                                     , input.row
-                                                     , input.col);
-    prepareSingleEntryFraction( filename
-                              , from_dir
-                              , ignore_nonlin
-                              );
   }
-  if (!file_exists( from_dir + pfd_singular_filename( input.matrixname
-                                                , "ssi"
-                                                , input.row
-                                                , input.col)
-                                                )
-                  ) {
-    ERROR("Preparation of ssi failed for " + from_dir +
-                           pfd_singular_filename( input.matrixname
-                                                , "ssi"
-                                                , input.row
-                                                , input.col));
+  string filename = pfd_singular_filename_no_suffix( input.matrixname
+                                                   , input.row
+                                                   , input.col);
+  prepareSingleEntryFraction( filename
+                            , from_dir
+                            , ignore_nonlin
+                            );
+  if (!file_exists( from_dir + filename + ".ssi")) {
+    ERROR("Preparation of ssi failed for " + from_dir + filename + ".ssi");
   }
 }
 
@@ -116,7 +107,10 @@ proc pfd_singular_is_trivial (in_struct input)
   system("--ticks-per-sec",1000);
   short = 0;
 
-  list args = parsePfdSingleEntryArgs(input.inputdir, input.outputdir);
+  list args = parsePfdSingleEntryArgs( input.inputdir
+                                     , input.outputdir
+                                     , input.pfdimplementation
+                                     );
   string from_dir = args[1];
   string to_dir = args[2];
   string approach = args[3];
@@ -126,18 +120,20 @@ proc pfd_singular_is_trivial (in_struct input)
                                                , input.row
                                                , input.col);
   list fraction = read("ssi:r " + from_dir + filename + ".ssi");
+  if (size(fraction[2]) > 1) {
+    // We assume ssi files to be properly merged, in which case trivial problems
+    // will always have a single summand.
+    return (0); // 0 = false => nontrivial
+  }
   list nonlin = prepareNonLin(fraction, ignore_nonlin);
   fraction = nonlin[1];
   nonlin = nonlin[2];
 
   int t = rtimer;
+  ideal q = fraction[1];
 
-  poly f = fraction[1];
-  if(typeof(fraction[2])=="list") {
-    list g=fraction[2];
-  } else {
-    poly g=fraction[2];
-  }
+  poly f = fraction[2][1][1];
+  list g = list(q[fraction[2][1][2]], fraction[2][1][3]);
 
   int debug=0;
   //link l=":a "+string(debug)+"_log_"+datetime()+".txt";
@@ -150,39 +146,26 @@ proc pfd_singular_is_trivial (in_struct input)
                size(string(f)), size(string(g)), 0);
   }
 
-  if(typeof(g)=="poly") {
-    if(deg(g)==0) {
-      // trivial degree for g
-      list dec = list(ideal(),list(list(f/g,intvec(0:0),intvec(0:0))));
-      if(debug)
-        {fprintf(l,"%ntotal: 0 ms (denominator was constant)",0); close(l);}
-      if(voice<=printlevel) {displaypfd(dec);}
-      //return(dec);
-    }
-  }
-
-  if(typeof(g)=="list") {
-    if(size(g[1])==0) {
-      list dec = list(ideal(),list(list(f,intvec(0:0),intvec(0:0))));
-      if(debug)
-        {fprintf(l,"%ntotal: 0 ms (denominator was constant)",0); close(l);}
-      if(voice<=printlevel) {displaypfd(dec);}
-      //return(dec);
-    }
+  if (size(g[1]) == 0) {
+    list dec = list(fraction[1],list(list(f,intvec(0:0),intvec(0:0))));
+    if(debug)
+      {fprintf(l,"%ntotal: 0 ms (denominator was constant)",0); close(l);}
+    if(voice<=printlevel) {displaypfd(dec);}
+    //return(dec);
   }
 
   if(f==0) {
     // trivial case
-    list dec = list(ideal(),list(list(poly(0),intvec(0:0),intvec(0:0))));
+    list dec = list(fraction[1],list(list(poly(0),intvec(0:0),intvec(0:0))));
     if(debug)
       {fprintf(l,"%ntotal: 0 ms (numerator was 0)",0); close(l);}
     if(voice<=printlevel) {displaypfd(dec);}
     //return(dec);
   }
   if (!defined(dec)) {
-    return (0);
+    return (0); // 0 = false => nontrivial
   } else {
-    // dec is defined in one of the trivial cases is trivial
+    // dec is defined in one of the trivial cases.
     t = rtimer-t;
 
     list result = dec;
@@ -222,12 +205,16 @@ proc pfd_singular_prepare_input (in_struct input, int id, string tempdir, string
   string filename = pfd_singular_filename_no_suffix( input.matrixname
                                                , input.row
                                                , input.col);
+  if (!file_exists( from_dir + filename + ".ssi")) {
+    ERROR("No ssi file found for " + from_dir + filename + ".ssi");
+  }
   list fraction = read("ssi:r " + from_dir + filename + ".ssi");
   list nonlin = prepareNonLin(fraction, ignore_nonlin);
   fraction = nonlin[1];
   nonlin = nonlin[2];
 
 
+/*
   poly f = fraction[1];
   if(typeof(fraction[2])=="list") {
     list g=fraction[2];
@@ -236,15 +223,18 @@ proc pfd_singular_prepare_input (in_struct input, int id, string tempdir, string
   }
 
   int debug=0;
-  link l=":w ";
 
-  list fqem = prepare_fqem(f, g, l);
+  list fqem = prepare_fqem(f, g);
 
   f = fqem[1];
   ideal q = fqem[2];
   intvec e = fqem[3];
   int m = fqem[4];
   list terms = list(list(poly(f),1..m,e));
+*/
+
+  ideal q = fraction[1];
+  list terms = fraction[2];
   list prepared_input = list(q, ignore_nonlin, nonlin, filename, to_dir);
 
   write("ssi:w " + tempdir + "/input_" + string(id) + ".ssi", prepared_input);
@@ -342,15 +332,18 @@ proc pfd_singular_write_result (int id, string tempdir)
 
 
   if(size(terms)==1) {if(terms[1][1]==0) {terms = list();}}
-  list result = list(q,terms);
+  list result = list();
+  result[1] = q;
+  result[2] = terms;
+
+  if (ignore_nonlin) {
+    result[3] = nonlin;
+  }
 
   if(voice<=printlevel) {displaypfd(result);}
 
   // output as Singular objects
-  if(ignore_nonlin)
-    {write("ssi:w "+to_dir+"result_"+filename+".ssi",list(nonlin,result));}
-  else
-    {write("ssi:w "+to_dir+"result_"+filename+".ssi",result);}
+  write("ssi:w "+to_dir+"result_"+filename+".ssi",result);
 
   if (ignore_nonlin) {
     write_pfd_as_txt(result, to_dir, filename, nonlin);
