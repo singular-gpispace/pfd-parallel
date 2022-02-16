@@ -145,12 +145,12 @@
 
 
     <transition name="compute_nullstellensatz" inline="true">
-      <include-function href="pfd_serial_compute_step.xpnet"/>
+      <include-function href="pfd_fork_compute_step.xpnet"/>
 
-      <connect-in port="in" place="nullstellensatz_before"/>
-      <connect-read port="options" place="readoptions"/>
-      <connect-read port="step" place="null_step_name"/>
-      <connect-out port="out" place="nullstellensatz_after"/>
+      <place-map virtual="in" real="nullstellensatz_before"/>
+      <place-map virtual="options" real="readoptions"/>
+      <place-map virtual="step" real="null_step_name"/>
+      <place-map virtual="decomposition" real="nullstellensatz_after"/>
     </transition>
 
     <transition name="hand_nullstell_back">
