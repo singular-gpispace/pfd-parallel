@@ -358,6 +358,13 @@ std::optional<std::multimap<std::string, pnet::type::value::value_type>>
 {
   using pnet::type::value::value_type;
   using pnet::type::value::poke;
+  using singular_parallel::pnet_map;
+
+  pnet_map steps_active { {std::string("NSSdecompStep"), 0}
+                        , {std::string("shortNumeratorDecompStep"), 1}
+                        , {std::string("algDependDecompStep"), 0}
+                        , {std::string("numeratorDecompStep"), 1}
+                        };
 
   if ((as.graphType() == "pfd") ||
     (as.graphType() == "list_all") ||
@@ -378,6 +385,7 @@ std::optional<std::multimap<std::string, pnet::type::value::value_type>>
     poke( "split_max", problem_token_type, static_cast<unsigned int> (as.splitMax()));
     poke( "loop_max", problem_token_type, static_cast<unsigned int> (as.loopMax()));
     poke( "sort_input", problem_token_type, static_cast<unsigned int> (as.sortInput()));
+    poke( "steps_active", problem_token_type, steps_active);
 
     std::multimap<std::string, value_type> values_on_ports
       ( {

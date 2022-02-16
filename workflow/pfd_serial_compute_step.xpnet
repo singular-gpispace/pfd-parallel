@@ -22,14 +22,26 @@
     <code><![CDATA[
       /*<>*/
 
-      std::cout << "Computing " + step +" " << in.id << "\n";
-      RESOLVE_INTERFACE_FUNCTION
-        (pfd_compute_step)
-        (in.id, options, step);
-      std::cout << step + " "  << in.id << " done!\n";
+      auto active (singular_parallel::unwrap_map<std::string, int>
+                                                (options.steps_active)); 
 
-      out.id = in.id;
-      out.status = 0;
+      if (active[step]) {
+        std::cout << "Computing " + step +" " << in.id << "\n";
+        RESOLVE_INTERFACE_FUNCTION
+          (pfd_compute_step)
+          (in.id, options, step);
+        std::cout << step + " "  << in.id << " done!\n";
+
+        out.id = in.id;
+        out.status = 0;
+      } else {
+        std::cout << "Skipping " + step +" " << in.id << "\n";
+        RESOLVE_INTERFACE_FUNCTION
+          (pfd_skip_step)
+          (in.id, options, step);
+        out.id = in.id;
+        out.status = 0;
+      }
 
     ]]></code>
   </module>

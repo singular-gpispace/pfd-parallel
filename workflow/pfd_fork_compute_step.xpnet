@@ -12,6 +12,8 @@
     <place name="in" type="task_status" virtual="true"/>
     <place name="step" type="string" virtual="true"/>
 
+    <place name="skip_in" type="task_status"/>
+
     <!--
     <place name="init_active" type="unsigned int">
       <token><value> 0U </value></token>
@@ -34,6 +36,83 @@
     <place name="term_counts" type="term_count_type"/>
     <place name="options" type="options_type" virtual="true"/>
 
+    <transition name="check_skip">
+      <defun>
+        <require key="worker" mandatory="true"/>
+        <in name="in" type="task_status"/>
+        <in name="options" type="options_type"/>
+        <in name="step" type="string"/>
+        <out name="out" type="task_status"/>
+        <module name="singular_parallel_allpfd"
+                require_function_unloads_without_rest="false"
+                function="check_skip
+                            ( options
+                            , step
+                            , in
+                            , out
+                            )">
+          <cinclude href="interface/singular_pnet-interface.hpp"/>
+          <cinclude href="util-generic/dynamic_linking.hpp"/>
+          <cinclude href="iostream"/>
+          <code><![CDATA[
+          /*<>*/
+            auto active (singular_parallel::unwrap_map<std::string, int>
+                                                (options.steps_active)); 
+
+            out.id = in.id;
+            if (active[step]) {
+              out.status = 0; // False => don't skip
+            } else {
+              out.status = 1; // True => skip
+            }
+            
+          ]]></code>
+        </module>
+      </defun>
+      <connect-in port="in" place="in"/>
+      <connect-read port="options" place="options"/>
+      <connect-read port="step" place="step"/>
+      <connect-out port="out" place="skip_in"/>
+    </transition>
+
+    <transition name="skip_step">
+      <defun>
+        <require key="worker" mandatory="true"/>
+        <in name="in" type="task_status"/>
+        <in name="options" type="options_type"/>
+        <in name="step" type="string"/>
+        <out name="out" type="task_status"/>
+        <condition>
+          ${in.status} :eq: 1U
+        </condition>
+        <module name="singular_parallel_allpfd"
+                require_function_unloads_without_rest="false"
+                function="skip_step
+                              ( options
+                              , step
+                              , in
+                              , out
+                              )">
+          <cinclude href="interface/singular_pnet-interface.hpp"/>
+          <cinclude href="util-generic/dynamic_linking.hpp"/>
+          <cinclude href="iostream"/>
+          <code><![CDATA[
+            /*<>*/
+            std::cout << "Skipping " + step + " " << in.id << "\n";
+            RESOLVE_INTERFACE_FUNCTION
+              (pfd_skip_step)
+              (in.id, options, step);
+            out.id = in.id;
+            out.status = 0;
+          ]]></code>
+        </module>
+      </defun>
+      <connect-in port="in" place="skip_in"/>
+      <connect-read port="options" place="options"/>
+      <connect-read port="step" place="step"/>
+      <connect-out port="out" place="decomposition"/>
+    </transition>
+
     <transition name="split_init">
       <defun>
         <require key="worker" mandatory="true"/>
@@ -46,6 +125,9 @@
         <out name="l_active" type="unsigned int"/>
         <out name="out" type="list"/>
         <out name="counts" type="term_count_type"/>
+        <condition>
+          ${in.status} :eq: 0U
+        </condition>
         <module name="singular_parallel_allpfd"
                 require_function_unloads_without_rest="false"
                 function="out split_init
@@ -91,7 +173,7 @@
           ]]></code>
         </module>
       </defun>
-      <connect-in port="in" place="in"/>
+      <connect-in port="in" place="skip_in"/>
       <!--
       <connect-in port="active" place="init_active"/>
       -->

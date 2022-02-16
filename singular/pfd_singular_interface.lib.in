@@ -287,6 +287,21 @@ proc pfd_singular_compute_step ( int id
 
 }
 
+proc pfd_singular_skip_step(string from_path, string to_path)
+{
+  list terms = read("ssi:r " + from_path);
+  if ((size(terms) < 2) or size(terms) > 2) {
+    ERROR("Expected 2 lists in terms file");
+  }
+  if (size(terms[1]) == 0) {
+    ERROR("No terms to skip step");
+  }
+  if (size(terms[2]) > 0) {
+    ERROR("There should be no decomposition steps when skipping");
+  }
+  write("ssi:w " + to_path, list(terms[2], terms[1]));
+}
+
 proc pfd_singular_hand_forward(string from_path, string to_path)
 {
   list terms = read("ssi:r " + from_path);

@@ -127,6 +127,13 @@ namespace singular_parallel
       );
 
     NO_NAME_MANGLING
+      void pfd_skip_step
+      ( unsigned int const& id
+      , const pnet_options& options
+      , const std::string& step
+      );
+
+    NO_NAME_MANGLING
       void pfd_hand_forward
       ( unsigned int const& id
       , const pnet_options& options

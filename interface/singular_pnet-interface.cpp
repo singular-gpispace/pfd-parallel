@@ -854,6 +854,39 @@ namespace singular_parallel
         }
       }
 
+    NO_NAME_MANGLING
+      void pfd_skip_step
+      ( unsigned int const& id
+      , const pnet_options& options
+      , const std::string& step
+      )
+      {
+        std::string from_name( get_from_name(step) );
+        std::string to_name( get_to_name(step) );
+
+        std::string from_path( options.tempdir +
+                             "/" + from_name + "_" + std::to_string(id) +
+                             ".ssi");
+        std::string to_path( options.tempdir +
+                             "/" + to_name + "_" + std::to_string(id) +
+                             ".ssi");
+
+        init_singular ();
+        singular::load_library (options.needed_library);
+        boost::format command =
+              boost::format("pfd_singular_skip_step(%1%, %2%);")
+                            % ("\"" + from_path + "\"")
+                            % ("\"" + to_path + "\"");
+
+        singular::call_and_discard(command.str());
+
+        remove((options.tempdir + "/" + get_from_name(step) +"_"
+                                     + std::to_string(id)
+                                     + ".ssi").c_str());
+      }
+
+
+
 
       long log_step_component( unsigned int const& id
                              , const pnet_options& options

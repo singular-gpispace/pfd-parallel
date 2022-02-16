@@ -15,6 +15,7 @@
     <field name="split_max" type="unsigned int"/>
     <field name="loop_max" type="unsigned int"/>
     <field name="sort_input" type="unsigned int"/>
+    <field name="steps_active" type="map"/>
   </struct>
 
   <struct name="task_status">
