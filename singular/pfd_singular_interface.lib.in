@@ -224,13 +224,10 @@ proc pfd_singular_prepare_input (in_struct input, int id, string tempdir, string
 
   int debug=0;
 
-  list fqem = prepare_fqem(f, g);
+  list input = prepare_terms(f, g);
 
-  f = fqem[1];
-  ideal q = fqem[2];
-  intvec e = fqem[3];
-  int m = fqem[4];
-  list terms = list(list(poly(f),1..m,e));
+  ideal q = input[1];
+  list terms = input[2];
 */
 
   ideal q = fraction[1];
@@ -450,13 +447,12 @@ proc pfd_fork_compute_term( int id
           " instead.  Check for error in term split process.");
   }
 
-  list result = generic_dec_nstep(step, get_loop_strat(step), terms, dec, q,
-    loop_max, debug, l);
+  list result = generic_dec_loop(step, get_loop_strat(step), terms, q, debug, l);
 
   write("ssi:w " + tempdir +
                    "/" + out_filename + "_" +
                    string(id) + "_" + string(term_id) +
-                   ".ssi", list(result[1], result[2]) );
+                   ".ssi", list(list(), result) );
 }
 
 

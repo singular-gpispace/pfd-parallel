@@ -134,7 +134,7 @@ namespace singular_parallel
       {
         std::string step(step_name);
         if (step == NULLSTELL) {
-          return "terms";
+          return "terms_0";
         } else if (step == SHORT_NUM) {
           return "terms_1";
         } else if (step == ALG_DEPEND) {

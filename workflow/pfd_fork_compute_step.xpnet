@@ -42,14 +42,14 @@
         <in name="in" type="task_status"/>
         <in name="options" type="options_type"/>
         <in name="step" type="string"/>
-        <out name="out" type="task_status"/>
+        <out name="skip_in" type="task_status"/>
         <module name="singular_parallel_allpfd"
                 require_function_unloads_without_rest="false"
                 function="check_skip
                             ( options
                             , step
                             , in
-                            , out
+                            , skip_in
                             )">
           <cinclude href="interface/singular_pnet-interface.hpp"/>
           <cinclude href="util-generic/dynamic_linking.hpp"/>
@@ -59,11 +59,11 @@
             auto active (singular_parallel::unwrap_map<std::string, int>
                                                 (options.steps_active)); 
 
-            out.id = in.id;
+            skip_in.id = in.id;
             if (active[step]) {
-              out.status = 0; // False => don't skip
+              skip_in.status = 0; // False => don't skip
             } else {
-              out.status = 1; // True => skip
+              skip_in.status = 1; // True => skip
             }
             
           ]]></code>
@@ -72,25 +72,25 @@
       <connect-in port="in" place="in"/>
       <connect-read port="options" place="options"/>
       <connect-read port="step" place="step"/>
-      <connect-out port="out" place="skip_in"/>
+      <connect-out port="skip_in" place="skip_in"/>
     </transition>
 
     <transition name="skip_step">
       <defun>
         <require key="worker" mandatory="true"/>
-        <in name="in" type="task_status"/>
+        <in name="skip_in" type="task_status"/>
         <in name="options" type="options_type"/>
         <in name="step" type="string"/>
         <out name="out" type="task_status"/>
         <condition>
-          ${in.status} :eq: 1U
+          ${skip_in.status} :eq: 1U
         </condition>
         <module name="singular_parallel_allpfd"
                 require_function_unloads_without_rest="false"
                 function="skip_step
                               ( options
                               , step
-                              , in
+                              , skip_in
                               , out
                               )">
           <cinclude href="interface/singular_pnet-interface.hpp"/>
@@ -98,16 +98,16 @@
           <cinclude href="iostream"/>
           <code><![CDATA[
             /*<>*/
-            std::cout << "Skipping " + step + " " << in.id << "\n";
+            std::cout << "Skipping " + step + " " << skip_in.id << "\n";
             RESOLVE_INTERFACE_FUNCTION
               (pfd_skip_step)
-              (in.id, options, step);
-            out.id = in.id;
+              (skip_in.id, options, step);
+            out.id = skip_in.id;
             out.status = 0;
           ]]></code>
         </module>
       </defun>
-      <connect-in port="in" place="skip_in"/>
+      <connect-in port="skip_in" place="skip_in"/>
       <connect-read port="options" place="options"/>
       <connect-read port="step" place="step"/>
       <connect-out port="out" place="decomposition"/>
@@ -116,7 +116,7 @@
     <transition name="split_init">
       <defun>
         <require key="worker" mandatory="true"/>
-        <in name="in" type="task_status"/>
+        <in name="skip_in" type="task_status"/>
         <in name="options" type="options_type"/>
         <in name="step" type="string"/>
         <!--
@@ -126,13 +126,13 @@
         <out name="out" type="list"/>
         <out name="counts" type="term_count_type"/>
         <condition>
-          ${in.status} :eq: 0U
+          ${skip_in.status} :eq: 0U
         </condition>
         <module name="singular_parallel_allpfd"
                 require_function_unloads_without_rest="false"
                 function="out split_init
                             ( options
-                            , in
+                            , skip_in
                             , counts
                             , step
                             , l_active
@@ -144,36 +144,36 @@
             /*<>*/
             std::cout << "Initializing split "
                       << step << " "
-                      << in.id
+                      << skip_in.id
                       << "\n";
 
             singular_parallel::pnet_list indices = RESOLVE_INTERFACE_FUNCTION
                (pfd_fork_init)
-               ( in.id
+               ( skip_in.id
                , options
                , step
                );
             std::cout << step
                       << " "
-                      << in.id
+                      << skip_in.id
                       << " split into "
                       << indices.size()
                       << " terms.\n";
 
             //counts.total_degrees = t_degrees;
             counts.computing = indices.size();
-            counts.id = in.id;
-            l_active = in.id;
+            counts.id = skip_in.id;
+            l_active = skip_in.id;
 
             std::cout << "Initializing split "
                       << step << " "
-                      << in.id
+                      << skip_in.id
                       << " done!\n";
             return indices;
           ]]></code>
         </module>
       </defun>
-      <connect-in port="in" place="skip_in"/>
+      <connect-in port="skip_in" place="skip_in"/>
       <!--
       <connect-in port="active" place="init_active"/>
       -->
@@ -420,17 +420,6 @@
                       << " is "
                       << terms_left
                       << "\n";
-
-            //singular_parallel::pnet_list t_degrees = RESOLVE_INTERFACE_FUNCTION
-            //(pfd_fork_get_tdegrees_after)(term.id, step, options);
-            //std::cout << "after: l = { ";
-            //for (singular_parallel::pnet_value n : t_degrees) {
-            //  std::cout << boost::get<int>(n) << ", ";
-            //}
-            //std::cout << "};\n";
-
-            //int cmp_tdeg = RESOLVE_INTERFACE_FUNCTION(pfd_fork_compare_tdegrees)
-            //     (counts.total_degrees, t_degrees);
 
             out.id = term.id;
             out.status=terms_left;

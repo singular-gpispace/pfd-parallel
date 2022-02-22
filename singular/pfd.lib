@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////
-version="version pfd.lib 4.1.3.2 Feb_2021 ";
+version="version pfd.lib 4.1.3.2 Feb_2022 ";
 category="??";
 info="
 LIBRARY: pfd.lib Multivariate Partial Fraction Decomposition
@@ -62,32 +62,564 @@ static proc mod_init()
   LIB "ring.lib";
   LIB "parallel.lib";
   LIB "elim.lib";
-//  LIB "polylib.lib";
+  LIB "polylib.lib";
 //LIB "poly.lib";
   LIB "general.lib";
   LIB "matrix.lib";
 //LIB "polylib.lib";
 //LIB "dmodapp.lib"
 
-
   printlevel = 2;
   system("--ticks-per-sec",1000);
 
   // export some static functions so they can be run in parallel using parallelWaitAll:
   if (!defined(Tasks)) {LIB "tasks.lib";}
+
   exportto(Tasks,pfdWrap);
   importfrom(Tasks,pfdWrap);
   exportto(Pfd,pfdWrap);
+
   exportto(Tasks,testEntry);
   importfrom(Tasks,testEntry);
   exportto(Pfd,testEntry);
+
+  exportto(Tasks,NSSdecompStep);
+  importfrom(Tasks,NSSdecompStep);
+  exportto(Pfd,NSSdecompStep);
+
+  exportto(Tasks,shortNumeratorDecompStep);
+  importfrom(Tasks,shortNumeratorDecompStep);
+  exportto(Pfd,shortNumeratorDecompStep);
+
+  exportto(Tasks,algDependDecompStep);
+  importfrom(Tasks,algDependDecompStep);
+  exportto(Pfd,algDependDecompStep);
+
+  exportto(Tasks,numeratorDecompStep);
+  importfrom(Tasks,numeratorDecompStep);
+  exportto(Pfd,numeratorDecompStep);
 }
 
 // partial fractioning algorithm ///////////////////////////////////////////////
 
+proc pfdParallel(list #)
+"USAGE:   pfdParallel(f,g[,debug,steps,save_int_res]);   f,g poly, debug int, steps intvec, save_int_res int
+          pfdParallel(f,g[,debug,steps,save_int_res]);   f poly, g list, debug int, steps intvec, save_int_res int
+RETURN:   a partial fraction decomposition of f/g. Input and output have the
+          same form as for @ref{pfd} but here the algorithm is parallelized
+          using parallelWaitAll from @ref{tasks.lib}.
+SEE ALSO: pfd, checkpfd, evaluatepfd, displaypfd, displaypfd_long, pfdMat
+EXAMPLE:  example pfdParallel; shows an example"
+{
+  short = 0;
+  int i,imax;
+  int counter,tt,ttt;
+  int t1=0;
+  int t2=0;
+  int t3=0;
+  int t4=0;
+  int t5=0;
+  string dtime = datetime();
+  for(i=0;i<=size(date);i++)
+    {if(dtime[i]==":") {dtime[i]="-";}}
+
+  i=0;
+  if(size(#)>1)
+  {
+    if(typeof(#[1])=="ideal" && typeof(#[2])=="list") {# = list(#); i=1;}
+    if(typeof(#[1])=="list")
+      {if(size(#[1])==2)
+        {if(typeof(#[1][1])=="ideal" && typeof(#[1][2])=="list") {i=1;} }}
+  }
+  if(i) // input of form pfdParallel(list(q,terms)[,debug])
+  {
+    int debug=0; int save_int_res=0;
+    link l=":w "; link l1=":w "; link l2=":w "; link l3=":w "; link l4=":w ";
+    intvec steps = 1,1,1,1;
+    if(size(#)>1)
+    {
+      debug=#[2];
+      l=":a "+string(debug)+"_log_"+dtime+".txt";
+      system("--ticks-per-sec",1000);
+    }
+    if(size(#)>2)
+    {
+      steps=#[3];
+    }
+    if(size(#)>3)
+    {
+      save_int_res=#[4];
+      if(steps[1]) {l1="ssi:w "+string(save_int_res)+"_result_after_step_1.ssi";}
+      if(steps[2]) {l2="ssi:w "+string(save_int_res)+"_result_after_step_2.ssi";}
+      if(steps[3]) {l3="ssi:w "+string(save_int_res)+"_result_after_step_3.ssi";}
+      if(steps[4]) {l4="ssi:w "+string(save_int_res)+"_result_after_step_4.ssi";}
+    }
+    if(size(#)>4) {ERROR("wrong number of arguments, expected 1,2,3 or 4");}
+
+    if(debug)
+    {
+      fprintf(l,"debug: %s", debug);
+    }
+
+    ideal q = #[1][1];
+    list dec = mergepfd(list(), #[1][2]);
+    int m = size(q);
+
+    if(size(dec)==1 && dec[1][1]==0) // just one term and its numerator is 0
+    {
+      dec = list(ideal(),list(list(poly(0),intvec(0:0),intvec(0:0))));
+      if(debug)
+        {fprintf(l,"%ntotal: 0 ms (numerator was 0)",0); close(l);}
+      if(save_int_res)
+      {
+        if(steps[1]) {write(l1,dec);}
+        if(steps[2]) {write(l2,dec);}
+        if(steps[3]) {write(l3,dec);}
+        if(steps[4]) {write(l4,dec);}
+      }
+      if(voice<=printlevel) {displaypfd(dec);}
+      return(dec);
+    }
+  }
+  else
+  {
+    if(typeof(#[1])=="list") // input of form pfdParallel(arguments[, parallelize])
+    {
+      if(size(#)>1)
+      {
+        if(typeof(#[2])=="list")
+          {list arguments = #;    int parallelize = 1;}
+        else{if(typeof(#[2])=="int")
+          {list arguments = #[1]; int parallelize = #[2];}
+        else {ERROR("wrong type for second argument, expected int");}}
+      }
+      else // #=list(list(..))
+      {
+        return(list(pfdParallel(#[1])));
+      }
+      if(parallelize)
+      {
+        for(i=1; i<=size(arguments); i++)
+        {
+          if(typeof(arguments[i][1])=="list") //input is list of lists
+            {arguments[i] = list(arguments[i],1);}
+        }
+        return(parallelWaitAll("pfdParallel",arguments));
+      }
+      else
+      {
+        list results;
+        for(i=1; i<=size(arguments); i++)
+        {
+          if(typeof(arguments[i][1])=="list") //input is list of lists
+            {results[i] = pfdParallel(arguments[i],0);}
+          else
+          {
+            if(size(arguments[i])==2)
+              {results[i] = pfdParallel(arguments[i][1],arguments[i][2]);}
+            else{if(size(arguments[i])==3)
+              {results[i] = pfdParallel(arguments[i][1],arguments[i][2],arguments[i][3]);}
+            else {ERROR("wrong number of arguments, expected 2 or 3");}}
+          }
+        }
+        return(results);
+      }
+    }
+
+    poly f = #[1];
+    if(typeof(#[2])=="list")
+    {
+      list g=#[2];
+    }
+    else
+    {
+      poly g=#[2];
+    }
+
+    int debug=0; int save_int_res=0;
+    link l=":w "; link l1=":w "; link l2=":w "; link l3=":w "; link l4=":w ";
+    intvec steps = 1,1,1,1;
+    if(size(#)>2)
+    {
+      debug=#[3];
+      l=":a "+string(debug)+"_log_"+dtime+".txt";
+      system("--ticks-per-sec",1000);
+    }
+    if(size(#)>3)
+    {
+      steps=#[4];
+    }
+    if(size(#)>4)
+    {
+      save_int_res=#[5];
+      if(steps[1]) {l1="ssi:w "+string(save_int_res)+"_result_after_step_1.ssi";}
+      if(steps[2]) {l2="ssi:w "+string(save_int_res)+"_result_after_step_2.ssi";}
+      if(steps[3]) {l3="ssi:w "+string(save_int_res)+"_result_after_step_3.ssi";}
+      if(steps[4]) {l4="ssi:w "+string(save_int_res)+"_result_after_step_4.ssi";}
+    }
+    if(size(#)>5) {ERROR("wrong number of arguments, expected 2,3,4 or 5");}
+
+    if(debug)
+    {
+      fprintf(l,"debug: %s", debug);
+      fprintf(l,"size(string(f)) = %s, size(string(g)) = %s %n",
+                 size(string(f)), size(string(g)), 0);
+    }
+
+    if(f==0)
+    {
+      list dec = list(ideal(),list(list(poly(0),intvec(0:0),intvec(0:0))));
+      if(debug)
+        {fprintf(l,"%ntotal: 0 ms (numerator was 0)",0); close(l);}
+      if(save_int_res)
+      {
+        if(steps[1]) {write(l1,dec);}
+        if(steps[2]) {write(l2,dec);}
+        if(steps[3]) {write(l3,dec);}
+        if(steps[4]) {write(l4,dec);}
+      }
+      if(voice<=printlevel) {displaypfd(dec);}
+      return(dec);
+    }
+    if(typeof(g)=="poly")
+    {
+      if(deg(g)==0)
+      {
+        list dec = list(ideal(),list(list(f/g,intvec(0:0),intvec(0:0))));
+        if(debug)
+          {fprintf(l,"%ntotal: 0 ms (denominator was constant)",0); close(l);}
+        if(save_int_res)
+        {
+          if(steps[1]) {write(l1,dec);}
+          if(steps[2]) {write(l2,dec);}
+          if(steps[3]) {write(l3,dec);}
+          if(steps[4]) {write(l4,dec);}
+        }
+        if(voice<=printlevel) {displaypfd(dec);}
+        return(dec);
+      }
+
+      // (1) factorization of the denominator ////////////////////////////////////
+      if(debug) {t1 = rtimer; write(l,"factorizing ");}
+      list factor = factorize(g);
+      number lcoeff;
+      for(i=2; i<=size(factor[1]); i++)
+      {
+        lcoeff = leadcoef(factor[1][i]);
+        factor[1][i] = factor[1][i]/lcoeff;
+        factor[1][1] = factor[1][1]*(lcoeff^factor[2][i]); // polynomial is monic (thus unique)
+        lcoeff = content(factor[1][i]);
+        factor[1][i] = factor[1][i]/lcoeff;
+        factor[1][1] = factor[1][1]*(lcoeff^factor[2][i]); // polynomial has nice coefficients
+      }
+      ideal q = factor[1];
+      f = f/q[1];
+      q=delete(q,1);
+      intvec e = factor[2]; e=delete(e,1);
+      int m = size(q);
+      if(debug) {t1 = rtimer-t1; fprintf(l,"done! (%s ms)", t1);}
+    }
+    else{if(typeof(g)=="list")
+    {
+      if(size(g[1])==0)
+      {
+        list dec = list(ideal(),list(list(f,intvec(0:0),intvec(0:0))));
+        if(debug)
+          {fprintf(l,"%ntotal: 0 ms (denominator was constant)",0); close(l);}
+        if(save_int_res)
+        {
+          if(steps[1]) {write(l1,dec);}
+          if(steps[2]) {write(l2,dec);}
+          if(steps[3]) {write(l3,dec);}
+          if(steps[4]) {write(l4,dec);}
+        }
+        if(voice<=printlevel) {displaypfd(dec);}
+        return(dec);
+      }
+
+      // denominator is already factorized
+      for(i=1;i<=size(g[1]);i++)
+      {
+        if(size(factorize(g[1][i])[1])>2)
+          {ERROR("factors should be irreducible");}
+      }
+
+      ideal q = g[1];
+      intvec e = g[2];
+      int m = size(q);
+    }
+    else
+    {ERROR("wrong type for second argument, expected poly or list(ideal,intvec)");}}
+
+    list dec = list(list(poly(f),1..m,e));
+  }
+
+  list terms,newterms,results,arguments;
+
+
+  // (2) Nullstellensatz decomposition /////////////////////////////////////////
+  if(steps[1])
+  {
+    if(debug)
+      {t2 = rtimer; write(l,"Nullstellensatz decomposition ");}
+    terms = dec;
+    dec = list();
+    while(size(terms)>0)
+    {
+      if(debug) {ttt = rtimer; counter++;}
+      imax = size(terms);
+      newterms = list();
+      for(i=1; i<=imax; i++)
+        {arguments[i] = list(terms[i],q);}
+
+      results = parallelWaitAll("NSSdecompStep",arguments);
+
+      for(i=1; i<=imax; i++)
+      {
+        if(size(results[i])>1) {newterms = mergepfd(newterms, results[i]);}
+        else                        {dec = mergepfd(dec,      results[i]);}
+      }
+      terms = newterms;
+      arguments = list();
+      results = list();
+      if(debug)
+        {fprintf(l,"  %s: %s ms, %s terms, %s unfinished",
+         counter, rtimer-ttt, size(terms)+size(dec), size(terms));}
+    }
+
+    if(debug)
+      {t2 = rtimer-t2; fprintf(l,"done! (%s ms, %s terms)", t2, size(dec));}
+
+    if(save_int_res)
+    {
+      write(l1,list(q,dec));
+    }
+  }
+  else
+  {
+    if(debug)
+      {write(l,"skipping Nullstellensatz decomposition");}
+  }
+
+
+  // (3) short numerator decomposition /////////////////////////////////////////
+  if(steps[2])
+  {
+    if(debug)
+      {t3 = rtimer; write(l,"short numerator decompositions "); counter=0;}
+    terms = dec;
+    dec = list();
+    while(size(terms)>0)
+    {
+      if(debug) {tt = rtimer; counter++;}
+      imax = size(terms);
+      newterms = list();
+      for(i=1; i<=imax; i++)
+        {arguments[i] = list(terms[i],q,debug,l);}
+
+      results = parallelWaitAll("shortNumeratorDecompStep",arguments);
+
+      for(i=1; i<=imax; i++)
+      {
+        if(debug) {ttt = rtimer;}
+        newterms = mergepfd(newterms, results[i][1]);
+        dec = mergepfd(dec, results[i][2]);
+        if(debug)
+          {fprintf(l,"      merging: %s ms, %s new terms",
+           rtimer-ttt, size(results[i][1]));}
+      }
+      terms = newterms;
+      arguments = list();
+      results = list();
+      if(debug)
+        {fprintf(l,"  %s: %s ms, %s terms, %s unfinished",
+         counter, rtimer-tt, size(terms)+size(dec), size(terms));}
+    }
+
+    if(debug)
+      {t3 = rtimer-t3; fprintf(l,"done! (%s ms, %s terms)", t3, size(dec));}
+
+    if(save_int_res)
+    {
+      write(l2,list(q,dec));
+    }
+  }
+  else
+  {
+    if(debug)
+      {write(l,"skipping numerator decomposition");}
+  }
+
+  // (4) algebraic dependence decomposition ////////////////////////////////////
+  if(steps[3])
+  {
+    if(debug)
+      {t4 = rtimer; write(l,"algebraic dependence decomposition "); counter=0;}
+    terms = dec;
+    dec = list();
+    while(size(terms)>0)
+    {
+      if(debug) {tt = rtimer; counter++;}
+      imax = size(terms);
+      newterms = list();
+      for(i=1; i<=imax; i++)
+        {arguments[i] = list(terms[i],q,debug,l);}
+
+      results = parallelWaitAll("algDependDecompStep",arguments);
+
+      for(i=1; i<=imax; i++)
+      {
+        if(debug) {ttt = rtimer;}
+        if(size(results[i])>1) {newterms = mergepfd(newterms, results[i]);}
+        else                    {dec = mergepfd(dec,      results[i]);}
+        if(debug)
+          {fprintf(l,"      merging: %s ms, %s new terms", rtimer-ttt, size(results[i]));}
+      }
+      terms = newterms;
+      arguments = list();
+      results = list();
+      if(debug)
+        {fprintf(l,"  %s: %s ms, %s terms, %s unfinished",
+         counter, rtimer-tt, size(terms)+size(dec),size(terms));}
+    }
+
+    if(debug)
+      {t4 = rtimer-t4; fprintf(l,"done! (%s ms, %s terms)", t4, size(dec));}
+
+    if(save_int_res)
+    {
+      write(l3,list(q,dec));
+    }
+  }
+  else
+  {
+    if(debug)
+      {write(l,"skipping algebraic dependence decomposition");}
+  }
+
+  // (5) numerator decomposition ///////////////////////////////////////////////
+  if(steps[4])
+  {
+    if(debug)
+      {t5 = rtimer; write(l,"numerator decompositions "); counter=0;}
+    terms = dec;
+    dec = list();
+    while(size(terms)>0)
+    {
+      if(debug) {tt = rtimer; counter++;}
+      imax = size(terms);
+      newterms = list();
+      for(i=1; i<=imax; i++)
+      {arguments[i] = list(terms[i],q,debug,l);}
+
+      results = parallelWaitAll("numeratorDecompStep",arguments);
+
+      for(i=1; i<=imax; i++)
+      {
+        if(debug) {ttt = rtimer;}
+        newterms = mergepfd(newterms, results[i][1]);
+        dec = mergepfd(dec, results[i][2]);
+        if(debug)
+          {fprintf(l,"      merging: %s ms, %s new terms", rtimer-ttt, size(results[i][1]));}
+      }
+      terms = newterms;
+      arguments = list();
+      results = list();
+      if(debug)
+        {fprintf(l,"  %s: %s ms, %s terms, %s unfinished",
+         counter, rtimer-tt, size(terms)+size(dec), size(terms));}
+    }
+    if(debug)
+      {t5 = rtimer-t5; fprintf(l,"done! (%s ms, %s terms)", t5, size(dec));}
+
+    if(save_int_res)
+    {
+      write(l4,list(q,dec));
+    }
+  }
+  else
+  {
+    if(debug)
+      {write(l,"skipping numerator decomposition");}
+  }
+
+
+  if(size(dec)==1) {if(dec[1][1]==0) {dec = list();}}
+  dec = list(q,dec);
+  if(debug) {fprintf(l,"%ntotal: %s ms", t1+t2+t3+t4+t5); close(l);}
+  if(voice<=printlevel) {displaypfd(dec);}
+  return(dec);
+}
+example
+{
+  "EXAMPLE:";
+  echo=voice;
+  ring R = 0,(x,y),dp;
+  poly f = x^3+3*x^2*y+2*y^2-x^2+4*x*y;
+  poly g = x^2*y*(x-1)*(x-y)^2;
+
+  list dec = pfdParallel(f,g);
+
+  displaypfd_long(dec);   // display result
+  checkpfd(list(f,g),dec);   // check for equality to f/g
+
+  // a more complicated example
+  ring S = 0,(s12,s15,s23,s34,s45),dp;
+  poly f = 7*s12^4*s15^2 + 11*s12^3*s15^3 + 4*s12^2*s15^4 - 10*s12^4*s15*s23
+    - 14*s12^3*s15^2*s23 - 4*s12^2*s15^3*s23 + 3*s12^4*s23^2 + 3*s12^3*s15*s23^2
+    + 13*s12^4*s15*s34 + 12*s12^3*s15^2*s34 + 2*s12^2*s15^3*s34
+    - 5*s12^4*s23*s34 + 33*s12^3*s15*s23*s34 + 49*s12^2*s15^2*s23*s34
+    + 17*s12*s15^3*s23*s34 - 17*s12^3*s23^2*s34 - 19*s12^2*s15*s23^2*s34
+    - 5*s12*s15^2*s23^2*s34 - 24*s12^3*s15*s34^2 - 15*s12^2*s15^2*s34^2
+    + 2*s12*s15^3*s34^2 + 15*s12^3*s23*s34^2 - 34*s12^2*s15*s23*s34^2
+    - 31*s12*s15^2*s23*s34^2 + 2*s15^3*s23*s34^2 + 33*s12^2*s23^2*s34^2
+    + 29*s12*s15*s23^2*s34^2 + 5*s15^2*s23^2*s34^2 + 9*s12^2*s15*s34^3
+    - 4*s12*s15^2*s34^3 - 15*s12^2*s23*s34^3 + 9*s12*s15*s23*s34^3
+    - 4*s15^2*s23*s34^3 - 27*s12*s23^2*s34^3 - 13*s15*s23^2*s34^3
+    + 2*s12*s15*s34^4 + 5*s12*s23*s34^4 + 2*s15*s23*s34^4 + 8*s23^2*s34^4
+    - 6*s12^3*s15^2*s45 - 9*s12^2*s15^3*s45 - 2*s12*s15^4*s45
+    + 30*s12^3*s15*s23*s45 + 56*s12^2*s15^2*s23*s45 + 24*s12*s15^3*s23*s45
+    - 12*s12^3*s23^2*s45 - 23*s12^2*s15*s23^2*s45 - 10*s12*s15^2*s23^2*s45
+    - 30*s12^3*s15*s34*s45 - 32*s12^2*s15^2*s34*s45 - 6*s12*s15^3*s34*s45
+    + 7*s12^3*s23*s34*s45 - 86*s12^2*s15*s23*s34*s45 - 104*s12*s15^2*s23*s34*s45
+    - 15*s15^3*s23*s34*s45 + 41*s12^2*s23^2*s34*s45 + 51*s12*s15*s23^2*s34*s45
+    + 10*s15^2*s23^2*s34*s45 - 5*s12^3*s34^2*s45 + 33*s12^2*s15*s34^2*s45
+    + 14*s12*s15^2*s34^2*s45 - 2*s15^3*s34^2*s45 - 21*s12^2*s23*s34^2*s45
+    + 62*s12*s15*s23*s34^2*s45 + 28*s15^2*s23*s34^2*s45 - 46*s12*s23^2*s34^2*s45
+    - 28*s15*s23^2*s34^2*s45 + 10*s12^2*s34^3*s45 - s12*s15*s34^3*s45
+    + 4*s15^2*s34^3*s45 + 21*s12*s23*s34^3*s45 - 6*s15*s23*s34^3*s45
+    + 17*s23^2*s34^3*s45 - 5*s12*s34^4*s45 - 2*s15*s34^4*s45 - 7*s23*s34^4*s45
+    - 6*s12^2*s15^2*s45^2 - 5*s12*s15^3*s45^2 - 2*s15^4*s45^2
+    - 28*s12^2*s15*s23*s45^2 - 42*s12*s15^2*s23*s45^2 - 10*s15^3*s23*s45^2
+    + 9*s12^2*s23^2*s45^2 + 10*s12*s15*s23^2*s45^2 + 24*s12^2*s15*s34*s45^2
+    + 36*s12*s15^2*s34*s45^2 + 10*s15^3*s34*s45^2 - 11*s12^2*s23*s34*s45^2
+    + 31*s12*s15*s23*s34*s45^2 + 25*s15^2*s23*s34*s45^2
+    - 18*s12*s23^2*s34*s45^2 - 10*s15*s23^2*s34*s45^2 + 4*s12^2*s34^2*s45^2
+    - 29*s12*s15*s34^2*s45^2 - 17*s15^2*s34^2*s45^2 + 27*s12*s23*s34^2*s45^2
+    + 2*s15*s23*s34^2*s45^2 + 9*s23^2*s34^2*s45^2 - 3*s12*s34^3*s45^2
+    + 10*s15*s34^3*s45^2 - 16*s23*s34^3*s45^2 - s34^4*s45^2 + 6*s12*s15^2*s45^3
+    + 3*s15^3*s45^3 + 8*s12*s15*s23*s45^3 + 10*s15^2*s23*s45^3
+    - 8*s12*s15*s34*s45^3 - 10*s15^2*s34*s45^3 + 9*s12*s23*s34*s45^3
+    + s12*s34^2*s45^3 + 8*s15*s34^2*s45^3 - 9*s23*s34^2*s45^3 - s34^3*s45^3
+    - s15^2*s45^4 + s15*s34*s45^4;
+  poly g = 4*s12*s15*(s12 + s15 - s34)*(s15 - s23 - s34)*(s12 + s23 - s45)
+                                 *(s12 - s34 - s45)*(s12 + s15 - s34 - s45)*s45;
+
+  list dec = pfdParallel(f,g);
+
+  displaypfd(dec);
+  checkpfd(list(f,g),dec);
+
+  // size comparison:
+  size(string(f)) + size(string(g));
+  size(getStringpfd(dec));
+}
+
 proc pfd(list #)
-"USAGE:   pfd(f,g[,debug]);   f,g poly, debug int
-          pfd(f,g[,debug]);   f poly, g list, debug int
+"USAGE:   pfd(f,g[,debug,steps,save_int_res]);   f,g poly, debug int, steps intvec, save_int_res int
+          pfd(f,g[,debug,steps,save_int_res]);   f poly, g list(ideal,intvec), debug int, steps intvec, save_int_res int
+          pfd(f,g[,debug,steps,save_int_res]);   f poly, g list(poly,ideal), debug int, steps intvec, save_int_res int
+          pfd(list(q,terms)[,debug,steps,save_int_res])  q ideal, terms list, debug int, steps intvec, save_int_res int
           pfd(arguments[, parallelize]);     arguments list, parallelize int
 RETURN:   a partial fraction decomposition of f/g as a list @code{l} where
           @code{l[1]} is an ideal generated by irreducible polynomials and
@@ -99,12 +631,26 @@ RETURN:   a partial fraction decomposition of f/g as a list @code{l} where
        @* 3) an intvec containing the exponents of those irreducible factors.
        @* Setting @code{debug} to a positive integer measures runtimes and
           creates a log file (default: @code{debug=0}).
+       @* With an intvec @code{steps} of length four you can skip individual
+          steps of the algorithm, e.g. (1,1,0,1) to skip the third step
+          (algebraic dependence decomposition).
+       @* If @code{save_int_res} is set to a positive integer (default: 0), the
+          intermediate result will be saved after each step in a separate
+          .ssi-file in the same format as the output of pfd.
        @* The denominator g can also be given in factorized form as a list of
           an ideal of irreducible non constant polynomials and an intvec of
           exponents. This can save time since the first step in the algorithm is
           to factorize g. (A list of the zero-ideal and an empty intvec
           represents a denominator of 1.)
-       @* If instead of f and g, the input is a single list (or even a list of
+       @* In case not all factors and exponents are known, the denominator can
+          also be given as a list of the denominator polynomial and an ideal of
+          possible factors which do not even have to be irreducible. But if the
+          denominator is divisible by some of the given factors, this will speed
+          up the factorization algorithm.
+       @* Instead of f and g, the input can be given in the same format as the
+          output of @code{pfd}, i.e. a list of an ideal of denominator factors
+          and a list of terms as described above.
+       @* If the input is a single list (or even a list of
           lists) containing elements of the form @code{list(f,g[,debug])}
           (@code{f,g,debug} as above), the algorithm is applied to all entries
           in parallel (using @ref{parallel_lib}), if @code{parallelize=1}
@@ -116,142 +662,243 @@ SEE ALSO: checkpfd, evaluatepfd, displaypfd, displaypfd_long, pfdMat
 EXAMPLE:  example pfd; shows an example"
 {
   short = 0;
-  int i,t1;
+  int i,j,k,imax;
+  int counter,tt,ttt;
+  int t1=0;
+  int t2=0;
+  int t3=0;
+  int t4=0;
+  int t5=0;
+  string dtime = datetime();
+  for(i=0;i<=size(dtime);i++)
+    {if(dtime[i]==":") {dtime[i]="-";}}
 
-
-
-  if(typeof(#[1])=="list")
+  i=0;
+  if(size(#)>1)
   {
-    // pfd(arguments[, parallelize]);
-    // unwrap the lists into seperate calls of pfd.
+    if(typeof(#[1])=="ideal" && typeof(#[2])=="list") {# = list(#); i=1;}
+    if(typeof(#[1])=="list")
+      {if(size(#[1])==2)
+        {if(typeof(#[1][1])=="ideal" && typeof(#[1][2])=="list") {i=1;} }}
+  }
+
+  if(i) // input of form pfd(list(q,terms)[,debug])
+  {
+    int debug=0; int save_int_res=0;
+    link l=":w "; link l1=":w "; link l2=":w "; link l3=":w "; link l4=":w ";
+    intvec steps = 1,1,1,1;
     if(size(#)>1)
     {
-      if (typeof(#[2]) == "list") {
-        // pfd(arguments);
-        list arguments = #;
-        int parallelize = 1;
-      } else{if (typeof(#[2]) == "int") {
-        // pfd(arguments, parallelize);
-        list arguments = #[1];
-        int parallelize = #[2];}
-      else {ERROR("wrong type for second argument, expected int");}}
+      debug=#[2];
+      l=":a "+string(debug)+"_log_"+dtime+".txt";
+      system("--ticks-per-sec",1000);
+    }
+    if(size(#)>2)
+    {
+      steps=#[3];
+    }
+    if(size(#)>3)
+    {
+      save_int_res=#[4];
+      if(steps[1]) {l1="ssi:w "+string(save_int_res)+"_result_after_step_1.ssi";}
+      if(steps[2]) {l2="ssi:w "+string(save_int_res)+"_result_after_step_2.ssi";}
+      if(steps[3]) {l3="ssi:w "+string(save_int_res)+"_result_after_step_3.ssi";}
+      if(steps[4]) {l4="ssi:w "+string(save_int_res)+"_result_after_step_4.ssi";}
+    }
+    if(size(#)>4) {ERROR("wrong number of arguments, expected 1,2,3 or 4");}
+
+    if(debug)
+    {
+      fprintf(l,"debug: %s", debug);
     }
 
-    if(parallelize) {
+    ideal q = #[1][1];
+    list terms = mergepfd(list(), #[1][2]);
+    int m = size(q);
 
-      for(i=1; i<=size(arguments); i++)
+    if(size(terms)==1 && terms[1][1]==0) // just one term and its numerator is 0
+    {
+      list dec = list(ideal(),list(list(poly(0),intvec(0:0),intvec(0:0))));
+      if(debug)
+        {fprintf(l,"%ntotal: 0 ms (numerator was 0)",0); close(l);}
+      if(save_int_res)
       {
-        if(typeof(arguments[i][1])=="list") //input is list of lists
-          {arguments[i] = list(arguments[i],1);}
+        if(steps[1]) {write(l1,dec);}
+        if(steps[2]) {write(l2,dec);}
+        if(steps[3]) {write(l3,dec);}
+        if(steps[4]) {write(l4,dec);}
       }
-      return (parallelWaitAll("pfd",arguments));
+      if(voice<=printlevel) {displaypfd(dec);}
+      return(dec);
+    }
+  }
+  else
+  {
+    if(typeof(#[1])=="list") // input of form pfd(arguments[, parallelize])
+    {
+      if(size(#)>1)
+      {
+        if(typeof(#[2])=="list")
+          {list arguments = #;    int parallelize = 1;}
+        else{if(typeof(#[2])=="int")
+          {list arguments = #[1]; int parallelize = #[2];}
+        else {ERROR("wrong type for second argument, expected int");}}
+      }
+      else // #=list(list(..))
+      {
+        return(list(pfd(#[1])));
+      }
+      if(parallelize)
+      {
+        for(i=1; i<=size(arguments); i++)
+        {
+          if(typeof(arguments[i][1])=="list") //input is list of lists
+            {arguments[i] = list(arguments[i],1);}
+        }
+        return(parallelWaitAll("pfd",arguments));
+      }
+      else
+      {
+        list results;
+        for(i=1; i<=size(arguments); i++)
+        {
+          if(typeof(arguments[i][1])=="list") //input is list of lists
+            {results[i] = pfd(arguments[i],0);}
+          else
+          {
+            if(size(arguments[i])==2)
+              {results[i] = pfd(arguments[i][1],arguments[i][2]);}
+            else{if(size(arguments[i])==3)
+              {results[i] = pfd(arguments[i][1],arguments[i][2],arguments[i][3]);}
+            else {ERROR("wrong number of arguments, expected 2 or 3");}}
+          }
+        }
+        return(results);
+      }
+    }
 
-    } else {
+    poly f = #[1];
+    if(typeof(#[2])=="list")
+    {
+      list g=#[2];
+    }
+    else
+    {
+      poly g=#[2];
+    }
 
-      list results;
-      for(i=1; i<=size(arguments); i++) {
-        if(typeof(arguments[i][1])=="list") {
-          // input is list of lists
-          results[i] = pfd(arguments[i],0);
+    int debug=0; int save_int_res=0;
+    link l=":w "; link l1=":w "; link l2=":w "; link l3=":w "; link l4=":w ";
+    intvec steps = 1,1,1,1;
+    if(size(#)>2)
+    {
+      debug=#[3];
+      l=":a "+string(debug)+"_log_"+dtime+".txt";
+      system("--ticks-per-sec",1000);
+    }
+    if(size(#)>3)
+    {
+      steps=#[4];
+    }
+    if(size(#)>4)
+    {
+      save_int_res=#[5];
+      if(steps[1]) {l1="ssi:w "+string(save_int_res)+"_result_after_step_1.ssi";}
+      if(steps[2]) {l2="ssi:w "+string(save_int_res)+"_result_after_step_2.ssi";}
+      if(steps[3]) {l3="ssi:w "+string(save_int_res)+"_result_after_step_3.ssi";}
+      if(steps[4]) {l4="ssi:w "+string(save_int_res)+"_result_after_step_4.ssi";}
+    }
+    if(size(#)>5) {ERROR("wrong number of arguments, expected 2,3,4 or 5");}
 
-        } else {
+    if(debug)
+    {
+      fprintf(l,"debug: %s", debug);
+      fprintf(l,"size(string(f)) = %s, size(string(g)) = %s %n",
+                 size(string(f)), size(string(g)), 0);
+    }
 
-          if(size(arguments[i])==2)
-            {results[i] = pfd(arguments[i][1],arguments[i][2]);}
-          else{if(size(arguments[i])==3)
-            {results[i] = pfd(arguments[i][1],arguments[i][2],arguments[i][3]);}
-          else {ERROR("wrong number of arguments, expected 2 or 3");}}
+    // sort out some trivial cases
+    if(f==0)
+    {
+      list dec = list(ideal(),list(list(poly(0),intvec(0:0),intvec(0:0))));
+      if(debug)
+        {fprintf(l,"%ntotal: 0 ms (numerator was 0)",0); close(l);}
+      if(save_int_res)
+      {
+        if(steps[1]) {write(l1,dec);}
+        if(steps[2]) {write(l2,dec);}
+        if(steps[3]) {write(l3,dec);}
+        if(steps[4]) {write(l4,dec);}
+      }
+      if(voice<=printlevel) {displaypfd(dec);}
+      return(dec);
+    }
 
+    if(typeof(g)=="poly")
+    {
+      if(deg(g)==0)
+      {
+        list dec = list(ideal(),list(list(f/g,intvec(0:0),intvec(0:0))));
+        if(debug)
+          {fprintf(l,"%ntotal: 0 ms (denominator was constant)",0); close(l);}
+        if(save_int_res)
+        {
+          if(steps[1]) {write(l1,dec);}
+          if(steps[2]) {write(l2,dec);}
+          if(steps[3]) {write(l3,dec);}
+          if(steps[4]) {write(l4,dec);}
+        }
+        if(voice<=printlevel) {displaypfd(dec);}
+        return(dec);
+      }
+    } else{if(typeof(g)=="list") {
+      if(typeof(g[1])=="ideal" && typeof(g[2])=="intvec") {
+        // ideal of irreducible factors & intvec of exponents
+        if(size(g[1])==0) {
+          list dec = list(ideal(),list(list(f,intvec(0:0),intvec(0:0))));
+          if(debug)
+            {fprintf(l,"%ntotal: 0 ms (denominator was constant)",0); close(l);}
+          if(save_int_res)
+          {
+            if(steps[1]) {write(l1,dec);}
+            if(steps[2]) {write(l2,dec);}
+            if(steps[3]) {write(l3,dec);}
+            if(steps[4]) {write(l4,dec);}
+          }
+          if(voice<=printlevel) {displaypfd(dec);}
+          return(dec);
         }
       }
-      return(results);
+    }}
+
+    // (1) factorization of the denominator ////////////////////////////////////
+    list input;
+    if (debug) {
+      input, t1 = prepare_terms(f, g, debug, l);
+    } else {
+      input = prepare_terms(f, g, debug, l);
     }
+    ideal q = input[1];
+    list terms = input[2];
   }
 
 
+  if (debug) {
+    int t = rtimer;
+    write(l, "Start PFD functional unit");
+  }
 
-
-
- // pfd(f,g[,debug]);   f,g poly, debug int
- // OR
- // pfd(f,g[,debug]);   f poly, g list, debug int
-
-  poly f = #[1];
-  if(typeof(#[2])=="list") {
-    list g=#[2];
+  list dec;
+  if (debug) {
+    dec, t2, t3, t4, t5 = pfd_functional_unit(terms, q, steps, save_int_res, debug, l);
   } else {
-    poly g=#[2];
+    dec = pfd_functional_unit(terms, q, steps, save_int_res, debug, l);
   }
 
-  if(size(#)>3) {
-    ERROR("wrong number of arguments, expected 2 or 3");
-  }
-
-  int debug=0;
-  link l=":w ";
-
-  if(size(#)==3)
-  {
-    debug=#[3];
-    l=":a "+string(debug)+"_log_"+datetime()+".txt";
-    system("--ticks-per-sec",1000);
-  }
-  if(debug)
-  {
-    fprintf(l,"debug: %s", debug);
-    fprintf(l,"size(string(f)) = %s, size(string(g)) = %s %n",
-               size(string(f)), size(string(g)), 0);
-  }
-
-  if(typeof(g)=="poly") {
-    if(deg(g)==0) {
-      // trivial degree for g
-      list dec = list(ideal(),list(list(f/g,intvec(0:0),intvec(0:0))));
-      if(debug)
-        {fprintf(l,"%ntotal: 0 ms (denominator was constant)",0); close(l);}
-      if(voice<=printlevel) {displaypfd(dec);}
-      return(dec);
-    }
-  }
-
-  if(typeof(g)=="list") {
-    if(size(g[1])==0) {
-      list dec = list(ideal(),list(list(f,intvec(0:0),intvec(0:0))));
-      if(debug)
-        {fprintf(l,"%ntotal: 0 ms (denominator was constant)",0); close(l);}
-      if(voice<=printlevel) {displaypfd(dec);}
-      return(dec);
-    }
-  }
-
-  if(f==0) {
-    // trivial case
-    list dec = list(ideal(),list(list(poly(0),intvec(0:0),intvec(0:0))));
-    if(debug)
-      {fprintf(l,"%ntotal: 0 ms (numerator was 0)",0); close(l);}
-    if(voice<=printlevel) {displaypfd(dec);}
-    return(dec);
-  }
-
-  if (debug) { t1 = rtimer; write(l,"factorizing "); }
-
-  list fqem = prepare_fqem(f, g);
-  f = fqem[1];
-  ideal q = fqem[2];
-  intvec e = fqem[3];
-  int m = fqem[4];
-
-  list terms = list(list(poly(f),1..m,e));
-
-  if(debug) { t1 = rtimer-t1; fprintf(l,"done! (%s ms)", t1); }
-  if(debug) {int t = rtimer; write(l,"Start PFD functional unit");}
-
-  list dec = pfd_functional_unit(terms, q, debug, l);
-
-  if(debug) { t = rtimer-t; fprintf(l,"PFD functional unit done! (%s ms, %s terms)", t, size(dec));}
-  if(debug) {fprintf(l,"%ntotal: %s ms", t1 + t); close(l);}
-
-  return (dec);
+  //dec = list(q,dec); pfd_functional_unit already does this
+  if(debug) {fprintf(l,"%ntotal: %s ms", t1+t2+t3+t4+t5); close(l);}
+  if(voice<=printlevel) {displaypfd(dec);}
+  return(dec);
 }
 example
 {
@@ -331,88 +978,29 @@ example
   size(getStringpfd(dec));
 }
 
-proc pfd_functional_unit(list terms, ideal q, list #)
+proc prepare_terms(poly f, list #)
 {
-  int counter,tt,ttt;
-  list dec;
-
-  int debug = 0;
-  link l = ":w";
-  if (size(#) > 0) {
-    debug = #[1];
-    link l = #[2];
+  if ((size(#) < 1) || (size(#) == 2) || (size(#) > 3)) {
+    ERROR("incorrect call to prepare_terms: requires 2 or 4 arguments");
   }
-
-  int t1, t2, t3, t4;
-
-  // (1) Nullstellensatz decomposition /////////////////////////////////////////
-  if(debug)
-    {t1 = rtimer; write(l,"Nullstellensatz decomposition ");}
-  terms = generic_dec_loop("NSSdecompStep", "size", terms, q, debug, l);
-  if(debug)
-    {t1 = rtimer-t1; fprintf(l,"done! (%s ms, %s terms)", t1, size(terms));}
-
-  // (2) short numerator decomposition /////////////////////////////////////////
-  if(debug)
-    {t2 = rtimer; write(l,"short numerator decompositions "); counter=0;}
-  terms = generic_dec_loop("shortNumeratorDecompStep", "index", terms, q, debug, l);
-  if(debug)
-    {t2 = rtimer-t2; fprintf(l,"done! (%s ms, %s terms)", t2, size(terms));}
-
-  // (3) algebraic dependence decomposition ////////////////////////////////////
-  if(debug)
-    {t3 = rtimer; write(l,"algebraic dependence decomposition "); counter=0;}
-  terms = generic_dec_loop("algDependDecompStep", "size", terms, q, debug, l);
-  if(debug)
-    {t3 = rtimer-t3; fprintf(l,"done! (%s ms, %s terms)", t3, size(terms));}
-
-  // (4) numerator decomposition ///////////////////////////////////////////////
-  if(debug)
-    {t4 = rtimer; write(l,"numerator decompositions "); counter=0;}
-  dec = generic_dec_loop("numeratorDecompStep", "index", terms, q, debug, l);
-  if(debug)
-    {t4 = rtimer-t4; fprintf(l,"done! (%s ms, %s terms)", t4, size(dec));}
-
-
-  if(size(dec)==1) {if(dec[1][1]==0) {dec = list();}}
-  dec = list(q,dec);
-  if(debug) {fprintf(l,"%ntotal: %s ms", t1+t2+t3+t4); close(l);}
-
-  if(voice<=printlevel) {displaypfd(dec);}
-
-  return(dec);
-}
-
-proc prepare_fqem (poly f, list #)
-{
-
-  if (size(#) != 1) {
-    ERROR("incorrect call to prepare_fqem");
-  }
-  if (typeof(#[1])=="poly") {
-    // (1) factorization of the denominator ////////////////////////////////////
-    // TODO: Test prepare_fqem_gpoly
-    list fqem = prepare_fqem_gpoly(f, #[1]);
-
-  } else{if(typeof(#[1])=="list") {
-
-    list fqem = prepare_fqem_glist(f, #[1]);
-
+  def g = #[1]
+  if (size(#) == 3) {
+    int debug = #[2];
+    link l  = #[3];
   } else {
-    ERROR("wrong type for second argument, expected poly or list(ideal,intvec)");
-  }}
+    int debug = -
+    link l  = ":w ";
+  }
+  int t1;
+  int i, j, k;
 
-  return (fqem);
 
-
-}
-
-proc prepare_fqem_gpoly (poly f, poly g)
-{
-  int i;
-  list factor = factorize(g);
-  number lcoeff;
-  for(i=2; i<=size(factor[1]); i++) {
+  if (typeof(g)=="poly") {
+    // (1) factorization of the denominator //////////////////////////////////// 
+    if(debug) {t1 = rtimer; write(l,"factorizing ");}
+    list factor = factorize(g);
+    number lcoeff;
+    for(i=2; i<=size(factor[1]); i++) {
       lcoeff = leadcoef(factor[1][i]);
       factor[1][i] = factor[1][i]/lcoeff;
       factor[1][1] = factor[1][1]*(lcoeff^factor[2][i]); // polynomial is monic (thus unique)
@@ -420,54 +1008,222 @@ proc prepare_fqem_gpoly (poly f, poly g)
       lcoeff = content(factor[1][i]);
       factor[1][i] = factor[1][i]/lcoeff;
       factor[1][1] = factor[1][1]*(lcoeff^factor[2][i]); // polynomial has nice coefficients
-  }
-  ideal q = factor[1];
-  f = f/q[1];
-  q=delete(q,1);
-  intvec e = factor[2]; e=delete(e,1);
-  int m = size(q);
-
-  return (list(f, q, e, m));
-}
-
-proc prepare_fqem_glist (poly f, list g)
-{
-  int i;
-  // denominator is already factorized
-    for(i=1;i<=size(g[1]);i++)
-    {
-      if(size(factorize(g[1][i])[1])>2)
-        {ERROR("factors should be irreducible");}
     }
-
-    ideal q = g[1];
-    intvec e = g[2];
+    ideal q = factor[1];
+    f = f/q[1];
+    q=delete(q,1);
+    intvec e = factor[2]; e=delete(e,1);
     int m = size(q);
+    if(debug) {t1 = rtimer-t1; fprintf(l,"done! (%s ms)", t1);}
 
-  return (list(f, q, e, m));
+  } else{if (typeof(g)=="list") {
+    if(typeof(g[1])=="ideal" && typeof(g[2])=="intvec") {
+      // denominator is already factorized
+      for(i=1;i<=size(g[1]);i++) {
+        if(size(factorize(g[1][i])[1])>2) {
+          ERROR("factors should be irreducible");
+        }
+      }
+      ideal q = g[1];
+      intvec e = g[2];
+      int m = size(q);
+      t1 = 0;
+
+    } else{if(typeof(g[1])=="poly" && typeof(g[2])=="ideal") {
+      // denominator polynomial & ideal of factors
+      if(debug) {t1 = rtimer; write(l,"factorizing ");}
+      ideal q,factors;
+      intvec e,exponents=0:0,0:0;
+
+      int expon;
+      for(i=1; i<=size(g[2]); i++) {
+        expon=0;
+        while(reduce(g[1],g[2][i])==0) {
+          g[1] = g[1]/g[2][i];
+          expon++;
+        }
+        if(expon>0) {
+          factors[size(factors)+1] = g[2][i];
+          exponents[size(exponents)+1] = expon;
+        }
+      }
+
+      if(deg(g[1])==0) {
+        number constant = number(g[1]);
+      } else {
+        factors[size(factors)+1] = g[1];
+        exponents[size(exponents)+1] = 1;
+        number constant = number(1);
+      }
+
+      list fact;
+      number lcoeff;
+      for(i=1; i<=size(factors); i++) {
+        printf("factors[%s]: %s",i,factors[i]);
+        fact = factorize(factors[i]);
+        print("fact:");
+        print(fact);
+
+        for(j=2; j<=size(fact[1]); j++) {
+          lcoeff = leadcoef(fact[1][j]);
+          fact[1][j] = fact[1][j]/lcoeff;
+          fact[1][1] = fact[1][1]*(lcoeff^fact[2][j]); // polynomial is monic (thus unique)
+          lcoeff = content(fact[1][j]);
+          fact[1][j] = fact[1][j]/lcoeff;
+          fact[1][1] = fact[1][1]*(lcoeff^fact[2][j]); // polynomial has nice coefficients
+
+          for(k=1; 1; k++) {
+            if(q[k]==fact[1][j]) {
+              e[k] = e[k] + fact[2][j]*exponents[i];
+              break;
+            }
+            if(k>=size(q)) {
+              q[size(q)+1] = fact[1][j];
+              e[size(e)+1] = fact[2][j]*exponents[i];
+              break;
+            }
+          }
+        }
+        constant = constant * number(fact[1][1])^exponents[i];
+      }
+      f = f/constant;
+
+      int m = size(q);
+      printf("f: %s%nq: %s%ne: %s",f,q,e);
+      if(debug) {t1 = rtimer-t1; fprintf(l,"done! (%s ms)", t1);}
+      list input = list(q, list(list(poly(f),1..m,e)));
+    } else {
+      ERROR("wrong type for second argument, expected list(ideal, intvec) or list(poly, ideal)");
+    }}
+  } else {
+    ERROR("wrong type for second argument, expected poly or list");
+  }}
+
+  list input = list(q, list(list(poly(f),1..m,e)));
+  if (debug) {
+    return (input, t1);
+  } else {
+    return (input);
+  }
 }
 
-proc generic_dec_loop(string decomp, string mergetype, list terms, ideal q, list #)
+proc pfd_functional_unit(list terms, ideal q, intvec steps, list #)
+{
+  int counter, tt, ttt, t2, t3, t4, t5;
+  list dec;
+
+  if ((size(#) > 3) || (size(#) == 2)) {
+    ERROR("Expected 3, 4 or 6 arguments in pfd_functional_unit, got " +
+          string(size(#) + 3) + " instead");
+  }
+  int debug = 0;
+  link l = ":w";
+  link li = ":w";
+  int save_int_res = 0;
+  if (size(#) > 0) {
+    save_int_res = #[1];
+  }
+  if (size(#) == 3) {
+    debug = #[2];
+    l = #[3];
+  }
+
+  /*** Nullstellensatz decomposition *********************************/
+  if (steps[1]) {
+    if (debug) {t2 = rtimer; write(l, "Nullstellensatz decomposition");}
+    terms = generic_dec_loop("NSSdecompStep", "size", terms, q, debug, l);
+    if (debug) {t2 = rtimer - t2; fprintf(l, "(%s ms, %s terms)", t2, size(terms));}
+    if(save_int_res)
+    {
+      write("ssi:w " + string(save_int_res) + "_result_after_step_1.ssi",
+            list(q, terms));
+    }
+  } else {
+    if(debug) {write(l,"skipping nullstellensatz decomposition");}
+  }
+
+  /*** Short numerator decomposition *********************************/
+  if (steps[2]) {
+    if (debug) {t3 = rtimer; write(l, "short numerator decomposition");}
+    terms = generic_dec_loop("shortNumeratorDecompStep", "index", terms, q, debug, l);
+    if (debug) {t3 = rtimer - t3; fprintf(l, "(%s ms, %s terms)", t3, size(terms));}
+    if(save_int_res)
+    {
+      li = "ssi:w " + string(save_int_res) + "_result_after_step_2.ssi";
+      write(li, list(q, terms));
+    }
+  } else {
+    if(debug) {write(l,"skipping short numerator decomposition");}
+  }
+
+  /*** Algebraic dependence decomposition ****************************/
+  if (steps[3]) {
+    if (debug) {t4 = rtimer; write(l, "algebraic dependence decomposition");}
+    terms = generic_dec_loop("algDependDecompStep", "size", terms, q, debug, l);
+    if (debug) {t4 = rtimer - t4; fprintf(l, "(%s ms, %s terms)", t4, size(terms));}
+    if(save_int_res)
+    {
+      li = "ssi:w " + string(save_int_res) + "_result_after_step_3.ssi";
+      write(li, list(q, terms));
+    }
+  } else {
+    if(debug) {write(l,"skipping algebraic dependence decomposition");}
+  }
+
+  /*** Numerator decomposition ***************************************/
+  if (steps[4]) {
+    if (debug) {t5 = rtimer; write(l, "numerator decomposition");}
+    terms = generic_dec_loop("numeratorDecompStep", "index", terms, q, debug, l);
+    if (debug) {t5 = rtimer - t5; fprintf(l, "(%s ms, %s terms)", t5, size(terms));}
+    if(save_int_res)
+    {
+      li = "ssi:w " + string(save_int_res) + "_result_after_step_4.ssi";
+      write(li, list(q, terms));
+    }
+  } else {
+    if(debug) {write(l,"skipping numerator decomposition");}
+  }
+
+  dec = terms;
+
+  if (size(dec) == 1) {if(dec[1][1]==0){dec = list();}}
+  dec = list(q, dec);
+
+  if (voice <= printlevel) {displaypfd(dec)}
+
+  if (debug) {
+    return (dec, t2, t3, t4, t5);
+  } else {
+    return (dec);
+  }
+}
+
+proc generic_dec_loop( string decomp
+                     , string mergetype
+                     , list terms
+                     , ideal q
+                     , list #)
 {
   list dec,newterms,result;
   int imax;
   int i;
-  int counter,tt,ttt;
+  int tt,ttt;
   string command;
   list merged;
   int debug = 0;
+  link l = ":w";
+  int counter = 0;
 
-  if (size(#) > 0) {
+  if (size(#)> 0) {
     debug = #[1];
-    link l  = #[2];
+    l = #[2];
   }
 
-  while(size(terms)>0) {
-    if(debug) {tt = rtimer; counter++;}
-    imax = size(terms);
+  while (size(terms) > 0) {
+    if (debug) {tt = rtimer; counter++;}
     newterms = list();
 
-    for(i=1; i<=imax; i++) {
+    for (i = 1; i<= size(terms); i++) {
       command = "result = " + decomp + "(terms[i],q,#);";
       execute(command);
 
@@ -479,105 +1235,29 @@ proc generic_dec_loop(string decomp, string mergetype, list terms, ideal q, list
         {fprintf(l,"      merging: %s ms, %s new terms", rtimer-ttt, size(result));}
     }
     terms = newterms;
-    if(debug)
+    if (debug)
       {fprintf(l,"  %s: %s ms, %s terms, %s unfinished",
        counter, rtimer-tt, size(terms)+size(dec),size(terms));}
   }
 
-  return(dec);
-}
-
-proc generic_dec_nstep(string decomp,
-                       string mergetype,
-                       list terms,
-                       list in_dec,
-                       ideal q,
-                       int n,
-                       list #)
-{
-  list dec,newterms,result;
-  int term_count, loop_count, i;
-  int counter,tt,ttt;
-  string command;
-  list merged;
-  int debug = 0;
-
-  if (size(#) > 0) {
-    debug = #[1];
-    link l  = #[2];
-  }
-
-  for ( loop_count = 0; (size(terms)>0) and (loop_count < n); loop_count++) {
-    if(debug) {tt = rtimer; counter++;}
-    term_count = size(terms);
-    newterms = list();
-
-    for(i=1; i<=term_count; i++) {
-      command = "result = " + decomp + "(terms[i],q,#);";
-      execute(command);
-
-
-      if(debug) {ttt = rtimer;}
-
-      merged = general_merge_step(mergetype, newterms, dec, result);
-      dec = merged[1];
-      newterms = merged[2];
-
-      if(debug)
-        {fprintf(l,"      merging: %s ms, %s new terms", rtimer-ttt, size(result));}
-    }
-    terms = newterms;
-    if(debug)
-      {fprintf(l,"  %s: %s ms, %s terms, %s unfinished",
-       counter, rtimer-tt, size(terms)+size(dec),size(terms));}
-  }
-
-  return(list(terms, dec));
-
-}
-
-proc generic_dec_onestep(string decomp, string mergetype, list terms, list in_dec, ideal q, list #)
-{
-  return (generic_dec_nstep(decomp, mergetype, terms, in_dec, q, 1, #));
+  return (dec);
 }
 
 proc general_merge_step(string mergetype, list newterms, list dec, list result)
 {
   if (mergetype == "size") {
-    return (merge_by_size(newterms, dec, result));
+    if(size(result)>1) {newterms = mergepfd(newterms, result);}
+    else                    {dec = mergepfd(dec,      result);}
+
+    return (dec, newterms);
   }
   if (mergetype == "index") {
-    return (merge_by_index(newterms, dec, result));
+    newterms = mergepfd(newterms, result[1]);
+    dec = mergepfd(dec, result[2]);
+
+    return (dec, newterms);
   }
   return (list());
-}
-
-proc general_sort_step(string mergetype, list result)
-{
-  if (mergetype == "size") {
-    if (size(result) > 1) {return(list(), result)}
-    else {return (result, list())}
-  }
-  if (mergetype == "index") {
-    return (result[2], result[1]);
-  }
-  return (list());
-}
-
-proc merge_by_size(list newterms, list dec, list result)
-{
-  if(size(result)>1) {newterms = mergepfd(newterms, result);}
-  else                    {dec = mergepfd(dec,      result);}
-
-  return (dec, newterms);
-}
-
-proc merge_by_index(list newterms, list dec, list result)
-{
-  newterms = mergepfd(newterms, result[1]);
-  dec = mergepfd(dec, result[2]);
-
-  return (dec, newterms);
 }
 
 static proc NSSdecompStep(list l, ideal q, list #)
@@ -616,7 +1296,7 @@ static proc NSSdecompStep(list l, ideal q, list #)
   }
 }
 
-proc shortNumeratorDecompStep(list l, ideal q, list #)
+static proc shortNumeratorDecompStep(list l, ideal q, list #)
 {
   int debug=0;
   if(size(#)>0) {debug=#[1]; link ll=#[2];}
@@ -715,6 +1395,8 @@ static proc algDependDecompStep(list l, ideal q, list #)
       return(list(l)); // do nothing, return input
     }
   }
+  //printf("%nq=%s",q);
+  //printf("indices=%s",indices);
 
   def R = changeord(list(list("dp",m+d)),extendring(m, "y(", "dp", 1, changevar("x()",br)));
   setring(R);
@@ -732,6 +1414,7 @@ static proc algDependDecompStep(list l, ideal q, list #)
   poly g = annihilatingPolys[1];
 
   poly tail = g[size(g)];    // term of lowest dp-order (thus lowest degree)
+  //printf("tail: %s",tail);
   number tcoeff = leadcoef(tail);
   intvec texpon = leadexp(tail);
   texpon = texpon[(d+1)..(d+m)];
@@ -804,7 +1487,10 @@ static proc numeratorDecompStep(list l, ideal q, list #)
   vector v;
   for(int i=1; i<=m; i++) {v = v + gen(i)*a[i,1];}
   v = reduce(v, std(syz(q_denom)));
-
+  //printf("%nv=%s",v);
+  //printf("num=%s",f);
+  //printf("den=q[%s] ^ %s",indices,e);
+  //printf("remainder=%s",r);
   list fraction,dec,rest;
   if(r!=0)
     {rest[1] = list(r,indices,e);}
@@ -836,7 +1522,7 @@ static proc numeratorDecompStep(list l, ideal q, list #)
   return(list(dec,rest));
 }
 
-proc mergepfd(list dec1, list dec2)
+static proc mergepfd(list dec1, list dec2)
 {
   // Note: assumes dec1 is already sorted w.r.t. dp in the denominator exponents
   int n1=size(dec1);
@@ -852,7 +1538,7 @@ proc mergepfd(list dec1, list dec2)
     {
       dec1=list(entry);
       n1++;
-      i++; // Required with for loop continue in Singular because... reasons?
+      i++; // Required with for loop continue in Singular because REaSoNs?
       continue;
     }
 
@@ -929,6 +1615,7 @@ proc mergepfd_sorted(list dec1, list dec2)
 
   return(merged);
 }
+
 
 static proc is_dp_smaller(intvec indices1, intvec e1, intvec indices2, intvec e2)
 {
@@ -1088,7 +1775,7 @@ EXAMPLE:  example checkpfd; shows an example"
   }
   // the decomposition is now equal to sum_of_numerators/product(q[i]^e_max[i]) (i from 1 to imax)
 
-  // if nonlin is defined, then the denominator needs them as well
+  //if nonlin is defined, then the denominator needs them as well
   if (defined(nonlin)) {
     for (i = 1; i <= size(nonlin[1]); i++) {
       q = q + nonlin[1][i];
@@ -1241,6 +1928,7 @@ EXAMPLE:  example evaluatepfd; shows an example"
     val = val / nonlinval;
   }
 
+
   if(mode==1) {return(val);}
   else {return(val,0);}
 }
@@ -1275,34 +1963,40 @@ static proc evaluatepfd_single_term(list term, ideal q, ideal vars, ideal values
   return(number(substitute(term[1],vars,values))/denom);
 }
 
-static proc equality_for_lists(def a, def b)
+static proc elementwise_equality(def a, def b)
 {
-  if(typeof(a)=="list")
+  if(typeof(a)=="list" && typeof(b)=="list")
   {
-    if(typeof(b)=="list")
+    int n=size(a);
+    if(n!=size(b)) {return(0);}
+    for(int i=1;i<=n;i++)
     {
-      int n=size(a);
-      if(n!=size(b)) {return(0);}
-      for(int i=1;i<=n;i++)
-      {
-        if(not(equality_for_lists(a[i],b[i]))) {return(0);}
-      }
-      return(1);
+      if(not(elementwise_equality(a[i],b[i]))) {return(0);}
     }
-    else {return(0);}
+    return(1);
   }
-  else
+  if(typeof(a)=="ideal" && typeof(b)=="ideal")
   {
-    if(typeof(b)=="list") {return(0);}
-    else {return(a==b);}
+    int n=size(a);
+    if(n!=size(b)) {return(0);}
+    for(int i=1;i<=n;i++)
+    {
+      if(not(elementwise_equality(a[i],b[i]))) {return(0);}
+    }
+    return(1);
   }
+  if(typeof(a)=="list" && typeof(b)!="list") {return(0);}
+  if(typeof(a)!="list" && typeof(b)=="list") {return(0);}
+  if(typeof(a)=="ideal" && typeof(b)!="ideal") {return(0);}
+  if(typeof(a)!="ideal" && typeof(b)=="ideal") {return(0);}
+  return(a==b);
 }
 
 proc find_entry(def l, def entry)
 {
   int n=size(l);
   for(int i=1; i<=n; i++)
-    {if(equality_for_lists(entry,l[i])) {return(i);}}
+    {if(elementwise_equality(entry,l[i])) {return(i);}}
   return(0);
 }
 
@@ -1773,14 +2467,16 @@ static proc fixBrackets(string data)
   return(data);
 }
 
-static proc pfdWrap(poly f, def g, int i, int j, link logfile, int output_mode)
+static proc pfdWrap(poly f, def g, int i, int j, link logfile, int output_mode, int decomp_mode)
 {
   system("--ticks-per-sec",1000);
   if(output_mode>3)
     {write("ssi:w pfd_results_"+string(i)+"_"+string(j)
            +".ssi","task started, but not finished yet");}
   int t0 = rtimer;
-  list result = pfd(f,g);
+  if(decomp_mode==1) {list result = pfd(f,g);}
+  else{if(decomp_mode==2) {list result = pfd2(f,g);}
+  else {ERROR("wrong decomposition mode");}}
   fprintf(logfile,"_[%s,%s]: %s ms",i,j,rtimer-t0);
   if(output_mode>3)
     {write("ssi:w pfd_results_"+string(i)+"_"+string(j)+".ssi",result);}
@@ -1798,8 +2494,8 @@ static proc testEntry(int i, int j, list fraction, list dec, link logfile, int N
 }
 
 proc pfdMat(def infile, list #)
-"USAGE:   pfdMat(file[, dotest, ignore_nonlin, output_mode, parallelize]);
-          file string, dotest,ignore_nonlin,output_mode,parallelize int
+"USAGE:   pfdMat(file[, dotest, ignore_nonlin, output_mode, parallelize, decomp_mode]);
+          file string, dotest,ignore_nonlin,output_mode,parallelize,decomp_mode int
 PURPOSE:  apply @code{pfd} to all entries of a matrix of rational functions
           saved in a txt-file. The string @code{file} should be the
           [directory +] name of the file.
@@ -1814,7 +2510,7 @@ PURPOSE:  apply @code{pfd} to all entries of a matrix of rational functions
        @* Also a logfile is created, which protocols the memory used and the
           runtimes of @code{pfd} for each matrix entry in real-time.
 
-       @* There are also 4 optional arguments:
+       @* There are also 5 optional arguments:
        @* If @code{dotest} is nonzero, test the results with checkpfd:
        @* @code{dotest<0} (default): exact test (may be slow),
        @* @code{dotest>0}: do this amount of probabilistic tests for each entry
@@ -1876,16 +2572,24 @@ PURPOSE:  apply @code{pfd} to all entries of a matrix of rational functions
           not terminate in time for every matrix entry. Other than the files
           created in mode 1-3, these files are saved in the current directory,
           rather than the directory of the input file.
-SEE ALSO: readInputTXT, pfd, checkpfd, checkpfdMat
+
+       @* Lastly @code{decomp_mode} determines, which algorithm is used for the
+          decomposition:
+          @code{decomp_mode=1} (default): @ref{pfd} (improved Leinartas Algorithm from
+            'IBP reduction coefficients made simple')
+          @code{decomp_mode=2}: @ref{pfd2} (algorithm from 'MultivariateApart:
+            Generalized Partial Fractions')
+SEE ALSO: readInputTXT, pfd, pfd2, checkpfd, checkpfdMat
 "
 {
   system("--ticks-per-sec",1000);
   short = 0;
-  int dotest,ignore_nonlin,output_mode,parallelize = -1,1,1,1;
+  int dotest,ignore_nonlin,output_mode,parallelize,decomp_mode = -1,1,1,1,1;
   if(size(#)>0) {dotest = #[1];}
   if(size(#)>1) {ignore_nonlin = #[2];}
   if(size(#)>2) {output_mode = #[3];}
   if(size(#)>3) {parallelize = #[4];}
+  if(size(#)>4) {decomp_mode = #[5];}
 
   int i,j,k,l,ind;
   list arguments,results;
@@ -1969,7 +2673,7 @@ SEE ALSO: readInputTXT, pfd, checkpfd, checkpfdMat
       for(j=1; j<=m; j++)
       {
         ind = m*(i-1)+j;
-        arguments[ind] = list(mat[i][j][1],mat[i][j][2],i,j,logfile,output_mode);
+        arguments[ind] = list(mat[i][j][1],mat[i][j][2],i,j,logfile,output_mode,decomp_mode);
       }
     }
     dbprint(sprintf("done! (%s ms)",rtimer-t0));
@@ -2008,7 +2712,7 @@ SEE ALSO: readInputTXT, pfd, checkpfd, checkpfdMat
       dec_mat[i] = list();
       for(j=1; j<=m; j++)
       {
-        dec_mat[i][j] = pfdWrap(mat[i][j][1],mat[i][j][2],i,j,logfile,output_mode);
+        dec_mat[i][j] = pfdWrap(mat[i][j][1],mat[i][j][2],i,j,logfile,output_mode,decomp_mode);
       }
     }
     dbprint(sprintf("done! (%s ms)",rtimer-t0));
@@ -2822,7 +3526,7 @@ static proc readQfileTXT(string filename__)
   return(q__);
 }
 
-// Test ////////////////////////////////////////////////////////////////////////
+// pfd working on single entries given as txt-file /////////////////////////////
 
 proc file_exists(string file)
 {
@@ -2831,11 +3535,11 @@ proc file_exists(string file)
 
 
 proc pfdSingleEntry(string filename, list #)
-"USAGE:   pfdSingleEntry(filename[,from_dir,to_dir,ignore_nonlin]), filename,from_dir,to_dir string,  ignore_nonlin int
-PURPOSE:  apply @code{pfd} to the rational function saved in @code{file}.
+"USAGE:   pfdSingleEntry(filename[,from_dir,to_dir,ignore_nonlin,parallelize,debug]), filename,from_dir,to_dir string,  ignore_nonlin int
+PURPOSE:  apply @code{pfd} to the rational function saved in a txt-file.
           @code{filename} is the name (no file ending) of a txt-file containing
           the rational function as a string.
-          @code{from_dir} and @{to_dir} are the directories (relative to current
+          @code{from_dir} and @code{to_dir} are the directories (relative to current
           directory) of the input and output files respectively (default:
           current directory).
        @* First, in @code{from_dir} an ssi-file of the same name is created
@@ -2860,7 +3564,12 @@ PURPOSE:  apply @code{pfd} to the rational function saved in @code{file}.
             nonlinear denominator factors (in factorized form) and the output of
             @ref{pfd} (without nonlinear denominator factors) if
             @code{ignore_nonlin} is true.
-SEE ALSO: pfdMat, pfdSingleEntrySSI
+
+       @* If @code{parallelize} is nonzero (default: 0), @code{pfdParallel} will
+          be used instead of @code{pfd}.
+       @* If @code{debug} is nonzero (default: 0), a logfile will be created as
+          in @ref{pfd}.
+SEE ALSO: pfd, pfdParallel, pfdMat, pfdSingleEntrySSI
 "
 {
   system("--ticks-per-sec",1000);
@@ -2871,100 +3580,134 @@ SEE ALSO: pfdMat, pfdSingleEntrySSI
   string to_dir = args[2];
   string pfd_implementation = args[3];
   int ignore_nonlin = args[4];
+  intvec steps = args[5];
+  int save_int_res = args[6];
+  int parallelize = args[7];
 
-  int i = find(filename,".");
+
+
+  int i,j,k;
+  list fraction;
+  i = find(filename,".");
   if(i>0) {filename = filename[1,i-1];} // remove file ending if given
 
-  if (file_exists(to_dir + "resources_" + filename + ".txt")) { return(); }
+  if(file_exists(to_dir+"result_"+filename+".ssi")) {return();}
 
-  prepareSingleEntryFraction(filename,
-                             from_dir,
-                             //to_dir,
-                             ignore_nonlin);
+  prepareSingleEntryFraction( filename
+                            , from_dir
+                            , ignore_nonlin);
 
-
-  list fraction = read("ssi:r " + from_dir + filename + ".ssi");
+  fraction = read("ssi:r "+from_dir+filename+".ssi");
   list nonlin = prepareNonLin(fraction, ignore_nonlin);
   fraction = nonlin[1];
   nonlin = nonlin[2];
 
   int t = rtimer;
-  if (pfd_implementation == "pfd1") {
-                                      //terms         q
-    list result = pfd_functional_unit(fraction[2], fraction[1]);
-  } else {
-    ERROR(pfd_implementation + " not implemented.");
+  int debug = 0;
+
+  list result;
+  if(parallelize)
+    {result = pfdParallel(fraction);}
+  else {
+    if (pfd_implementation == "pfd1") {
+      //result = pfd(fraction);
+//pfd(list(q,terms)[,debug,steps,save_int_res])
+      result = pfd(fraction, save_int_res, steps, save_int_res);
+      /*
+      result = pfd_functional_unit( fraction[2]
+                                  , fraction[1]
+                                  , steps
+                                  , save_int_res
+                                  , 0
+                                  , ":w /u/h/heymann/log.txt");
+      */
+    } else{if (pfd_implementation == "pfd2") {
+      ERROR(pfd_implementation + " not yet implemented");
+    } else {
+      ERROR(pfd_implementation + " not implemented");
+    }}
   }
+
   t = rtimer-t;
-  write(":a "+to_dir+"resources_"+filename+".txt",
-        sprintf( "Time: %s ms,  Memory: %s Bytes with implementation %s"
-               , t
-               , memory(2)
-               , pfd_implementation));
 
   if(ignore_nonlin) {
     result[3] = nonlin;
   }
+  write("ssi:w "+to_dir+"result_"+filename+".ssi", result);
 
-  // output as Singular objects
-  write("ssi:w "+to_dir+"result_"+filename+".ssi",result);
+  write_pfd_as_txt(result, to_dir, filename, nonlin);
 
-  if (ignore_nonlin) {
-    write_pfd_as_txt(result, to_dir, filename, nonlin);
-  } else {
-    write_pfd_as_txt(result, to_dir, filename, list(list(),list()));
-  }
-
+  write( ":a "+to_dir+"resources_"+filename+".txt"
+       , sprintf( "Time: %s ms,  Memory: %s Bytes with implementation %s"
+                , t
+                , memory(2)
+                , pfd_implementation)
+       );
 }
 
 proc parsePfdSingleEntryArgs(list #)
 {
-  string from_dir, to_dir, pfd_implementation;
-  int ignore_nonlin;
-  // Set up to and from directories
+  // defaults:
+  string from_dir = "";
+  string to_dir = "";
+  string pfd_implementation = "pfd1";
+  int ignore_nonlin = 1;
+  intvec steps = 1,1,1,1;
+  int save_int_res = 1;
+  int parallelize = 0;
+
+  // user defined
   if (size(#) > 0) {
-    from_dir = #[1]; // read file from this
-    if (from_dir[size(from_dir)] != "/") {
+    from_dir = #[1];
+    if (from_dir[size(from_dir)] != "/" && size(from_dir)>0) {
       from_dir = from_dir + "/";
     }
-  } else {
-    from_dir = "";
   }
 
   if(size(#)>1) {
     to_dir = #[2];
-    if (to_dir[size(to_dir)] != "/") {
+    if (to_dir[size(to_dir)] != "/" && size(to_dir) > 0) {
       to_dir = to_dir + "/";
     }
-  } else {
-    to_dir = "";  // Default
   }
 
   if (size(#)>2) {
     pfd_implementation = #[3];
     if ((pfd_implementation != "pfd1") &&
-        (pfd_implementation != "pfd2") &&
-        (pfd_implementation != "both")) {
-      ERROR("pfd_implementation should be 'pfd1' or 'pfd2' or 'both'");
+        (pfd_implementation != "pfd2")) {
+      ERROR("pfd_implementation should be 'pfd1' or 'pfd2'");
     }
-  } else {
-    pfd_implementation = "pfd1"; // Default
   }
 
   if (size(#)>3) {
     ignore_nonlin = #[4];
-  } else {
-    ignore_nonlin = 1; // Default
   }
 
-  return (list(from_dir, to_dir, pfd_implementation, ignore_nonlin));
+  if (size(#)>4) {
+    steps = #[5];
+  }
 
+  if (size(#)>5) {
+    save_int_res = #[6];
+  }
+
+  if (size(#)>6) {
+    parallelize = #[7];
+  }
+
+  return ( list( from_dir
+               , to_dir
+               , pfd_implementation
+               , ignore_nonlin
+               , steps
+               , save_int_res
+               , parallelize
+               )
+         );
 }
 
 proc write_pfd_as_txt(list result, string to_dir, string filename, list nonlin)
 {
-
-  //output as txt:
   int i,j,k;
   string dec;
   string nonlin_fact;
@@ -2977,7 +3720,8 @@ proc write_pfd_as_txt(list result, string to_dir, string filename, list nonlin)
     for(i=1; i<=k; i++)
     {
       if(nonlin[2][i]>1)
-        {nonlin_fact = nonlin_fact + "(" + string(nonlin[1][i]) + ")^" + string(nonlin[2][i]) + "*";}
+        {nonlin_fact = nonlin_fact + "(" + string(nonlin[1][i]) + ")^" + string(nonlin[2][i]) + "*";
+}
       else
         {nonlin_fact = nonlin_fact + "(" + string(nonlin[1][i]) + ")*";}
     }
@@ -2989,7 +3733,7 @@ proc write_pfd_as_txt(list result, string to_dir, string filename, list nonlin)
   dec = getStringpfd_indexed(result);
   ideal q = result[1];
   int nq = size(q);
-  for(i=1; i<=k; i++)
+    for(i=1; i<=k; i++)
   {
     q[nq+i] = nonlin[1][i];
   }
@@ -3015,24 +3759,21 @@ proc write_pfd_as_txt(list result, string to_dir, string filename, list nonlin)
   fprintf(":w "+to_dir+"result_denominator_factors_"+filename+".txt", denom_fact,0);
 }
 
-proc prepareNonLin(list formatted_fraction, int ignore_nonlin)
+proc prepareNonLin(list formatted_fraction, ignore_nonlin)
 {
-
   if (size(formatted_fraction) == 3) {
-    // in this case, we assume the nonlinear factors have already been correctly
+    // in this case, we assume the nonlinear factors have already been correctly 
     // removed
     return (list(delete(formatted_fraction, 3), formatted_fraction[3]));
   }
 
   list nonlin = list(list(),list());
-  if(ignore_nonlin)
-  {
+  if(ignore_nonlin) {
     int i, j, k, l, lcm;
     i = 1;
     for(k=1; k<=size(formatted_fraction[1]); k++) // over factors
     {
       if(deg(formatted_fraction[1][k])>1) { // identify nonlinear
-
         // find greatest power of factor.
         lcm = 0;
         for (j = 1; j <= size(formatted_fraction[2]); j++) { // over summands
@@ -3044,9 +3785,8 @@ proc prepareNonLin(list formatted_fraction, int ignore_nonlin)
           }
         }
 
-        // multiply each summand with factor^lcm and delete the denominator part
+        // multiply each summand with factor^lcm and delete the denominator part 
         for (j = 1; j <= size(formatted_fraction[2]); j++) { // over summands
-
           // multiply with power lcm
           formatted_fraction[2][j][1] = formatted_fraction[2][j][1] *
                                               (formatted_fraction[1][k]^lcm);
@@ -3082,22 +3822,19 @@ proc prepareNonLin(list formatted_fraction, int ignore_nonlin)
     }
   }
   return (list(formatted_fraction, nonlin));
-
 }
 
-proc prepareSingleEntryFraction(string filename,
-                                string from_dir,
-                                //string to_dir,
-                                int ignore_nonlin)
+proc prepareSingleEntryFraction( string filename
+                               , string from_dir
+                               , int ignore_nonlin
+                               )
 {
   list fraction;
   int i, j, k;
   if (file_exists(from_dir + filename + ".ssi"))
   {
     list formatted_fraction = read("ssi:r " + from_dir + filename + ".ssi");
-  }
-  else
-  {
+  } else {
     string s = read(":r " + from_dir + filename + ".txt");
     if (!defined(basering)) {
       ERROR("Please set a basering, that matches the variable names used in "
@@ -3134,20 +3871,12 @@ proc prepareSingleEntryFraction(string filename,
   list lcontents;
   number constant;
 
-  //for (k=1; k<=size(fact[1]); k++) {
   for (k=1; k<=size(formatted_fraction[1]); k++) {
-      //lcoeff = leadcoef(fact[1][k]);
     lcoeffs[k] = leadcoef(formatted_fraction[1][k]);
-      //fact[1][k] = fact[1][k] / lcoeff;
     formatted_fraction[1][k] = formatted_fraction[1][k] / lcoeffs[k];
-      //constant = constant * (lcoeff^fact[2][k]); // polynomial is monic (thus unique)
-      //lcoeff = content(fact[1][k]);
     lcontents[k] = content(formatted_fraction[1][k]);
-      //fact[1][k] = fact[1][k]/lcoeff;
     formatted_fraction[1][k] = formatted_fraction[1][k] / lcontents[k];
-      //constant = constant * (lcoeff^fact[2][k]); // polynomial has nice coefficients
 
-    // apply to the various numerators
     for (i = 1; i <= size(formatted_fraction[2]); i++) {
       for (j = 1; j <= size(formatted_fraction[2][i][2]); j++) {
         // 2 -> summands; i -> summand; 2 -> ix in ideal; j -> factor id
@@ -3161,20 +3890,8 @@ proc prepareSingleEntryFraction(string filename,
       }
     }
   }
-  //}
-
-    //fraction[1] = fraction[1] * (1/constant);
-    //fraction[2] = fact;
-
-    //write("ssi:w "+from_dir+filename+".ssi", fraction);
   write("ssi:w "+from_dir+filename+".ssi", formatted_fraction);
-
-  //link l = "ssi:w "+to_dir+ "prepared_" + filename+".ssi";
-  //write(l, fraction);
-  //write(l, nonlin);
-  //close(l);
 }
-
 
 proc pfdSingleEntrySSI(string filename, list #)
 "USAGE:   pfdSingleEntrySSI(filename[,from_dir,to_dir]), filename,from_dir,to_dir string
@@ -3193,13 +3910,13 @@ SEE ALSO: pfdMat, pfdSingleEntry
   if(size(#)>0)
   {
     string from_dir = #[1]; // read file from this
-    if(from_dir[size(from_dir)]!="/") {from_dir = from_dir + "/";}
+    if(from_dir[size(from_dir)]!="/" && size(from_dir)>0) {from_dir = from_dir + "/";}
   }
   else {string from_dir = "";}
   if(size(#)>1)
   {
     string to_dir = #[2];
-    if(to_dir[size(to_dir)]!="/") {to_dir = to_dir + "/";}
+    if(to_dir[size(to_dir)]!="/" && size(to_dir)>0) {to_dir = to_dir + "/";}
   }
   else {string to_dir = "";}
 
@@ -3208,7 +3925,7 @@ SEE ALSO: pfdMat, pfdSingleEntry
   i = find(filename,".");
   if(i>0) {filename = filename[1,i-1];} // remove file ending if given
 
-  if(!file_exists(from_dir+filename+".ssi"))
+  if(!file_exists(to_dir+filename+".ssi"))
   {
     string s = read(":r "+from_dir+filename+".txt");
     if(!defined(basering))
@@ -3248,19 +3965,1212 @@ SEE ALSO: pfdMat, pfdSingleEntry
 
     write("ssi:w "+to_dir+filename+".ssi", fraction);
   }
+}
 
-  list nonlin = list(list(),list());
-  i = 1;
-  for(k=1; k<=size(fraction[2][1]); k++) // move nonlinear factors into nonlin
+
+
+/*
+
+// pfd for massive parallel computing with GPI-Space ///////////////////////////
+
+proc initializeSSI(string filename, list #)
+"USAGE:   initializeSSI(filename[,from_dir,to_dir]), filename,from_dir,to_dir string
+PURPOSE:  Creates an input ssi-file containing the input rational function in the
+          format needed for decompStepGPI() inside the directory @code{to_dir}
+          (default: current directory). Also creates a ssi-file with a list of all
+          denominator factors and removes the nonlinear factors and saves them
+          into a separate file. The input is a
+          txt-file as in @ref{pfdSingleEntry} of the given name @{filename}
+          inside the directory @code{from_dir} (default: current directory).
+          The current basering has to match the variable names used in the input
+          file.
+SEE ALSO:
+"
+{
+  system("--ticks-per-sec",1000);
+  short = 0;
+  if(size(#)>0)
   {
-    if(deg(fraction[2][1][k])>1)
+    string from_dir = #[1]; // read file from this
+    if(from_dir[size(from_dir)]!="/" && size(from_dir)>0) {from_dir = from_dir + "/";}
+  }
+  else {string from_dir = "";}
+  if(size(#)>1)
+  {
+    string to_dir = #[2];
+    if(to_dir[size(to_dir)]!="/" && size(to_dir)>0) {to_dir = to_dir + "/";}
+  }
+  else {string to_dir = "";}
+
+  int i,j,k;
+  list fraction;
+  i = find(filename,".");
+  if(i>0) {filename = filename[1,i-1];} // remove file ending if given
+
+  if(!file_exists(to_dir+filename+".ssi"))
+  {
+    string s = read(":r "+from_dir+filename+".txt");
+    if(!defined(basering))
+      {ERROR("Please set a basering, that matches the variable names used in "
+                                       + "the input file ("+filename+".txt).");}
+    string s1,s2;
+    j = find(s,"/(");
+    if(j==0) // no denominator
     {
-      nonlin[1][i] = fraction[2][1][k];
-      nonlin[2][i] = fraction[2][2][k];
-      fraction[2][1] = delete(fraction[2][1],k);
-      fraction[2][2] = delete(fraction[2][2],k);
-      i++;
+      fraction = list(string_to_poly(s), poly(1));
     }
+    else
+    {
+      s1 = s[1,j-1];
+      s2 = s[j+1,size(s)-j];
+      fraction = list(string_to_poly(s1), string_to_poly(s2));
+    }
+
+    list fact = factorize(fraction[2]);
+
+    number lcoeff;
+    number constant = number(fact[1][1])^fact[2][1];
+    fact[1] = delete(fact[1],1);
+    fact[2] = delete(fact[2],1);
+    for(k=1; k<=size(fact[1]); k++)
+    {
+      lcoeff = leadcoef(fact[1][k]);
+      fact[1][k] = fact[1][k]/lcoeff;
+      constant = constant*(lcoeff^fact[2][k]); // polynomial is monic (thus unique)
+      lcoeff = content(fact[1][k]);
+      fact[1][k] = fact[1][k]/lcoeff;
+      constant = constant*(lcoeff^fact[2][k]); // polynomial has nice coefficients
+    }
+
+    fraction[1] = fraction[1] * (1/constant);
+    fraction[2] = fact[1];
+    fraction[3] = fact[2];
+    fraction[4] = 0;  // fourth entry determines in which phase of the algorithm the term is (0: NSSdecompStep, 1: shortNumeratorDecompStep, ..., 4: finished)
+
+    list nonlin = list(ideal(),intvec(0:0));
+    i = 1;
+    for(k=1; k<=size(fraction[2]); k++) // move nonlinear factors into nonlin
+    {
+      if(deg(fraction[2][k])>1)
+      {
+        nonlin[1][i] = fraction[2][k];
+        nonlin[2][i] = fraction[3][k];
+        fraction[2] = delete(fraction[2],k);
+        fraction[3] = delete(fraction[3],k);
+        i++;
+      }
+    }
+
+    int l1 = size(fraction[2]);
+    int l2 = size(nonlin[1])
+    ideal q = fraction[2] + nonlin[1]; // ideal of all denominator factors
+    if(l1==0) {fraction[2] = intvec(0:0);}
+    else {fraction[2] = intvec(1..l1);}
+    if(l2==0) {nonlin[1] = intvec(0:0);}
+    else {nonlin[1] = intvec((l1+1)..(l1+l2));}
+
+    write("ssi:w "+to_dir+filename+"_denominator_factors.ssi", q); // all denominator factors
+    write("ssi:w "+to_dir+filename+"_non_linear_factors.ssi", nonlin); // (indices of) non-linear enominator factors
+    write("ssi:w "+to_dir+filename+".ssi", fraction); // rational function in the format needed for decompStepGPI()
   }
 }
 
+proc decompStepGPI(string term_file, string denom_fact_file)
+{
+  list term = read("ssi:r "+term_file);
+  ideal q = read("ssi:r "+denom_fact_file);
+  int i,j;
+  list result, dec1, dec2;
+  phase = term[4];   // fourth entry etermines in which phase of the algorithm this term is:
+  if(phase==0)
+  {
+    result = NSSdecompStep(term, q);
+    if(size(result)>1)
+      {dec1=result;}
+    else
+      {dec2=result;}
+  }
+  else{if(phase==1)
+  {
+    result = shortNumeratorDecompStep(term, q);
+    dec1 = result[1];
+    dec2 = result[2];
+  }
+  else{if(phase==2)
+  {
+    result = algDependDecompStep(term, q);
+    if(size(result)>1)
+      {dec1=result;}
+    else
+      {dec2=result;}
+  }
+  else{if(phase==3)
+  {
+    result = numeratorDecompStep(term, q);
+    dec1 = result[1];
+    dec2 = result[2];
+  }
+  else
+  {
+    return; // term already finished ==> do nothing
+  }}}}
+
+  // now dec2 contains the (0 or 1) terms that finished the current decomposition step
+  // and dec1 contains the rest of the decomposition (possibly empty)
+
+  for(i=1; i<=size(dec1); i++)
+  {
+    dec1[i][4] = phase
+    write("ssi:w "+ ???, dec1[i]) // how are new filenames selected?
+  }
+
+  for(i=1; i<=size(dec2); i++)
+  {
+    dec2[i][4] = phase + 1
+    write("ssi:w "+ ???, dec2[i]) // how are new filenames selected?
+  }
+  // Note: Also, the input file ("term_file") must be deleted/overwritten.
+}
+
+proc mergeTermsGPI(string l1_file, string l2_file)
+{
+  list l1 = read("ssi:r " + l_file)
+  list l2 = read("ssi:r " + l_file)
+  if(elementwise_equality(l1[2],l2[2]) && elementwise_equality(l1[3],l2[3])) // terms have same denominator
+  {
+    l1[1] = l1[1] + l2[1]; // add numerators
+    l1[4] = max(l1[4],l2[4]);
+    write("ssi:w " + l1_file, l1); // save merged term in l1_file
+    //delete the file "l2_file"    // delete the other term
+  }
+}
+
+proc createOutputFilesGPI(list input_filenames, string denom_fact_file, string nonlin_fact_file, list #)
+"USAGE:   createOutputFilesGPI(input_filenames, denom_fact_file, nonlin_fact_file[,from_dir,to_dir,output_filename]), input_filenames list, denom_fact_file,nonlin_fact_file,from_dir,to_dir,output_filename string
+PURPOSE:  collects the terms of the decomposition in a single file.
+          input_filenames is a list of names of ssi-files containing one term each.
+          denom_fact_file and nonlin_fact_file are the (directory and) filename
+          of the files created by initializeSSI, that contain a list of all
+          denominator factors and the nonlinear denominator factors respectively.
+          @code{from_dir} and @code{to_dir} are the directories (relative to current
+          directory) of the input and output files respectively (default:
+          current directory).
+
+       @* The result will be safed as 4 txt- and ssi-files:
+       @* - the result in indexed and non-indexed form (two .txt-files)
+       @* - a list of denominator factors appearing in that rational function (.txt-file)
+       @* - the result as .ssi-file containng the direct output of @ref{pfd}
+            if @code{ignore_nonlin} is false or a two-element list of the
+            nonlinear denominator factors (in factorized form) and the output of
+            @ref{pfd} (without nonlinear denominator factors) if
+            @code{ignore_nonlin} is true.
+SEE ALSO: pfd, pfdParallel, pfdMat, pfdSingleEntrySSI
+"
+{
+  system("--ticks-per-sec",1000);
+  short = 0;
+  int i,j,k;
+  if(size(#)>0)
+  {
+    string from_dir = #[1]; // read file from this
+    if(from_dir[size(from_dir)]!="/" && size(from_dir)>0) {from_dir = from_dir + "/";}
+  }
+  else {string from_dir = "";}
+  if(size(#)>1)
+  {
+    string to_dir = #[2];
+    if(to_dir[size(to_dir)]!="/" && size(to_dir)>0) {to_dir = to_dir + "/";}
+  }
+  else {string to_dir = "";}
+  if(size(#)>2)
+  {
+    string output_filename = #[3];
+    j = find(output_filename[i],".");
+    if(j>0) {output_filename[i] = output_filename[i][1,j-1];} // remove file ending if given
+  }
+  else {output_filename = "result";}
+
+  ideal q = read("ssi:r " + denom_fact_file);
+  list nonlin = read("ssi:r " + nonlin_fact_file);
+  list result;
+  list newterm;
+  int nterms = size(input_filenames);
+  for(i=1;i<=nterms;i++)
+  {
+    j = find(input_filenames[i],".");
+    if(j>0) {input_filenames[i] = input_filenames[i][1,j-1];} // remove file ending if given
+    newterm = read("ssi:r" + from_dir + input_filenames[i]+".ssi");
+    results = mergepfd(results, list(newterm));
+  }
+
+  // output as Singular object
+  write("ssi:w "+to_dir+output_filename+".ssi",result);
+
+  //output as txt:
+  string dec;
+  string nonlin_fact;
+  k = size(nonlin[1]);
+
+  dec = getStringpfd(list(q,result));
+  if(k>0)
+  {
+    nonlin_fact = "";
+    for(i=1; i<=k; i++)
+    {
+      if(nonlin[2][i]>1)
+        {nonlin_fact = nonlin_fact + "(" + string(q[nonlin[1][i]]) + ")^" + string(nonlin[2][i]) + "*";}
+      else
+        {nonlin_fact = nonlin_fact + "(" + string(q[nonlin[1][i]]) + ")*";}
+    }
+    nonlin_fact = nonlin_fact[1,size(nonlin_fact)-1];
+    dec = "1/(" + nonlin_fact + ") * (" + dec + ")";
+  }
+  write(":w "+to_dir+output_filename+".txt", dec);
+
+  //output as txt (indexed):
+  dec = getStringpfd_indexed(list(q,result));
+  if(k>0)
+  {
+    nonlin_fact = "";
+    for(i=1; i<=k; i++)
+    {
+      if(nonlin[2][i]>1)
+        {nonlin_fact = nonlin_fact + "q" + string(nonlin[1][i]) + "^" + string(nonlin[2][i]) + "*";}
+      else
+        {nonlin_fact = nonlin_fact + "q" + string(nonlin[1][i]) + "*";}
+    }
+    nonlin_fact = nonlin_fact[1,size(nonlin_fact)-1];
+    dec = "1/(" + nonlin_fact + ") * (" + dec + ")";
+  }
+  write(":w "+to_dir+output_filename+"_indexed.txt", dec);
+
+  // list of denominator factors
+  string denom_fact;
+  for(i=1; i<=size(q); i++)
+  {
+    denom_fact = denom_fact + "q" + string(i) + " = " + string(q[i]) + "%n";
+  }
+  fprintf(":w "+to_dir+output_filename+"_denominator_factors.txt", denom_fact,0);
+}
+
+
+// alternatively: use 4 different functions for the decomposition: /////////////
+
+static proc NSSdecompStepGPI(string l_file, string q_file)
+{
+  list l = read("ssi:r " + l_file)
+  ideal q = read("ssi:r " + q_file)
+  if(l[4] != 0)  // term has not reached this step yet or has already finished it ==> do nothing
+  {
+    write("ssi:w " + ..., l);
+    return;
+  }
+
+  poly f=l[1];
+  intvec indices=l[2];
+  intvec e=l[3];
+  int m = size(indices);
+
+  if(m==0) // denominator is 1
+  {
+    l[4] = 4;
+    write("ssi:w " + ..., l);
+    return;
+  }
+
+  ideal qe = q[indices];
+  for(int i=1; i<=m; i++)
+    {qe[i] = qe[i]^e[i];}
+  matrix T;
+  ideal qe_std = liftstd(qe,T);
+
+  if(deg(qe_std) == 0)
+  {
+    T = T/qe_std[1];
+      // now 1 = T[1,1]*qe[1] + ... + T[m,1]*qe[m] is a Nullstellensatz certificate
+    list dec;
+    poly h;
+    for(i=1; i<=m; i++)
+    {
+      h = T[i,1];
+      if(h != 0)
+        {dec[size(dec)+1] = list(f*h,delete(indices,i),delete(e,i));}
+    }
+    for(int i=1; i<=size(dec); i++)
+    {
+      dec[i][4]=0;
+      write("ssi:w " + ..., dec[i]);
+    }
+    return;
+  }
+  else
+  {
+    l[4] = 1;
+    write("ssi:w " + ..., l);
+    return;
+  }
+}
+
+static proc shortNumeratorDecompStepGPI(string l_file, string q_file, list #)
+{
+  list l = read("ssi:r " + l_file)
+  ideal q = read("ssi:r " + q_file)
+  if(l[4] != 1)  // term has not reached this step yet or has already finished it ==> do nothing
+  {
+    write("ssi:w " + ..., l);
+    return;
+  }
+
+  int debug=0;
+  if(size(#)>0) {debug=#[1]; link ll=#[2];}
+  if(debug) {system("--ticks-per-sec",1000); int tt=rtimer;}
+
+  poly f=l[1];
+  intvec indices=l[2];
+  intvec e=l[3];
+  int m = size(indices);
+
+  if(m==0) // denominator is 1
+  {
+    if(debug)
+      {fprintf(ll,"      shortNumeratorDecompStep: %s ms (m=%s, e=%s) "
+                    +"--> constant denominator", rtimer-tt, m, e);}
+    l[4] = 4;
+    write("ssi:w " + ..., l);
+    return;
+  }
+
+  ideal q_denom = q[indices]; // factors occuring in the denominator
+  matrix T;
+  ideal q_std = liftstd(q_denom,T);
+  list divrem = division(f,q_std);
+  poly r = divrem[2][1]/divrem[3][1,1];
+
+  if(r!=0)
+  {
+    if(debug)
+      {fprintf(ll,"      shortNumeratorDecompStep: %s ms (m=%s, e=%s) "
+                  +"--> remainder is nonzero", rtimer-tt, m, e);}
+    l[4] = 2
+    write("ssi:w " + ..., l);
+    return;              // if there is a rest, decomposing further would
+  }                      // not help in the next step (alg. depend. decomposition)
+
+  matrix a = divrem[1]/divrem[3][1,1]; // now f = r + a[1,1]*q_std[1] + ... +a[m,1]*q_std[m]
+  a = T*a;   // lift coefficients   ==>   now f = r + a[1,1]*q[1]     + ... +a[m,1]*q[m]
+
+  // reduce w.r.t. groebner basis of syz(q) to make the numerators "smaller":
+  vector v;
+  for(int i=1; i<=m; i++) {v = v + gen(i)*a[i,1];}
+  v = reduce(v, std(syz(q_denom)));
+
+  list fraction,dec;
+  for(i=1; i<=m; i++)
+  {
+    if(v[i] == 0)
+    {
+      i++;
+      continue;
+    }
+    fraction[1] = v[i];
+    if(e[i]==1)
+      {
+        fraction[2] = delete(indices,i);
+        fraction[3] = delete(e,i);
+      }
+    else
+    {
+      fraction[2] = indices;
+      fraction[3] = e;
+      fraction[3][i] = fraction[3][i] - 1;
+    }
+    dec[size(dec)+1] = fraction;
+  }
+
+  if(debug)
+    {fprintf(ll,"      shortNumeratorDecompStep: %s ms (m=%s, e=%s, deg(v)=%s, size(v)=%s)",
+     rtimer-tt, m, e, deg(v), size(v));}
+
+  for(i=1; i<=size(dec); i++)
+  {
+   dec[i][4]=1;
+   write("ssi:w " + ..., dec[i]);
+  }
+}
+
+static proc algDependDecompStepGPI(string l_file, string q_file, list #)
+{
+  list l = read("ssi:r " + l_file)
+  ideal q = read("ssi:r " + q_file)
+  if(l[4] != 2)  // term has not reached this step yet or has already finished it ==> do nothing
+  {
+    write("ssi:w " + ..., l);
+    return;
+  }
+
+  int debug=0;
+  if(size(#)>0) {debug=#[1]; link ll=#[2];}
+  if(debug) {system("--ticks-per-sec",1000); int tt=rtimer;}
+  def br = basering;
+  int d = nvars(br);
+  intvec indices=l[2];
+  int m = size(indices);
+  intvec e=l[3];
+  int i;
+
+  if(m==0) // denominator is 1
+  {
+    if(debug)
+      {fprintf(ll,"      algDependDecompStep: %s ms (m=%s, e=%s)", rtimer-tt, m, e);}
+    l[4] = 4;
+    write("ssi:w " + ..., l);
+    return; // do nothing, return input
+  }
+
+  if(m<=d)
+  {
+    if(size(syz(module(transpose(jacob(ideal(q[indices]))))))==0) // jacobian criterion
+    {
+      if(debug)
+        {fprintf(ll,"      algDependDecompStep: %s ms (m=%s, e=%s) "
+                    +"--> alg. indep.", rtimer-tt, m, e);}
+      l[4] = 3;
+      write("ssi:w " + ..., l);
+      return; // do nothing, return input
+    }
+  }
+  //printf("%nq=%s",q);
+  //printf("indices=%s",indices);
+
+  def R = changeord(list(list("dp",m+d)),extendring(m, "y(", "dp", 1, changevar("x()",br)));
+  setring(R);
+
+  list l = fetch(br,l);
+  ideal q = fetch(br,q);
+  poly f=l[1];
+
+  ideal I;
+  for(i=1; i<=m; i++)
+    {I[i] = y(i)-q[indices[i]];}
+
+  ideal annihilatingPolys = eliminate(I,intvec(1..d));
+
+  poly g = annihilatingPolys[1];
+
+  poly tail = g[size(g)];    // term of lowest dp-order (thus lowest degree)
+  //printf("tail: %s",tail);
+  number tcoeff = leadcoef(tail);
+  intvec texpon = leadexp(tail);
+  texpon = texpon[(d+1)..(d+m)];
+  g = g-tail;
+  poly term;
+  number coeff;
+  intvec expon;
+  list fraction,dec;
+  int pow;
+  int jmax = size(g);
+  for(int j=1; j<=jmax; j++)
+  {
+    term = g[j];
+    coeff = leadcoef(term);
+    expon = leadexp(term);
+    expon = expon[(d+1)..(d+m)];
+    fraction[1] = -f*coeff/tcoeff;
+    fraction[2] = intvec(0:0);
+    fraction[3] = intvec(0:0);
+    for(i=1; i<=m; i++)
+    {
+      pow = expon[i]-texpon[i]-e[i];
+      if(pow>=0)
+      {
+        fraction[1] = fraction[1]*q[indices[i]]^pow;
+      }
+      else
+      {
+        fraction[2][size(fraction[2])+1] = indices[i];
+        fraction[3][size(fraction[3])+1] = -pow;
+      }
+    }
+    dec[size(dec)+1] = fraction;
+  }
+  setring(br);
+  list dec = fetch(R,dec);
+  if(debug)
+    {fprintf(ll,"      algDependDecompStep: %s ms (m=%s, e=%s)", rtimer-tt, m, e);}
+
+  for(i=1; i<=size(dec); i++)
+  {
+   dec[i][4]=2;
+   write("ssi:w " + ..., dec[i]);
+  }
+}
+
+static proc numeratorDecompStepGPI(string l_file, string q_file, list #)
+{
+  list l = read("ssi:r " + l_file)
+  ideal q = read("ssi:r " + q_file)
+  if(l[4] != 3)  // term has not reached this step yet or has already finished it ==> do nothing
+  {
+    write("ssi:w " + ..., l);
+    return;
+  }
+
+  int debug=0;
+  if(size(#)>0) {debug=#[1]; link ll=#[2];}
+  if(debug) {system("--ticks-per-sec",1000); int tt=rtimer;}
+
+  poly f=l[1];
+  intvec indices=l[2];
+  intvec e=l[3];
+  int m = size(indices);
+
+  if(m==0) // denominator is 1
+  {
+    if(debug)
+      {fprintf(ll,"      numeratorDecompStep: %s ms (m=%s, e=%s) "
+                  +"--> constant denominator", rtimer-tt, m, e);}
+    l[4] = 4;
+    write("ssi:w " + ..., l);
+    return; // do nothing, return input
+  }
+
+  ideal q_denom = q[indices]; // factors in the denominator
+  matrix T;
+  ideal q_std = liftstd(q_denom,T);
+  list divrem = division(f,q_std);
+  matrix a = divrem[1]/divrem[3][1,1];
+  poly r = divrem[2][1]/divrem[3][1,1]; // now f = r + a[1,1]*q_std[1] + ... +a[m,1]*q_std[m]
+  a = T*a;   // lift coefficients    ==>   now f = r + a[1,1]*q[1]     + ... +a[m,1]*q[m]
+
+  // reduce w.r.t. groebner basis of syz(q) to make the numerators "smaller"
+  vector v;
+  int i;
+  for(i=1; i<=m; i++) {v = v + gen(i)*a[i,1];}
+  v = reduce(v, std(syz(q_denom)));
+  //printf("%nv=%s",v);
+  //printf("num=%s",f);
+  //printf("den=q[%s] ^ %s",indices,e);
+  //printf("remainder=%s",r);
+  list fraction,dec,rest;
+  if(r!=0)
+    {
+      write("ssi:w " + ..., list(r,indices,e,4));
+    }
+  for(i=1; i<=m; i++)
+  {
+    if(v[i] == 0)
+    {
+      i++;
+      continue;
+    }
+    fraction[1] = v[i];
+    if(e[i]==1)
+      {
+        fraction[2] = delete(indices,i);
+        fraction[3] = delete(e,i);
+      }
+    else
+    {
+      fraction[2] = indices;
+      fraction[3] = e;
+      fraction[3][i] = fraction[3][i] - 1;
+    }
+    dec[size(dec)+1] = fraction;
+  }
+
+  if(debug)
+    {fprintf(ll,"      numeratorDecompStep: %s ms (m=%s, e=%s, deg(v)=%s, size(v)=%s)",
+     rtimer-tt, m, e, deg(v), size(v));}
+
+  for(i=1; i<=size(dec); i++)
+  {
+   dec[i][4]=3;
+   write("ssi:w " + ..., dec[i]);
+  }
+}
+
+*/
+
+////////////////////////////////////////////////////////////////////////////////
+//                                                                            //
+//     ALTERNATIVE DECOMPOSITION ALGORITHM                                    //
+//     from "MultivariateApart: Generalized Partial Fractions"                //
+//     by Matthias Heller, Andreas von Manteuffel                             //
+//                                                                            //
+////////////////////////////////////////////////////////////////////////////////
+
+proc pfd2(list #)
+"USAGE:   pfd2(f,g[,iterated_reduction,debug]);   f,g poly, iterated_reduction,debug int
+          pfd2(f,g[,iterated_reduction,debug]);   f poly, g list, iterated_reduction,debug int
+          pfd2(arguments[, parallelize]);     arguments list, parallelize int
+RETURN:   a partial fraction decomposition of f/g. Can be use like @ref{pfd},
+          but uses a different decomposition algorithm as described in the paper
+          \"MultivariateApart: Generalized Partial Fractions\" by M. Heller,
+          A. von Manteuffel.
+          Input and output formats identical to @ref{pfd}, but there is an
+          additional (optional) boolean argument @code{iterated_reduction}
+          (default: true), that determines if iterated reductions are used (cf.
+          Aglorithm 4 in the paper).
+NOTE:     Other than with @code{pfd} the result does not depend on the monomial
+          ordering.
+SEE ALSO: pfd, checkpfd, evaluatepfd, displaypfd, displaypfd_long, pfdMat
+EXAMPLE:  example pfd2; shows an example"
+{
+  short = 0;
+  int i,j,k,t1,t2,t3,t4,t5,t6,tt;
+
+  int mode=0; // 0: single rational function input, 1: multiple terms
+  if(size(#)>1)
+  {
+    if(typeof(#[1])=="ideal" && typeof(#[2])=="list") {# = list(#); mode=1;}
+    if(typeof(#[1])=="list")
+      {if(size(#[1])==2)
+        {if(typeof(#[1][1])=="ideal" && typeof(#[1][2])=="list") {mode=1;} }}
+  }
+  if(mode==1) // input of form pfd(list(q,terms)[,iterated_reduction,debug])
+  {
+    int debug=0; link l=":w ";
+    if(size(#)>3) {ERROR("wrong number of arguments, expected 1 or 2");}
+    if(size(#)==3)
+    {
+      debug=#[3];
+      l=":a "+string(debug)+"_log_"+datetime()+".txt";
+      system("--ticks-per-sec",1000);
+    }
+    if(debug)
+    {
+      fprintf(l,"debug: %s", debug);
+      int counter,tt,ttt;
+      t1=0;
+    }
+    int iterated_reduction = 1;
+    if(size(#)>=2)
+    {
+      iterated_reduction = #[2];
+    }
+
+    ideal q = #[1][1];
+    list terms = mergepfd(list(), #[1][2]);
+    int m = size(q);
+
+    if(size(terms)==1 && terms[1][1]==0) // just one term and its numerator is 0
+    {
+      list dec = list(ideal(),list(list(poly(0),intvec(0:0),intvec(0:0))));
+      if(debug)
+        {fprintf(l,"%ntotal: 0 ms (numerator was 0)",0); close(l);}
+      if(voice<=printlevel) {displaypfd(dec);}
+      return(dec);
+    }
+  }
+  else
+  {
+    if(typeof(#[1])=="list")
+    {
+      if(size(#)>1)
+      {
+        if(typeof(#[2])=="list")
+          {list arguments = #;    int parallelize = 1;}
+        else{if(typeof(#[2])=="int")
+          {list arguments = #[1]; int parallelize = #[2];}
+        else {ERROR("wrong type for second argument, expected int");}}
+      }
+      else // #=list(list(..))
+      {
+        return(list(pfd2(#[1])));
+      }
+      if(parallelize)
+      {
+        for(i=1; i<=size(arguments); i++)
+        {
+          if(typeof(arguments[i][1])=="list") //input is list of lists
+            {arguments[i] = list(arguments[i],1);}
+        }
+        return(parallelWaitAll("pfd2",arguments));
+      }
+      else
+      {
+        list results;
+        for(i=1; i<=size(arguments); i++)
+        {
+          if(typeof(arguments[i][1])=="list") //input is list of lists
+            {results[i] = pfd2(arguments[i],0);}
+          else
+          {
+            if(size(arguments[i])==2)
+              {results[i] = pfd2(arguments[i][1],arguments[i][2]);}
+            else{if(size(arguments[i])==3)
+              {results[i] = pfd2(arguments[i][1],arguments[i][2],arguments[i][3]);}
+            else{if(size(arguments[i])==4)
+              {results[i] = pfd2(arguments[i][1],arguments[i][2],arguments[i][3],arguments[i][4]);}
+            else {ERROR("wrong number of arguments, expected 2, 3 or 4");}}}
+          }
+        }
+        return(results);
+      }
+    }
+    poly f = #[1];
+    if(typeof(#[2])=="list")
+    {
+      list g=#[2];
+    }
+    else
+    {
+      poly g=#[2];
+    }
+
+    int iterated_reduction=1;
+    if(size(#)>2) {iterated_reduction=#[3];}
+
+    int debug=0; link l=":w ";
+    if(size(#)>4) {ERROR("wrong number of arguments, expected 2,3 or 4");}
+    if(size(#)==4)
+    {
+      debug=#[4];
+      l=":a "+string(debug)+"_log_"+datetime()+".txt";
+      system("--ticks-per-sec",1000);
+    }
+    if(debug)
+    {
+      fprintf(l,"debug: %s", debug);
+      fprintf(l,"size(string(f)) = %s, size(string(g)) = %s %n",
+                 size(string(f)), size(string(g)), 0);
+    }
+
+    if(f==0)
+    {
+      list dec = list(ideal(),list(list(poly(0),intvec(0:0),intvec(0:0))));
+      if(debug)
+        {fprintf(l,"%ntotal: 0 ms (numerator was 0)",0); close(l);}
+      if(voice<=printlevel) {displaypfd(dec);}
+      return(dec);
+    }
+    if(typeof(g)=="poly")
+    {
+      if(deg(g)==0)
+      {
+        list dec = list(ideal(),list(list(f/g,intvec(0:0),intvec(0:0))));
+        if(debug)
+          {fprintf(l,"%ntotal: 0 ms (denominator was constant)",0); close(l);}
+        if(voice<=printlevel) {displaypfd(dec);}
+        return(dec);
+      }
+
+      // (1) factorization of the denominator ////////////////////////////////////
+      if(debug) {t1 = rtimer; write(l,"factorizing ");}
+      list factor = factorize(g);
+      number lcoeff;
+      for(i=2; i<=size(factor[1]); i++)
+      {
+        lcoeff = leadcoef(factor[1][i]);
+        factor[1][i] = factor[1][i]/lcoeff;
+        factor[1][1] = factor[1][1]*(lcoeff^factor[2][i]); // polynomial is monic (thus unique)
+        lcoeff = content(factor[1][i]);
+        factor[1][i] = factor[1][i]/lcoeff;
+        factor[1][1] = factor[1][1]*(lcoeff^factor[2][i]); // polynomial has nice coefficients
+      }
+      ideal q = factor[1];
+      f = f/q[1];
+      q=delete(q,1);
+      intvec e = factor[2]; e=delete(e,1);
+      int m = size(q);
+      if(debug) {t1 = rtimer-t1; fprintf(l,"done! (%s ms)", t1);}
+    }
+    else{if(typeof(g)=="list")
+    {
+      if(size(g[1])==0)
+      {
+        list dec = list(ideal(),list(list(f,intvec(0:0),intvec(0:0))));
+        if(debug)
+          {fprintf(l,"%ntotal: 0 ms (denominator was constant)",0); close(l);}
+        if(voice<=printlevel) {displaypfd(dec);}
+        return(dec);
+      }
+
+      // denominator is already factorized
+      for(i=1;i<=size(g[1]);i++)
+      {
+        if(size(factorize(g[1][i])[1])>2)
+          {ERROR("factors should be irreducible");}
+      }
+
+      ideal q = g[1];
+      intvec e = g[2];
+      int m = size(q);
+    }
+    else
+    {ERROR("wrong type for second argument, expected poly or list(ideal,intvec)");}}
+
+  }
+
+  // now defined:  f (numerator polynomial), q (denom. factors),
+  //               e (denom. exponents), m (size of q,e), debug (true/false)
+
+  // (2) constructing new ring /////////////////////////////////////////////////
+  if(debug) {t2 = rtimer; write(l,"constructing new ring ");}
+  // group by sets of variables the denominators depend on:
+  list groups = list(list(1));
+  int ngroups;
+  ideal vars1,vars2;
+  int is_bigger;
+  for(i=2;i<=m;i++)
+  {
+    ngroups = size(groups);
+    vars1 = variables(q[i]);
+    for(j=1;j<=ngroups;j++) // insert i (standing for the i-th factor q[i]) into the list groups
+    {
+      vars2 = variables(q[groups[j][1]]);
+
+      if(size(vars1)>size(vars2)) {is_bigger=1;}
+      else{if(size(vars1)<size(vars2)) {is_bigger=0;}
+      else
+      {
+        //print(2001);
+        for(k=1;k<=size(vars1);k++)
+        {
+          //print(2002);
+          if(vars1[k]>vars2[k]) {is_bigger=1; break;}
+          if(vars1[k]<vars2[k]) {is_bigger=0; break;}
+        }
+        //print(2003);
+        if(k==size(vars1)+1) // vars1 == vars2 ==> insert i in groups[j]
+        {
+          //print(2004);
+          for(k=1;k<=size(groups[j]);k++)
+          {
+            //print(2005);
+            if(deg(q[i])>deg(q[groups[j][k]]))
+            {
+              //print(2006);
+              groups[j] = insert(groups[j],i,k-1);
+              break;
+            }
+          }
+          //print(2007);
+          if(k==size(groups[j])+1)
+          {
+            //print(2008);
+            groups[j][k] = i;
+          }
+          //print(2009);
+          break;
+        }
+        //print(20010);
+      }}
+      if(is_bigger) // new set of variables found ==> insert new group in correct position (degree-lexicographically)
+      {
+        groups = insert(groups,list(i),j-1);
+        break;
+      }
+    }
+    if(j==ngroups+1)
+    {
+      groups[j] = list(i);
+    }
+  }
+  list var_order = sum(groups);
+  // construct ring:
+  def r = basering;
+  list rlist = ringlist(r);
+  // variables:
+  rlist[2] = list();
+  for(i=1;i<=m;i++)
+  {
+    rlist[2][i] = "q(" + string(var_order[i]) + ")";
+  }
+  for(i=1;i<=nvars(r);i++)
+  {
+    rlist[2][m+i] = "x(" + string(i) + ")";
+  }
+  // ordering:
+  rlist[3] = list();
+  for(i=1;i<=size(groups);i++)
+  {
+    rlist[3][i] = list("dp",intvec(1:size(groups[i])));
+  }
+  rlist[3][i] = list("dp",intvec(1:nvars(r)));
+  rlist[3][i+1] = list("C",intvec(0));
+  ring R = ring(rlist);
+  setring(R);
+
+  // map everything to the new ring:
+  ideal var_ideal;
+  for(i=1;i<=nvars(r);i++) {var_ideal[i] = x(i);}
+  map phi = r,var_ideal;
+  ideal q = phi(q); // denominator factors
+  if(mode==1)
+  {
+    list terms = phi(terms); // representation of the numerators (+ denominator indices and exponents) of the rational function in the new ring
+  }
+  else
+  {
+    poly f = phi(f); // representation of the (numerator of the) rational function in the new ring
+  }
+
+  // construct the ideal I:
+  ideal I;
+  for(i=1;i<=m;i++) {I[i] = q(i)*q[i]-1;}
+  if(debug) {t2 = rtimer-t2; fprintf(l,"done! (%s ms)", t2);}
+
+  // (3) calculate Groebner basis of I /////////////////////////////////////////
+  if(debug) {t3 = rtimer; write(l,"computing Groebner basis");}
+  ideal GB = std(I);
+  if(debug) {t3 = rtimer-t3; fprintf(l,"done! (%s ms)", t3);}
+
+  // (4) reduce by Groebner basis //////////////////////////////////////////////
+  if(iterated_reduction)
+  {
+    if(debug) {t4=0; t5 = rtimer; write(l,"reducing by Groebner basis (iterated reduction)"); tt = rtimer;}
+    if(mode==1)
+    {
+      poly f = 0;
+      poly term;
+      for(i=1;i<=size(terms);i++)
+      {
+        term = terms[i][1];
+        for(j=1;j<=size(terms[i][2]);j++)
+        {
+          term = term*q(terms[i][2][j])^terms[i][3][j];
+          term = reduce(term,GB);
+        }
+        f = f + term;
+        if(debug) {fprintf(l,"  term %s out of %s: %s ms", i, size(terms), rtimer-tt); tt=rtimer;}
+      }
+    }
+    else
+    {
+      for(i=1;i<=m;i++)
+      {
+        f = f*q(i)^e[i]; // add the i-th "denominator" factor
+        f = reduce(f,GB);
+        if(debug) {fprintf(l,"  iteration %s out of %s: %s ms", i, m, rtimer-tt); tt=rtimer;}
+      }
+    }
+    if(debug) {t5 = rtimer-t5; fprintf(l,"done! (%s ms)", t5);}
+  }
+  else
+  {
+    if(debug) {int t4 = rtimer; write(l,"  representing input rational function(s) as one polynomial");}
+    if(mode==1)
+    {
+      poly f = 0;
+      poly term;
+      for(i=1;i<=size(terms);i++)
+      {
+        term = terms[i][1];
+        for(j=1;j<=size(terms[i][2]);j++)
+        {
+          term = term*q(terms[i][2][j])^terms[i][3][j];
+        }
+        f = f + term;
+      }
+    }
+    else
+    {
+      for(i=1;i<=m;i++)
+      {
+        f = f*q(i)^e[i]; // add the i-th "denominator" factor
+      }
+    }
+    if(debug) {t4 = rtimer-t4; fprintf(l,"done! (%s ms)", t1);
+               t5 = rtimer; write(l,"reducing by Groebner basis");}
+    f = reduce(f,GB);
+    if(debug) {t5 = rtimer-t5; fprintf(l,"done! (%s ms)", t5);}
+  }
+
+  // (5) translate back to original basering ///////////////////////////////////
+  if(debug)
+  {
+    t6 = rtimer; tt = t6;
+    write(l,"formating output");
+    write(l,"  constructing list of terms");
+  }
+  if(0) // alternative code (without creating a new ring, usually slower)
+  {
+    list dec,sorted;
+    intvec lexp,indices,exponents,prev_indices,prev_exponents;
+    prev_indices[1] = -1;
+    prev_exponents[1] = -1;
+    for(i=1;i<=size(f);i++)
+    {
+      lexp = leadexp(f[i]);
+      indices = 0:0;
+      exponents = 0:0;
+      k = 1;
+      for(j=1;j<=m;j++)
+      {
+        if(lexp[j]>0)
+        {
+          indices[k] = var_order[j];
+          exponents[k] = lexp[j];
+          k++;
+        }
+      }
+      if(size(indices>0))
+      {
+        sorted = sort(indices);
+        indices = sorted[1];
+        exponents = intvec(exponents[sorted[2]]);
+      }
+      if(m==1) {lexp[1]=0;}
+      else {lexp[1..m] = 0:m;}
+
+      if(indices==prev_indices && exponents == prev_exponents)
+        {dec[size(dec)][1] = dec[size(dec)][1] + leadcoef(f[i])*monomial(lexp);}
+      else
+        {dec[size(dec)+1] = list(leadcoef(f[i])*monomial(lexp),indices,exponents);}
+      prev_indices = indices;
+      prev_exponents = exponents;
+    }
+  }
+
+  if(1)
+  {
+    if(debug)
+      {fprintf(l,"    %s ms: creating new ring",rtimer-tt);}
+    list rlist = ringlist(R);
+    list tmp;
+    tmp = rlist[2];
+    rlist[1] = list(rlist[1],list(tmp[m+1..m+nvars(r)]),list(list("dp",intvec(1:nvars(r))),list("C",intvec(0))),rlist[4]);
+    rlist[2] = list(tmp[1..m]);
+    rlist[3] = delete(rlist[3],size(rlist[3])-1);
+    ring S = ring(rlist);   // R=K[x,q], S=K(x)[q]
+    setring(S);
+    if(debug)
+      {fprintf(l,"    %s ms: converting to new ring",rtimer-tt);}
+    poly f = imap(R,f);
+    list dec,sorted;
+    intvec lexp,indices,exponents;
+    poly term;
+    if(debug)
+      {fprintf(l,"    %s ms: starting for loop over terms",rtimer-tt);}
+    for(i=1;i<=size(f);i++)
+    {
+      term = f[i];
+      lexp = leadexp(term);
+      indices = 0:0;
+      exponents = 0:0;
+      k = 1;
+      for(j=1;j<=m;j++)
+      {
+        if(lexp[j]>0)
+        {
+          indices[k] = var_order[j];
+          exponents[k] = lexp[j];
+          k++;
+        }
+      }
+      if(size(indices>0))
+      {
+        sorted = sort(indices);
+        indices = sorted[1];
+        exponents = intvec(exponents[sorted[2]]);
+      }
+      dec[i] = list(leadcoef(term),indices,exponents);
+    }
+    if(debug)
+      {fprintf(l,"    %s ms: converting back",rtimer-tt);}
+    setring(R);
+    list dec = imap(S,dec);
+  }
+
+  if(debug)
+    {fprintf(l,"  done! (%s ms)",rtimer-tt); tt = rtimer; write(l,"  sorting terms (mergepfd)");}
+  dec = mergepfd(list(),dec);
+  if(size(dec)==1) {if(dec[1][1]==0) {dec = list();}}
+
+  if(debug)
+    {fprintf(l,"  done! (%s ms)",rtimer-tt); tt = rtimer; write(l,"  mapping to original basering");}
+  setring(r);
+  ideal var_ideal;
+  for(i=1;i<=nvars(r);i++) {var_ideal[m+i] = var(i);}
+  map phi = R,var_ideal;
+  list dec = q,phi(dec);
+  if(debug)
+  {
+    fprintf(l,"  done! (%s ms)",rtimer-tt);
+    t6 = rtimer-t6;
+    fprintf(l,"done! (%s ms)", t6);
+    fprintf(l,"%ntotal: %s ms", t1+t2+t3+t4+t5+t6);
+    close(l);
+  }
+
+  if(voice<=printlevel) {displaypfd(dec);}
+  return(dec);
+}
+example
+{
+  "EXAMPLE:";
+  echo=voice;
+  ring R = 0,(x,y),dp;
+  poly f = x^3+3*x^2*y+2*y^2-x^2+4*x*y;
+  poly g = x^2*y*(x-1)*(x-y)^2;
+
+  list dec = pfd2(f,g);
+
+  displaypfd_long(dec);   // display result
+  checkpfd(list(f,g),dec);   // check for equality to f/g
+
+  // calculate decompositions of a 2x2 matrix of rational functions at once:
+  list arguments = list(list(f, g),          list(1, f)     ),
+                        list(list(x*y, y+1), list(1, x^2-y^2));
+
+  dec = pfd2(arguments);
+
+  // the result has the same shape as the
+  // input (2x2 matrix as list of lists):
+  displaypfd_long(dec[1][1]);
+  displaypfd_long(dec[1][2]);
+  displaypfd_long(dec[2][1]);
+  displaypfd_long(dec[2][2]);
+
+  // a more complicated example
+  ring S = 0,(s12,s15,s23,s34,s45),dp;
+  poly f = 7*s12^4*s15^2 + 11*s12^3*s15^3 + 4*s12^2*s15^4 - 10*s12^4*s15*s23
+    - 14*s12^3*s15^2*s23 - 4*s12^2*s15^3*s23 + 3*s12^4*s23^2 + 3*s12^3*s15*s23^2
+    + 13*s12^4*s15*s34 + 12*s12^3*s15^2*s34 + 2*s12^2*s15^3*s34
+    - 5*s12^4*s23*s34 + 33*s12^3*s15*s23*s34 + 49*s12^2*s15^2*s23*s34
+    + 17*s12*s15^3*s23*s34 - 17*s12^3*s23^2*s34 - 19*s12^2*s15*s23^2*s34
+    - 5*s12*s15^2*s23^2*s34 - 24*s12^3*s15*s34^2 - 15*s12^2*s15^2*s34^2
+    + 2*s12*s15^3*s34^2 + 15*s12^3*s23*s34^2 - 34*s12^2*s15*s23*s34^2
+    - 31*s12*s15^2*s23*s34^2 + 2*s15^3*s23*s34^2 + 33*s12^2*s23^2*s34^2
+    + 29*s12*s15*s23^2*s34^2 + 5*s15^2*s23^2*s34^2 + 9*s12^2*s15*s34^3
+    - 4*s12*s15^2*s34^3 - 15*s12^2*s23*s34^3 + 9*s12*s15*s23*s34^3
+    - 4*s15^2*s23*s34^3 - 27*s12*s23^2*s34^3 - 13*s15*s23^2*s34^3
+    + 2*s12*s15*s34^4 + 5*s12*s23*s34^4 + 2*s15*s23*s34^4 + 8*s23^2*s34^4
+    - 6*s12^3*s15^2*s45 - 9*s12^2*s15^3*s45 - 2*s12*s15^4*s45
+    + 30*s12^3*s15*s23*s45 + 56*s12^2*s15^2*s23*s45 + 24*s12*s15^3*s23*s45
+    - 12*s12^3*s23^2*s45 - 23*s12^2*s15*s23^2*s45 - 10*s12*s15^2*s23^2*s45
+    - 30*s12^3*s15*s34*s45 - 32*s12^2*s15^2*s34*s45 - 6*s12*s15^3*s34*s45
+    + 7*s12^3*s23*s34*s45 - 86*s12^2*s15*s23*s34*s45 - 104*s12*s15^2*s23*s34*s45
+    - 15*s15^3*s23*s34*s45 + 41*s12^2*s23^2*s34*s45 + 51*s12*s15*s23^2*s34*s45
+    + 10*s15^2*s23^2*s34*s45 - 5*s12^3*s34^2*s45 + 33*s12^2*s15*s34^2*s45
+    + 14*s12*s15^2*s34^2*s45 - 2*s15^3*s34^2*s45 - 21*s12^2*s23*s34^2*s45
+    + 62*s12*s15*s23*s34^2*s45 + 28*s15^2*s23*s34^2*s45 - 46*s12*s23^2*s34^2*s45
+    - 28*s15*s23^2*s34^2*s45 + 10*s12^2*s34^3*s45 - s12*s15*s34^3*s45
+    + 4*s15^2*s34^3*s45 + 21*s12*s23*s34^3*s45 - 6*s15*s23*s34^3*s45
+    + 17*s23^2*s34^3*s45 - 5*s12*s34^4*s45 - 2*s15*s34^4*s45 - 7*s23*s34^4*s45
+    - 6*s12^2*s15^2*s45^2 - 5*s12*s15^3*s45^2 - 2*s15^4*s45^2
+    - 28*s12^2*s15*s23*s45^2 - 42*s12*s15^2*s23*s45^2 - 10*s15^3*s23*s45^2
+    + 9*s12^2*s23^2*s45^2 + 10*s12*s15*s23^2*s45^2 + 24*s12^2*s15*s34*s45^2
+    + 36*s12*s15^2*s34*s45^2 + 10*s15^3*s34*s45^2 - 11*s12^2*s23*s34*s45^2
+    + 31*s12*s15*s23*s34*s45^2 + 25*s15^2*s23*s34*s45^2
+    - 18*s12*s23^2*s34*s45^2 - 10*s15*s23^2*s34*s45^2 + 4*s12^2*s34^2*s45^2
+    - 29*s12*s15*s34^2*s45^2 - 17*s15^2*s34^2*s45^2 + 27*s12*s23*s34^2*s45^2
+    + 2*s15*s23*s34^2*s45^2 + 9*s23^2*s34^2*s45^2 - 3*s12*s34^3*s45^2
+    + 10*s15*s34^3*s45^2 - 16*s23*s34^3*s45^2 - s34^4*s45^2 + 6*s12*s15^2*s45^3
+    + 3*s15^3*s45^3 + 8*s12*s15*s23*s45^3 + 10*s15^2*s23*s45^3
+    - 8*s12*s15*s34*s45^3 - 10*s15^2*s34*s45^3 + 9*s12*s23*s34*s45^3
+    + s12*s34^2*s45^3 + 8*s15*s34^2*s45^3 - 9*s23*s34^2*s45^3 - s34^3*s45^3
+    - s15^2*s45^4 + s15*s34*s45^4;
+  poly g = 4*s12*s15*(s12 + s15 - s34)*(s15 - s23 - s34)*(s12 + s23 - s45)
+                                 *(s12 - s34 - s45)*(s12 + s15 - s34 - s45)*s45;
+
+  list dec = pfd2(f,g);
+
+  displaypfd(dec);
+  checkpfd(list(f,g),dec);
+
+  // size comparison:
+  size(string(f)) + size(string(g));
+  size(getStringpfd(dec));
+}
