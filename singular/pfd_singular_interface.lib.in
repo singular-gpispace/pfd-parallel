@@ -84,7 +84,6 @@ proc pfd_singular_prepareSingleEntryFraction (in_struct input)
   string from_dir = args[1];
   string to_dir = args[2];
   string implementation = args[3]; // not important, as we are obviously parallel
-  int ignore_nonlin = args[4];
 
   if (input.suffix == "txt") {
     execute("ring r = " + input.neededring);
@@ -94,7 +93,6 @@ proc pfd_singular_prepareSingleEntryFraction (in_struct input)
                                                    , input.col);
   prepareSingleEntryFraction( filename
                             , from_dir
-                            , ignore_nonlin
                             );
   if (!file_exists( from_dir + filename + ".ssi")) {
     ERROR("Preparation of ssi failed for " + from_dir + filename + ".ssi");
@@ -174,16 +172,12 @@ proc pfd_singular_is_trivial (in_struct input)
           sprintf("Time for Trivial: %s ms,  Memory: %s Bytes",t,memory(2)));
 
     // output as Singular objects
-    if(ignore_nonlin)
-      {write("ssi:w "+to_dir+"result_"+filename+".ssi",list(nonlin,result));}
-    else
-      {write("ssi:w "+to_dir+"result_"+filename+".ssi",result);}
-
-    if (ignore_nonlin) {
-      write_pfd_as_txt(result, to_dir, filename, nonlin);
-    } else {
-      write_pfd_as_txt(result, to_dir, filename, list(list(),list()));
+    if(ignore_nonlin) {
+      result[3] = nonlin;
     }
+    write("ssi:w "+to_dir+"result_"+filename+".ssi", result);
+
+    write_pfd_as_txt(result, to_dir, filename, nonlin);
 
     out_struct output;
     output.result = "success! (trivial problem)";
@@ -358,10 +352,12 @@ proc pfd_singular_write_result (int id, string tempdir)
   write("ssi:w "+to_dir+"result_"+filename+".ssi",result);
 
   if (ignore_nonlin) {
-    write_pfd_as_txt(result, to_dir, filename, nonlin);
-  } else {
-    write_pfd_as_txt(result, to_dir, filename, list(list(),list()));
+    result[3] = nonlin;
   }
+  write_pfd_as_txt(result, to_dir, filename, nonlin);
+  write_pfd_indexed(result, to_dir, "denominator_" + filename, nonlin);
+  list factorized_numerators_result = factorize_numerators(result);
+  write_pfd_indexed(result, to_dir, filename, nonlin);
 
   out_struct output;
   output.result = "success!";
