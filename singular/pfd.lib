@@ -3658,7 +3658,6 @@ SEE ALSO: pfd, pfdParallel, pfdMat, pfdSingleEntrySSI
   int parallelize = args[7];
 
 
-
   int i,j,k;
   list fraction;
   i = find(filename,".");
@@ -3943,7 +3942,7 @@ proc write_pfd_indexed(list result, string to_dir, string filename, list nonlin)
   fprintf(":w "+to_dir+"result_factors_"+filename+".txt", denom_fact,0);
 }
 
-proc prepareNonLin(list formatted_fraction, ignore_nonlin)
+proc prepareNonLin(list formatted_fraction, int ignore_nonlin)
 {
   if (size(formatted_fraction) == 3) {
     // in this case, we assume the nonlinear factors have already been correctly 
@@ -3952,7 +3951,7 @@ proc prepareNonLin(list formatted_fraction, ignore_nonlin)
   }
 
   list nonlin = list(list(),list());
-  if(ignore_nonlin) {
+  if (ignore_nonlin) {
     int i, j, k, l, lcm;
     i = 1;
     for(k=1; k<=size(formatted_fraction[1]); k++) // over factors
@@ -4068,12 +4067,11 @@ proc prepareSingleEntryFraction( string filename
     }
     poly numerator_polynomial, denominator_polynomial;
     // read from file
-    < from_dir + filename + ".txt"
-    /*
     // alternative:
     string s = read(":r " + from_dir + filename + ".txt");
     // note, execute is becoming deprecated.
     execute(s);
+    /*
     */
     fraction = list(numerator_polynomial, denominator_polynomial);
 
@@ -4083,7 +4081,7 @@ proc prepareSingleEntryFraction( string filename
     fact[2] = delete(fact[2], 1);
     fraction[1] = fraction[1] * (1/constant);
 
-    list formatted_fraction = list( fact[2] // the ideal
+    list formatted_fraction = list( fact[1] // the ideal
                                   , list( list( fraction[1] // numerator
                                               , 1..size(fact[1]) // index in ideal
                                               , fact[2] // power in ideal
@@ -4095,13 +4093,12 @@ proc prepareSingleEntryFraction( string filename
   number lcoeff;
   list lcoeffs;
   list lcontents;
-  number constant;
 
   for (k=1; k<=size(formatted_fraction[1]); k++) {
     lcoeffs[k] = leadcoef(formatted_fraction[1][k]);
-    formatted_fraction[1][k] = formatted_fraction[1][k] / lcoeffs[k];
+    formatted_fraction[1][k] = poly(formatted_fraction[1][k]) / number(lcoeffs[k]);
     lcontents[k] = content(formatted_fraction[1][k]);
-    formatted_fraction[1][k] = formatted_fraction[1][k] / lcontents[k];
+    formatted_fraction[1][k] = poly(formatted_fraction[1][k]) / number(lcontents[k]);
 
     for (i = 1; i <= size(formatted_fraction[2]); i++) {
       for (j = 1; j <= size(formatted_fraction[2][i][2]); j++) {
