@@ -13,7 +13,6 @@
     <field name="parallel_proportion" type="float"/>
     <field name="task_count" type="unsigned int"/>
     <field name="split_max" type="unsigned int"/>
-    <field name="loop_max" type="unsigned int"/>
     <field name="sort_input" type="unsigned int"/>
     <field name="steps_active" type="map"/>
   </struct>

@@ -3763,10 +3763,15 @@ proc factorize_numerators(list dec)
     term = terms[i];
     num_factors = factorize(term[1]);
     ncoeff = 1;
+    // after factorization, the first entry is the coefficient.
     ncoeff = ncoeff * number(num_factors[1][1])^num_factors[2][1];
     for (j = 2; j <= size(num_factors[1]); j++) {
+      // collect leadcoefficients in ncoeff
       ncoeff = ncoeff * number(leadcoef(num_factors[1][j]))^num_factors[2][j];
       num_factors[1][j] = num_factors[1][j] / leadcoef(num_factors[1][j]);
+      // collect content in ncoeff
+      ncoeff = ncoeff * number(content(num_factors[1][j]))^num_factors[2][j];
+      num_factors[1][j] = num_factors[1][j] / content(num_factors[1][j]);
     }
     if (size(num_factors[1]) > 1) {
       num_factors[1] = delete(num_factors[1], 1);
@@ -3788,7 +3793,8 @@ proc factorize_numerators(list dec)
           }
         }
         if (k > size(q)) {
-          ERROR("should have found index for factor " + string(num_factors[1][j]));
+          ERROR("should have found index for factor " +
+          string(num_factors[1][j]) + " in " + string(q));
         }
       }
     }
@@ -4007,37 +4013,32 @@ proc prepareNonLin(list formatted_fraction, int ignore_nonlin)
   return (list(formatted_fraction, nonlin));
 }
 
-proc checkSingleEntryFraction( string filename
-                             , string from_dir
-                             )
+proc checkSingleEntryFraction(list formatted_fraction)
 {
-  if (!file_exists(from_dir + filename + ".ssi")) {
-    ERROR("input file to check does not exist: " + from_dir + filename + ".ssi");
-    return (0);
-  }
-  list formatted_fraction = read("ssi:r " + from_dir + filename + ".ssi");
-
   if (typeof(formatted_fraction[1]) != "ideal") {
     ERROR("unknown file format: " + from_dir + filename +
           ".ssi - expected ideal at first index");
+    return(0);
   }
   if (typeof(formatted_fraction[2]) != "list") {
     ERROR("unknown file format: " + from_dir + filename +
           ".ssi - expected list at second index");
+    return(0);
   }
 
-  number lcoeff;
-  list lcoeffs;
-  list lcontents;
-  number constant;
+  number lcoeff, lcontent;
   int k;
 
   for (k=1; k<=size(formatted_fraction[1]); k++) {
-    if (leadcoef(formatted_fraction[1][k]) != 1) {
+    lcoeff = leadcoef(formatted_fraction[1][k]);
+    lcontent = content(poly(formatted_fraction[1][k])/number(lcoeff));
+    if (lcoeff * lcontent != 1) {
+      //ERROR("Lead coefficient not 1");
       return (0);
     }
 
     if (content(formatted_fraction[1][k]) != 1) {
+      //ERROR("Lead coefficient not 1");
       return (0);
     }
   }
@@ -4054,7 +4055,7 @@ proc prepareSingleEntryFraction( string filename
   if (file_exists(from_dir + filename + ".ssi"))
   {
     list formatted_fraction = read("ssi:r " + from_dir + filename + ".ssi");
-    if (checkSingleEntryFraction(filename, from_dir)) {
+    if (checkSingleEntryFraction(formatted_fraction)) {
       // format correct, we are done here.
       return();
     }
@@ -4097,6 +4098,11 @@ proc prepareSingleEntryFraction( string filename
   for (k=1; k<=size(formatted_fraction[1]); k++) {
     lcoeffs[k] = leadcoef(formatted_fraction[1][k]);
     formatted_fraction[1][k] = poly(formatted_fraction[1][k]) / number(lcoeffs[k]);
+
+    if (leadcoef(formatted_fraction[1][k]) != 1) {
+      ERROR("Lead coefficient was not fixed");
+    }
+
     lcontents[k] = content(formatted_fraction[1][k]);
     formatted_fraction[1][k] = poly(formatted_fraction[1][k]) / number(lcontents[k]);
 
@@ -4112,6 +4118,10 @@ proc prepareSingleEntryFraction( string filename
         }
       }
     }
+  }
+
+  if (!checkSingleEntryFraction(formatted_fraction)) {
+    ERROR("bug in sorting out fraction format");
   }
   write("ssi:w "+from_dir+filename+".ssi", formatted_fraction);
 }

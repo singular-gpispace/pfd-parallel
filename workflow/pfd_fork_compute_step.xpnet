@@ -57,7 +57,7 @@
           <code><![CDATA[
           /*<>*/
             auto active (singular_parallel::unwrap_map<std::string, int>
-                                                (options.steps_active)); 
+                                                (options.steps_active));
 
             skip_in.id = in.id;
             if (active[step]) {

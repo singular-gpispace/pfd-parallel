@@ -69,10 +69,7 @@
                       << "\n";
             std::cout << "split_max: "
                       << options.split_max
-                      << "\n";
-            std::cout << "loop_max: "
-                      << options.loop_max
-                      << "\n";
+                      << std::endl;
             initiated = 1U;
             initiated = 1U;
           ]]></code>

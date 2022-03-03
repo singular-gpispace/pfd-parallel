@@ -100,9 +100,9 @@ namespace
       int procsPerNode() const;
       std::size_t numTasks() const;
       std::size_t splitMax() const;
-      std::size_t loopMax() const;
       std::size_t sortInput() const;
       std::size_t parProp() const;
+      singular_parallel::pnet_map stepsActive() const;
 
       std::string tempDir() const;
       std::string nodeFile() const;
@@ -145,9 +145,9 @@ namespace
       /* derived variables */
       std::size_t num_tasks;
       std::size_t split_max;
-      std::size_t loop_max;
       std::size_t sort_input;
       std::size_t par_prop;
+      singular_parallel::pnet_map steps_active;
       int out_token;
 
       singular_parallel::installation singular_parallel_installation;
@@ -157,7 +157,7 @@ namespace
   int fetch_token_value_from_sing_scope (std::string token_s);
   int get_num_tasks(lists arg_list, std::string graph_type);
   int get_split_max(leftv args, std::string graph_type);
-  int get_loop_max(leftv args, std::string graph_type);
+  singular_parallel::pnet_map get_steps_active(leftv args, std::string graph_type);
 
   /*** ArgumentState implementations ***/
   int ArgumentState::outToken() const {
@@ -176,16 +176,16 @@ namespace
     return split_max;
   }
 
-  std::size_t ArgumentState::loopMax() const {
-    return loop_max;
-  }
-
   std::size_t ArgumentState::sortInput() const {
     return sort_input;
   }
 
   std::size_t ArgumentState::parProp() const {
     return par_prop;
+  }
+
+  singular_parallel::pnet_map ArgumentState::stepsActive() const {
+    return steps_active;
   }
 
   std::string ArgumentState::tempDir() const {
@@ -266,9 +266,9 @@ namespace
   , graph_type (graph_type)
   , num_tasks (get_num_tasks(arg_list, graph_type))
   , split_max(get_split_max(args, graph_type))
-  , loop_max(get_loop_max(args, graph_type))
-  , sort_input (get_singular_int_argument(args, 16, "sortinput"))
-  , par_prop (get_singular_int_argument(args, 17, "parprop"))
+  , sort_input (get_singular_int_argument(args, 15, "sortinput"))
+  , par_prop (get_singular_int_argument(args, 16, "parprop"))
+  , steps_active (get_steps_active(args, graph_type))
   , out_token (fetch_token_value_from_sing_scope (outstructname))
   , singular_parallel_installation ()
   {
@@ -296,12 +296,26 @@ namespace
     }
   }
 
-  int get_loop_max(leftv args, std::string graph_type)
+  singular_parallel::pnet_map get_steps_active(leftv args, std::string graph_type)
   {
     if (graph_type == "pfd") {
-      return get_singular_int_argument(args, 15, "loopmax");
+      int nss (get_singular_int_argument(args, 17, "nullstellensatz"));
+      int shortnum (get_singular_int_argument(args, 18, "shortnumerator"));
+      int alg (get_singular_int_argument(args, 19, "algebraic"));
+      int num (get_singular_int_argument(args, 20, "numerator"));
+      singular_parallel::pnet_map steps_active { {std::string("NSSdecompStep"), nss}
+                            , {std::string("shortNumeratorDecompStep"), shortnum}
+                            , {std::string("algDependDecompStep"), alg}
+                            , {std::string("numeratorDecompStep"), num}
+                            };
+      return(steps_active);
     } else {
-      return 0;
+      singular_parallel::pnet_map steps_active { {std::string("NSSdecompStep"), -1}
+                            , {std::string("shortNumeratorDecompStep"), -1}
+                            , {std::string("algDependDecompStep"), -1}
+                            , {std::string("numeratorDecompStep"), -1}
+                            };
+      return steps_active;
     }
   }
 
@@ -360,12 +374,6 @@ std::optional<std::multimap<std::string, pnet::type::value::value_type>>
   using pnet::type::value::poke;
   using singular_parallel::pnet_map;
 
-  pnet_map steps_active { {std::string("NSSdecompStep"), 0}
-                        , {std::string("shortNumeratorDecompStep"), 1}
-                        , {std::string("algDependDecompStep"), 0}
-                        , {std::string("numeratorDecompStep"), 1}
-                        };
-
   if ((as.graphType() == "pfd") ||
     (as.graphType() == "list_all") ||
     (as.graphType() == "list_first")) {
@@ -383,9 +391,8 @@ std::optional<std::multimap<std::string, pnet::type::value::value_type>>
             static_cast<float> (((float)as.parProp())/100.0));
     poke( "task_count", problem_token_type, static_cast<unsigned int> (as.numTasks()));
     poke( "split_max", problem_token_type, static_cast<unsigned int> (as.splitMax()));
-    poke( "loop_max", problem_token_type, static_cast<unsigned int> (as.loopMax()));
     poke( "sort_input", problem_token_type, static_cast<unsigned int> (as.sortInput()));
-    poke( "steps_active", problem_token_type, steps_active);
+    poke( "steps_active", problem_token_type, as.stepsActive());
 
     std::multimap<std::string, value_type> values_on_ports
       ( {

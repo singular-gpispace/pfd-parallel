@@ -30,10 +30,10 @@ proc mod_init()
             "string algorithm, " +
             "string pfdimplementation, " +
             "int upperbound, " +
-            "int loopmax, " +
             "int splitmax, " +
             "int sortinput, " +
-            "int parprop"
+            "int parprop, " +
+            "intvec steps"
             );
 }
 
@@ -122,16 +122,19 @@ proc get_parallel_launch_command(string ret_name, string tempdir, string pnet_id
             "pc.options.outputdir";
   if (pnet_id == "wait_first") {
     return ("def " + ret_name + " = sggspc_wait_first(l, " + common_args +
-      ", 0, 0, pc.options.sortinput, 0);");
+      ", 0, pc.options.sortinput, 0, pc.options.steps[1]," +
+      "pc.options.steps[2], pc.options.steps[3], pc.options.steps[4]);");
   }
   if (pnet_id == "wait_all") {
     return ("def " + ret_name + " = sggspc_wait_all(l, " + common_args +
-      ", 0, 0, pc.options.sortinput, 0);");
+      ", 0, pc.options.sortinput, 0, pc.options.steps[1]," +
+      "pc.options.steps[2], pc.options.steps[3], pc.options.steps[4]);");
   }
   if (pnet_id == "pfd") {
     return ("def " + ret_name + " = sggspc_pfd(l, " + common_args +
-      ", pc.options.splitmax, pc.options.loopmax, " +
-      "pc.options.sortinput, pc.options.parprop);");
+      ", pc.options.splitmax, " +
+      "pc.options.sortinput, pc.options.parprop, pc.options.steps[1]," +
+      "pc.options.steps[2], pc.options.steps[3], pc.options.steps[4]);");
   }
 }
 
@@ -245,6 +248,7 @@ proc default_gspc_config()
 proc configure_pfd()
 {
   configToken pc = configure_parallel();
+  intvec steps = 1,1,1,1;
 
   pc.options.instructname = "in_struct";
   pc.options.instructdesc = "string matrixname, int row, int col, " +
@@ -257,9 +261,9 @@ proc configure_pfd()
   pc.options.functionname = "pfd_singular_compute";
   pc.options.pfdimplementation = "pfd1";
   pc.options.splitmax = 8;
-  pc.options.loopmax = 50;
   pc.options.sortinput = 1;
   pc.options.parprop = 100;
+  pc.options.steps = steps;
 
   pc.options.filename = "";
   pc.options.suffix = "txt";
@@ -371,39 +375,41 @@ PURPOSE:  apply @code{pfd} in parallel to the rational function saved in the
   }
   if (size(#) >= 5) {
     if ( typeof(#[5]) != "int") {
-      ERROR("loop_max requires an int");
+      ERROR("sortinput requires an int");
     } else {
-      pc.options.loopmax = #[5];
+      pc.options.sortinput = #[5];
     }
   }
   if (size(#) >= 6) {
     if ( typeof(#[6]) != "int") {
-      ERROR("sortinput requires an int");
-    } else {
-      pc.options.sortinput = #[6];
-    }
-  }
-  if (size(#) >= 7) {
-    if ( typeof(#[7]) != "int") {
       ERROR("parallel proportion requires an int");
     } else {
-      pc.options.parprop = #[7];
+      pc.options.parprop = #[6];
     }
   }
 
-  if (size(#) >= 8) {
-    if ( typeof(#[8]) != "string") {
+  if (size(#) >= 7) {
+    if ( typeof(#[7]) != "string") {
       ERROR("pfdimplementation requires a string");
     } else {
-      if ((#[8] == "pfd1") ||
-          (#[8] == "pfd2") ||
-          (#[8] == "both")) {
-        pc.options.pfdimplementation = #[8];
+      if ((#[7] == "pfd1") ||
+          (#[7] == "pfd2") ||
+          (#[7] == "both")) {
+        pc.options.pfdimplementation = #[7];
       } else {
         ERROR("pfdimplementation may only be 'pfd1', 'pfd2' or 'both'");
       }
     }
   }
+
+  if (size(#) >= 8) {
+    if ( typeof(#[8]) != "intvec") {
+      ERROR("steps requires an intvec");
+    } else {
+      pc.options.steps = #[8];
+    }
+  }
+  print(string(pc.options.steps));
 
 
   def re_all = parallel_pfd(entry_indices, gc, pc);
@@ -425,6 +431,7 @@ proc  pfd_waitall( string matrixname
   configToken gc;
 
   int sort_input;
+  intvec steps;
 
   string outputdir, suffix;
 
@@ -455,6 +462,15 @@ proc  pfd_waitall( string matrixname
     sort_input = 1; // default value: True
   }
 
+  if (size(#) >= 5) {
+    if ( typeof(#[5]) != "intvec") {
+      ERROR("steps requires an intvec");
+    }
+    steps = #[5];
+  } else {
+    steps = 1,1,1,1; // default value: True
+  }
+
   custom_pfd( matrixname
               , entry_indices
               , inputdir
@@ -462,9 +478,9 @@ proc  pfd_waitall( string matrixname
               , outputdir
               , suffix
               , 1 // max_split irrelevant in serial
-              , 1 // max_loop irrelevant in serial
               , sort_input
               , 0 // serial, so 0% internal parallel
+              steps
               );
 }
 
@@ -476,7 +492,8 @@ proc  pfd_fullyparallel( string matrixname
 {
   configToken gc;
 
-  int split_max, loop_max, sort_input;
+  int split_max, sort_input;
+  intvec steps;
 
   string outputdir, suffix;
 
@@ -504,22 +521,23 @@ proc  pfd_fullyparallel( string matrixname
   } else {
     split_max = 8; // default value
   }
+
   if (size(#) >= 5) {
     if ( typeof(#[5]) != "int") {
-      ERROR("loop_max requires an int");
+      ERROR("sortinput requires an int");
     }
-    loop_max = #[5];
+    sort_input = #[5];
   } else {
-    loop_max = 50; // default value
+    sort_input = 1; // default value: True
   }
 
   if (size(#) >= 6) {
-    if ( typeof(#[6]) != "int") {
-      ERROR("sortinput requires an int");
+    if ( typeof(#[6]) != "intvec") {
+      ERROR("steps requires an intvec");
     }
-    sort_input = #[6];
+    steps = #[6];
   } else {
-    sort_input = 1; // default value: True
+    steps = 1,1,1,1; // default value: True
   }
 
   custom_pfd( matrixname
@@ -529,9 +547,9 @@ proc  pfd_fullyparallel( string matrixname
               , outputdir
               , suffix
               , split_max
-              , loop_max
               , sort_input
               , 100 // parallel, so 100% internal parallel
+              , steps
               );
 }
 

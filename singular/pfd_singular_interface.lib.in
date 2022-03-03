@@ -419,7 +419,6 @@ proc pfd_fork_compute_term( int id
                           , string in_filename
                           , string out_filename
                           , string tempdir
-                          , int loop_max
                           , list #
                           )
 {
