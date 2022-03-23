@@ -3606,7 +3606,6 @@ proc file_exists(string file)
   return(status(":r "+file,"exists","yes"));
 }
 
-
 proc pfdSingleEntry(string filename, list #)
 "USAGE:   pfdSingleEntry(filename[,from_dir,to_dir,ignore_nonlin,parallelize,debug]), filename,from_dir,to_dir string,  ignore_nonlin int
 PURPOSE:  apply @code{pfd} to the rational function saved in a txt-file.
@@ -3656,6 +3655,11 @@ SEE ALSO: pfd, pfdParallel, pfdMat, pfdSingleEntrySSI
   intvec steps = args[5];
   int save_int_res = args[6];
   int parallelize = args[7];
+
+/*
+  string input_format = args[8];
+  string output_format = args[9]; "ssi/"
+*/
 
 
   int i,j,k;
@@ -3734,12 +3738,27 @@ SEE ALSO: pfd, pfdParallel, pfdMat, pfdSingleEntrySSI
   if(ignore_nonlin) {
     result[3] = nonlin;
   }
+
+  string indexed_pfd;
+  string indexed_factors;
+  list factorized_numerators_result = factorize_numerators(result);
+
+  // write ssi
   write("ssi:w "+to_dir+"result_"+filename+".ssi", result);
 
-  write_pfd_as_txt(result, to_dir, filename, nonlin);
-  write_pfd_indexed(result, to_dir, "denominator_" + filename, nonlin);
-  list factorized_numerators_result = factorize_numerators(result);
-  write_pfd_indexed(factorized_numerators_result, to_dir, filename, nonlin);
+  // write as clear text
+  write(":w " + to_dir + "result_" + filename + ".txt", pfd_as_txt(result));
+  write(":w " + to_dir + "result_" + filename + "_input.txt", pfd_as_txt_input(result));
+
+  // write denominator indexed
+  indexed_pfd, indexed_factors = pfd_as_indexed_txt(result);
+  write(":w "+to_dir+"result_indexed_denominator_"+filename+".txt", indexed_pfd);
+  write(":w "+to_dir+"result_factors_denominator_"+filename+".txt", indexed_factors);
+
+  // write indexed
+  indexed_pfd, indexed_factors = pfd_as_indexed_txt(factorized_numerators_result);
+  write(":w "+to_dir+"result_indexed_"+filename+".txt", indexed_pfd);
+  write(":w "+to_dir+"result_factors_"+filename+".txt", indexed_factors);
 
   write( ":a "+to_dir+"resources_"+filename+".txt"
        , sprintf( "Time: %s ms,  Memory: %s Bytes with implementation %s"
@@ -3814,7 +3833,7 @@ proc parsePfdSingleEntryArgs(list #)
   string from_dir = "";
   string to_dir = "";
   string pfd_implementation = "pfd1";
-  int ignore_nonlin = 1;
+  int ignore_nonlin = 0;
   intvec steps = 1,1,1,1;
   int save_int_res = 1;
   int parallelize = 0;
@@ -3869,7 +3888,7 @@ proc parsePfdSingleEntryArgs(list #)
          );
 }
 
-static proc nonlin_as_txt(list nonlin)
+proc nonlin_as_txt(list nonlin)
 {
   int i;
   string nonlin_txt = "";
@@ -3891,7 +3910,7 @@ static proc nonlin_as_txt(list nonlin)
     }
     if (nonlin[2][i] > 1) {
       nonlin_txt = nonlin_txt + "(" + string(nonlin[1][i]) + ")^" + string(nonlin[2][i]);
-    } else{if (nonlin[2][i] > 1) {
+    } else{if (nonlin[2][i] == 1) {
       nonlin_txt = nonlin_txt + "(" + string(nonlin[1][i]) + ")";
     } else {
       ERROR("Malformed nonlinear factor: power should be positive, got " +
@@ -3902,28 +3921,87 @@ static proc nonlin_as_txt(list nonlin)
   return (nonlin_txt);
 }
 
-proc write_pfd_as_txt(list result, string to_dir, string filename, list nonlin)
+proc pfd_as_txt(list result)
 {
   string dec;
   string nonlin_fact;
+
+  if (size(result) >= 3) {
+    list nonlin = result[3];
+  } else {
+    list nonlin = list(list(), list());
+  }
 
   dec = getStringpfd(result);
   nonlin_fact = nonlin_as_txt(nonlin);
-  if(size(nonlin_fact)>0)
-  {
+  if (size(nonlin_fact) > 0) {
     dec = "1/(" + nonlin_fact + ") * (" + dec + ")";
   }
-  write(":w "+to_dir+"result_"+filename+".txt", dec);
+  return (dec);
 }
 
-proc write_pfd_indexed(list result, string to_dir, string filename, list nonlin)
+proc pfd_as_txt_input(list result)
 {
+  string dec;
+  string nonlin_fact;
+  int i;
+  int j;
 
+  string input_representation = "list( ";
+
+  ideal q = result[1];
+  list terms = result[2];
+  list term;
+
+  if (size(result) >= 3) {
+    list nonlin = result[3];
+  } else {
+    list nonlin = list(list(), list());
+  }
+
+  nonlin_fact = nonlin_as_txt(nonlin);
+
+  string num, denom;
+  for (i = 1; i<= size(terms); i++) {
+    num = "";
+    denom = "";
+    if (i > 1) {
+      input_representation = input_representation + ", ";
+    }
+    term = terms[i];
+    num = string(term[1]);
+    for (j = 1; j <= size(term[2]); j++) {
+      if (j > 1) {
+        denom = denom + "*";
+      }
+      denom = denom + "(" + string(q[term[2][j]]) + ")";
+      if (term[3][j] != 1) {
+        denom = denom + "^" + string(term[3][j]);
+      }
+    }
+    if (size(nonlin_fact) > 0) {
+        denom = denom + "*" + nonlin_fact;
+    }
+    input_representation = input_representation + "list( " + num + ", " + denom + ")";
+  }
+  input_representation = input_representation + " )";
+
+  return (input_representation);
+}
+
+proc pfd_as_indexed_txt(list result)
+{
   int i,j,k;
   string dec;
   string nonlin_fact;
-  k = size(nonlin[1]);
 
+  if (size(result)>= 3) {
+    list nonlin = result[3];
+  } else {
+    list nonlin = list(list(), list());
+  }
+
+  k = size(nonlin[1]);
 
   dec = getStringpfd_indexed(result);
   ideal q = result[1];
@@ -3939,13 +4017,15 @@ proc write_pfd_indexed(list result, string to_dir, string filename, list nonlin)
   {
     dec = "1/(" + nonlin_fact + ") * (" + dec + ")";
   }
-  write(":w "+to_dir+"result_indexed_"+filename+".txt", dec);
+
   string denom_fact;
   for(i=1; i<=size(q); i++)
   {
     denom_fact = denom_fact + "q" + string(i) + " = " + string(q[i]) + "%n";
   }
-  fprintf(":w "+to_dir+"result_factors_"+filename+".txt", denom_fact,0);
+  denom_fact = sprintf(denom_fact,0);
+
+  return(dec, denom_fact);
 }
 
 proc prepareNonLin(list formatted_fraction, int ignore_nonlin)
@@ -4033,27 +4113,98 @@ proc checkSingleEntryFraction(list formatted_fraction)
     lcoeff = leadcoef(formatted_fraction[1][k]);
     lcontent = content(poly(formatted_fraction[1][k])/number(lcoeff));
     if (lcoeff * lcontent != 1) {
-      //ERROR("Lead coefficient not 1");
-      return (0);
+      ERROR("Lead coefficient not 1");
+      return(0);
     }
 
     if (content(formatted_fraction[1][k]) != 1) {
-      //ERROR("Lead coefficient not 1");
-      return (0);
+      ERROR("Lead coefficient not 1");
+      return(0);
     }
   }
   return(1);
 
 }
 
+proc process_l_input(list summands)
+{
+  int i, j, k, count;
+  list fraction, factors, fact;
+  intvec indices = 0:0;
+  intvec powers = 0:0;
+  if (!defined(basering)) {
+    ERROR("Please set a basering, that matches the variable names used in " +
+    input);
+  }
+  ideal q;
+  number constant;
+
+  number lcoeff;
+  list lcoeffs;
+  list lcontents;
+
+  for (i = 1; i <= size(summands); i++) {
+    fraction = summands[i];
+
+    // manage leading coefficient
+    fact = factorize(fraction[2]);
+    constant = number(fact[1][1])^fact[2][1];
+    fact[1] = delete(fact[1], 1);
+    fact[2] = delete(fact[2], 1);
+    fraction[1] = fraction[1] * (1/constant);
+
+    for (j = 1; j <= size(fact[1]); j++) {
+      // fix lead coeff
+      lcoeff= number(leadcoef(fact[1][j]));
+      fact[1][j] = fact[1][j] * (1/lcoeff);
+      fraction[1] = fraction[1] * (1/(lcoeff^fact[2][j]));
+
+      // make integer coefficients
+      lcoeff= number(content(fact[1][j]));
+      fact[1][j] = fact[1][j] * (1/lcoeff);
+      fraction[1] = fraction[1] * (1/(lcoeff^fact[2][j]));
+
+      // add to ideal
+      q = q + fact[1][j];
+    }
+
+    // reindex
+    count = 0;
+    indices = 0:0;
+    powers = 0:0;
+    for (j = 1; j <= size(q); j++) {
+      for (k = 1; k <= size(fact[1]); k++) {
+        if (q[j] == fact[1][k]) {
+          count++;
+          indices[count] = j;
+          powers[count] = fact[2][k];
+        }
+      }
+    }
+    if (size(indices) != size(fact[1])) {
+      ERROR("could not find all factors when parsing from string");
+    }
+    // add back to summands
+    summands[i] = list(fraction[1], indices, powers);
+  }
+
+
+  list formatted_fraction = list( q // the ideal
+                                , summands // sum of rationals
+                                );
+
+  if (!checkSingleEntryFraction(formatted_fraction)) {
+    ERROR("bug in sorting out fraction format");
+  }
+
+  return (formatted_fraction);
+}
+
 proc prepareSingleEntryFraction( string filename
                                , string from_dir
                                )
 {
-  list fraction;
-  int i, j, k;
-  if (file_exists(from_dir + filename + ".ssi"))
-  {
+  if (file_exists(from_dir + filename + ".ssi")) {
     list formatted_fraction = read("ssi:r " + from_dir + filename + ".ssi");
     if (checkSingleEntryFraction(formatted_fraction)) {
       // format correct, we are done here.
@@ -4062,68 +4213,16 @@ proc prepareSingleEntryFraction( string filename
     // Bad format, continuing below to fix. Note, this will overwrite input
     // TODO: vary write name to avoid overwriting
   } else {
+    list summands;
     if (!defined(basering)) {
-      ERROR("Please set a basering, that matches the variable names used in "
-            + "the input file (" + filename + ".txt).");
+      ERROR("Please set a basering, that matches the variable names used in " +
+      filename);
     }
-    poly numerator_polynomial, denominator_polynomial;
-    // read from file
-    // alternative:
     string s = read(":r " + from_dir + filename + ".txt");
-    // note, execute is becoming deprecated.
-    execute(s);
-    /*
-    */
-    fraction = list(numerator_polynomial, denominator_polynomial);
-
-    list fact = factorize(fraction[2]);
-    number constant = number(fact[1][1])^fact[2][1];
-    fact[1] = delete(fact[1], 1);
-    fact[2] = delete(fact[2], 1);
-    fraction[1] = fraction[1] * (1/constant);
-
-    list formatted_fraction = list( fact[1] // the ideal
-                                  , list( list( fraction[1] // numerator
-                                              , 1..size(fact[1]) // index in ideal
-                                              , fact[2] // power in ideal
-                                              ) // one rational
-                                        ) // sum of rationals
-                                  );
+    execute("summands = " + input);
+    list formatted_fraction = process_l_input(summands);
+    write("ssi:w "+from_dir+filename+".ssi", formatted_fraction);
   }
-
-  number lcoeff;
-  list lcoeffs;
-  list lcontents;
-
-  for (k=1; k<=size(formatted_fraction[1]); k++) {
-    lcoeffs[k] = leadcoef(formatted_fraction[1][k]);
-    formatted_fraction[1][k] = poly(formatted_fraction[1][k]) / number(lcoeffs[k]);
-
-    if (leadcoef(formatted_fraction[1][k]) != 1) {
-      ERROR("Lead coefficient was not fixed");
-    }
-
-    lcontents[k] = content(formatted_fraction[1][k]);
-    formatted_fraction[1][k] = poly(formatted_fraction[1][k]) / number(lcontents[k]);
-
-    for (i = 1; i <= size(formatted_fraction[2]); i++) {
-      for (j = 1; j <= size(formatted_fraction[2][i][2]); j++) {
-        // 2 -> summands; i -> summand; 2 -> ix in ideal; j -> factor id
-        if (formatted_fraction[2][i][2][j] == k) {
-          // this summand has factor k
-          formatted_fraction[2][i][1] = formatted_fraction[2][i][1] *
-                          (1/(lcoeffs[k]^formatted_fraction[2][i][3][j]));
-          formatted_fraction[2][i][1] = formatted_fraction[2][i][1] *
-                          (1/(lcontents[k]^formatted_fraction[2][i][3][j]));
-        }
-      }
-    }
-  }
-
-  if (!checkSingleEntryFraction(formatted_fraction)) {
-    ERROR("bug in sorting out fraction format");
-  }
-  write("ssi:w "+from_dir+filename+".ssi", formatted_fraction);
 }
 
 proc pfdSingleEntrySSI(string filename, list #)

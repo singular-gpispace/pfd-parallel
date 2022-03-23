@@ -175,9 +175,27 @@ proc pfd_singular_is_trivial (in_struct input)
     if(ignore_nonlin) {
       result[3] = nonlin;
     }
+
+    string indexed_pfd;
+    string indexed_factors;
+    list factorized_numerators_result = factorize_numerators(result);
+
+    // write ssi
     write("ssi:w "+to_dir+"result_"+filename+".ssi", result);
 
-    write_pfd_as_txt(result, to_dir, filename, nonlin);
+    // write as clear text
+    write(":w " + to_dir + "result_" + filename + ".txt", pfd_as_txt(result));
+    write(":w " + to_dir + "result_" + filename + "_input.txt", pfd_as_txt_input(result));
+
+    // write denominator indexed
+    indexed_pfd, indexed_factors = pfd_as_indexed_txt(result);
+    write(":w "+to_dir+"result_indexed_denominator_"+filename+".txt", indexed_pfd);
+    write(":w "+to_dir+"result_factors_denominator_"+filename+".txt", indexed_factors);
+
+    // write indexed
+    indexed_pfd, indexed_factors = pfd_as_indexed_txt(factorized_numerators_result);
+    write(":w "+to_dir+"result_indexed_"+filename+".txt", indexed_pfd);
+    write(":w "+to_dir+"result_factors_"+filename+".txt", indexed_factors);
 
     out_struct output;
     output.result = "success! (trivial problem)";
@@ -346,18 +364,26 @@ proc pfd_singular_write_result (int id, string tempdir)
     result[3] = nonlin;
   }
 
-  if(voice<=printlevel) {displaypfd(result);}
+  string indexed_pfd;
+  string indexed_factors;
+  list factorized_numerators_result = factorize_numerators(result);
 
-  // output as Singular objects
+  //write ssi 
   write("ssi:w "+to_dir+"result_"+filename+".ssi",result);
 
-  if (ignore_nonlin) {
-    result[3] = nonlin;
-  }
-  write_pfd_as_txt(result, to_dir, filename, nonlin);
-  write_pfd_indexed(result, to_dir, "denominator_" + filename, nonlin);
-  list factorized_numerators_result = factorize_numerators(result);
-  write_pfd_indexed(result, to_dir, filename, nonlin);
+  // write as clear text
+  write(":w " + to_dir + "result_" + filename + ".ssi", pfd_as_txt(result))
+  write(":w " + to_dir + "result_" + filename + "_input.txt", pfd_as_txt_input(result));
+
+  // write denominator indexed
+  indexed_pfd, indexed_factors = pfd_as_indexed_txt(result);
+  write(":w "+to_dir+"result_indexed_denominator_"+filename+".txt", indexed_pfd);
+  write(":w "+to_dir+"result_factors_denominator_"+filename+".txt", indexed_factors);
+
+  // write indexed
+  indexed_pfd, indexed_factors = pfd_as_indexed_txt(factorized_numerators_result);
+  write(":w "+to_dir+"result_indexed_"+filename+".txt", indexed_pfd);
+  write(":w "+to_dir+"result_factors_"+filename+".txt", indexed_factors);
 
   out_struct output;
   output.result = "success!";
