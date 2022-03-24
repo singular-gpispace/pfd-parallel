@@ -9,12 +9,14 @@ set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wextra")
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
 
-add_subdirectory (${GPISPACE_REPO}/cmake cmake)
+
+find_package (GPISpace 21.09 EXACT REQUIRED)
+
+find_package (util-cmake REQUIRED)
 include (util-cmake/add_macros)
 include (util-cmake/beautify_find_boost)
 include (util-cmake/beautify_find_GPISpace)
 
-find_package (GPISpace 21.09 EXACT REQUIRED)
 find_boost (1.61 REQUIRED QUIET FROM_GPISPACE_INSTALLATION COMPONENTS
   date_time
   filesystem
@@ -56,9 +58,6 @@ include_directories ("${CMAKE_BINARY_DIR}")
 
 include_directories ("${CMAKE_SOURCE_DIR}/src")
 include_directories ("${CMAKE_BINARY_DIR}")
-include_directories("${GPISPACE_REPO}/src")
-
-#add_subdirectory (${GPISPACE_REPO}/src/util-generic src/util-generic)
 
 extended_add_library (NAME installation
   TYPE SHARED
