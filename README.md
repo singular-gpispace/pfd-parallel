@@ -24,6 +24,87 @@ function to a matrix of rational functions.
 To get this project up and running, you need to compile Singular, GPI-Space,
 some of their dependencies and the project code itself.
 
+#Installation --- Using Spack
+Spack is a package manager for supercomputers, Linux, and macOS, for which a
+local repo is to be found in the directory `spack` in the pfd source tree. For
+most users, this should be the easiest way to install the pfd project and all
+it's dependencies, with minimal configuration required.
+
+We will assume the user has some directory path to which she/he can read and
+write. In the following, we assume this path is set as the bash variable
+`software_ROOT`:
+
+```bash
+export software_ROOT=<software-root>
+```
+
+## Setup Spack itself
+If spack is not already present, clone spack from github:
+```bash
+git clone https://github.com/spack/spack.git $software_ROOT/spack
+```
+For the most predictable experience, check out verison v0.17 of spack:
+```bash
+cd $software_ROOT/spack
+git checkout v0.17
+cd -
+```
+To be able to use spack from the command line, run the setup script (Note, in
+future, this step should be repeated at the start of any new terminal session
+requiring spack):
+```bash
+. $software_ROOT/share/spack/setup-env.sh
+```
+Next, spack still neeeds boostrap clingo.  This can be done by concretizing any
+spec, for example
+```bash
+spack spec zlib
+```
+This may take a while the first time.
+
+## Clone and setup pfd
+
+Clone the pfd repository into this directory:
+```bash
+git clone                                                         \
+    --depth 1                                                     \
+    https://github.com/singular-gpispace/PFD.git                  \
+    $software_ROOT/pfd
+```
+
+Add the spack repo in pfd to the spack installation:
+```bash
+spack repo add $software_ROOT/pfd/spack
+```
+
+Finally, install pfd:
+```bash
+spack install pfd
+```
+Note, this may take a long time, as it needs to build gpi-space and singular
+(including dependencies), both of which are quite extensive.
+
+Once pfd is installed, using pfd requires loading pfd:
+```bash
+spack load pfd
+```
+
+For the examples below, the user needs to set the following environment
+variables:
+```bash
+export PFD_ROOT=$software_ROOT
+export PFD_REPO=$software_ROOT/pfd
+export PFD_INSTALL_DIR=$PFD_PREFIX
+export PFD_INPUT_DIR=$PFD_ROOT/input
+export PFD_OUTPUT_DIR=$PFD_ROOT/output
+```
+
+#Installation --- Manually from sources
+
+As an alternative to spack, pfd and its dependencies can also be compiled
+directly.  For most users, a spack installation should suffice, in which case
+this section can be skipped.
+
 For the various dependencies, it is recommended to create a file that exports
 the various install locations as environment variables. For this purpose, the
 following command may be run at a convenient location, after which the resulting
@@ -542,7 +623,7 @@ cmake --build ${PFD_BUILD_DIR}                   \
       -j $(nproc)
 
 ```
-## Example to run PFD
+# Example to run PFD
 To run an example, we need a Singular script that loads the `pfd_gspc.lib`
 library. A gpi-space configure token needs to be prepared, with some important
 configuration:  The path of a temporary directory, where files will be stored
