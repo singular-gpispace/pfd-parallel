@@ -17,7 +17,7 @@ class Pfd(CMakePackage):
 
     version('0.02', sha256='945e8419258f53bd29dc03aa6b2f36caa92900f4f9893747e28683d76df20653')
 
-    depends_on('singular@snapshot_03_22')
+    depends_on('singular@snapshot_22_03')
     depends_on('gpi-space@21.09')
     depends_on('flint@2.6.3')
 

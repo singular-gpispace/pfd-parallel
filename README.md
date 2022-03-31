@@ -24,7 +24,7 @@ function to a matrix of rational functions.
 To get this project up and running, you need to compile Singular, GPI-Space,
 some of their dependencies and the project code itself.
 
-#Installation --- Using Spack
+# Installation --- Using Spack
 Spack is a package manager for supercomputers, Linux, and macOS, for which a
 local repo is to be found in the directory `spack` in the pfd source tree. For
 most users, this should be the easiest way to install the pfd project and all
@@ -42,23 +42,27 @@ export software_ROOT=<software-root>
 If spack is not already present, clone spack from github:
 ```bash
 git clone https://github.com/spack/spack.git $software_ROOT/spack
+
 ```
 For the most predictable experience, check out verison v0.17 of spack:
 ```bash
 cd $software_ROOT/spack
 git checkout v0.17
 cd -
+
 ```
 To be able to use spack from the command line, run the setup script (Note, in
 future, this step should be repeated at the start of any new terminal session
 requiring spack):
 ```bash
-. $software_ROOT/share/spack/setup-env.sh
+. $software_ROOT/spack/share/spack/setup-env.sh
+
 ```
 Next, spack still neeeds boostrap clingo.  This can be done by concretizing any
 spec, for example
 ```bash
 spack spec zlib
+
 ```
 This may take a while the first time.
 
@@ -70,11 +74,13 @@ git clone                                                         \
     --depth 1                                                     \
     https://github.com/singular-gpispace/PFD.git                  \
     $software_ROOT/pfd
+
 ```
 
 Add the spack repo in pfd to the spack installation:
 ```bash
 spack repo add $software_ROOT/pfd/spack
+
 ```
 
 Finally, install pfd:
@@ -361,7 +367,7 @@ cd $GPI_ROOT_DIR
 mkdir gpispace && cd gpispace
 git clone                                                         \
     --depth 1                                                     \
-    --branch v21.09                                               \
+    --branch v22.03                                               \
     https://github.com/cc-hpc-itwm/gpispace.git                   \
     gpispace
 
