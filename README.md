@@ -105,7 +105,7 @@ export PFD_INPUT_DIR=$PFD_ROOT/input
 export PFD_OUTPUT_DIR=$PFD_ROOT/output
 ```
 
-#Installation --- Manually from sources
+# Installation --- Manually from sources
 
 As an alternative to spack, pfd and its dependencies can also be compiled
 directly.  For most users, a spack installation should suffice, in which case
