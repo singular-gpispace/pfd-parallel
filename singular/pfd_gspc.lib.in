@@ -29,6 +29,7 @@ proc mod_init()
             "string suffix, " +
             "string algorithm, " +
             "string pfdimplementation, " +
+            "string outputformat, " +
             "int upperbound, " +
             "int splitmax, " +
             "int sortinput, " +
@@ -119,7 +120,8 @@ proc get_parallel_launch_command(string ret_name, string tempdir, string pnet_id
             "pc.options.neededlibrary, " +
             "pc.options.functionname, " +
             "pc.options.inputdir, " +
-            "pc.options.outputdir";
+            "pc.options.outputdir, " +
+            "pc.options.outputformat";
   if (pnet_id == "wait_first") {
     return ("def " + ret_name + " = sggspc_wait_first(l, " + common_args +
       ", 0, pc.options.sortinput, 0, pc.options.steps[1]," +
@@ -249,6 +251,7 @@ proc configure_pfd()
 {
   configToken pc = configure_parallel();
   intvec steps = 1,1,1,1;
+  string outputformat = "ssi,cleartext,listnumden,indexed_all,indexed_denom";
 
   pc.options.instructname = "in_struct";
   pc.options.instructdesc = "string matrixname, int row, int col, " +
@@ -264,6 +267,7 @@ proc configure_pfd()
   pc.options.sortinput = 1;
   pc.options.parprop = 100;
   pc.options.steps = steps;
+  pc.options.outputformat = outputformat;
 
   pc.options.filename = "";
   pc.options.suffix = "txt";

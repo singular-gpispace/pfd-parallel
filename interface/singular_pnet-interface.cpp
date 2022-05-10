@@ -614,9 +614,15 @@ namespace singular_parallel
         singular::load_ssi("input", get_in_struct_filename( options.tempdir
                                         , config::parallel_pfd_base_name()
                                         , id));
-        singular::call_and_discard("def output = "
-                                   "pfd_singular_is_trivial"
-                                   "(input);");
+        boost::format command =
+              boost::format("def output = pfd_singular_is_trivial(input, %1%);")
+                            % ("\"" + options.outputformat + "\"");
+        singular::call_and_discard(command.str());
+
+        //singular::call_and_discard("def output = "
+        //                           "pfd_singular_is_trivial"
+        //                           "(input);");
+
         singular::call_and_discard("kill input;");
         singular::call_and_discard("if (typeof(output) == \"out_struct\")"
                                    " { int trivial_pfd = 1; }"
@@ -684,11 +690,12 @@ namespace singular_parallel
                                         , config::parallel_pfd_base_name()
                                         , id));
         boost::format command =
-              boost::format("int prepstat = pfd_singular_general_prepare(%1%, %2%, %3%, %4%);")
+              boost::format("int prepstat = pfd_singular_general_prepare(%1%, %2%, %3%, %4%, %5%);")
                             % "input"
                             % id
                             % ("\"" + options.tempdir + "\"")
-                            % ("\"" + get_from_name(first_step) + "\"");
+                            % ("\"" + get_from_name(first_step) + "\"")
+                            % ("\"" + options.outputformat + "\"");
 
         singular::call_and_discard(command.str());
         unsigned int prepstat = singular::getInt("prepstat");
@@ -1229,9 +1236,10 @@ namespace singular_parallel
         singular::load_library (options.needed_library);
 
         boost::format command =
-              boost::format("out_struct output = pfd_singular_write_result(%1%, %2%);")
+              boost::format("out_struct output = pfd_singular_write_result(%1%, %2%, %3%);")
                             % id
-                            % ("\"" + options.tempdir + "\"");
+                            % ("\"" + options.tempdir + "\"")
+                            % ("\"" + options.outputformat + "\"");
         singular::call_and_discard(command.str());
 
         singular::write_ssi("output", get_out_struct_filename( options.tempdir
