@@ -115,6 +115,7 @@ namespace
       std::string functionName() const;
       std::string fromDir() const;
       std::string toDir() const;
+      std::string outputFormat() const;
       std::string graphType() const;
 
       singular_parallel::installation singPI() const;
@@ -139,6 +140,7 @@ namespace
       std::string functionname;
       std::string fromdir;
       std::string todir;
+      std::string outputformat;
 
       std::string graph_type;
 
@@ -232,6 +234,10 @@ namespace
     return todir;
   }
 
+  std::string ArgumentState::outputFormat() const {
+    return outputformat;
+  }
+
   std::string ArgumentState::graphType() const {
     return graph_type;
   }
@@ -263,11 +269,12 @@ namespace
   , functionname (get_singular_string_argument(args, 11, "function name"))
   , fromdir (get_singular_string_argument(args, 12, "input dir"))
   , todir (get_singular_string_argument(args, 13, "output dir"))
+  , outputformat (get_singular_string_argument(args, 14, "output format"))
   , graph_type (graph_type)
   , num_tasks (get_num_tasks(arg_list, graph_type))
   , split_max(get_split_max(args, graph_type))
-  , sort_input (get_singular_int_argument(args, 15, "sortinput"))
-  , par_prop (get_singular_int_argument(args, 16, "parprop"))
+  , sort_input (get_singular_int_argument(args, 16, "sortinput"))
+  , par_prop (get_singular_int_argument(args, 17, "parprop"))
   , steps_active (get_steps_active(args, graph_type))
   , out_token (fetch_token_value_from_sing_scope (outstructname))
   , singular_parallel_installation ()
@@ -290,7 +297,7 @@ namespace
   int get_split_max(leftv args, std::string graph_type)
   {
     if (graph_type == "pfd") {
-      return get_singular_int_argument(args, 14, "splitmax");
+      return get_singular_int_argument(args, 15, "splitmax");
     } else {
       return 0;
     }
@@ -299,10 +306,10 @@ namespace
   singular_parallel::pnet_map get_steps_active(leftv args, std::string graph_type)
   {
     if (graph_type == "pfd") {
-      int nss (get_singular_int_argument(args, 17, "nullstellensatz"));
-      int shortnum (get_singular_int_argument(args, 18, "shortnumerator"));
-      int alg (get_singular_int_argument(args, 19, "algebraic"));
-      int num (get_singular_int_argument(args, 20, "numerator"));
+      int nss (get_singular_int_argument(args, 18, "nullstellensatz"));
+      int shortnum (get_singular_int_argument(args, 19, "shortnumerator"));
+      int alg (get_singular_int_argument(args, 20, "algebraic"));
+      int num (get_singular_int_argument(args, 21, "numerator"));
       singular_parallel::pnet_map steps_active { {std::string("NSSdecompStep"), nss}
                             , {std::string("shortNumeratorDecompStep"), shortnum}
                             , {std::string("algDependDecompStep"), alg}
@@ -387,6 +394,7 @@ std::optional<std::multimap<std::string, pnet::type::value::value_type>>
     poke( "out_struct_name", problem_token_type, as.outStructName());
     poke( "out_struct_desc", problem_token_type, as.outStructDesc());
     poke( "tempdir", problem_token_type, as.tempDir());
+    poke( "outputformat", problem_token_type, as.outputFormat());
     poke( "parallel_proportion", problem_token_type,
             static_cast<float> (((float)as.parProp())/100.0));
     poke( "task_count", problem_token_type, static_cast<unsigned int> (as.numTasks()));

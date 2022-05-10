@@ -43,7 +43,7 @@ proc pfd_singular_compute (in_struct input)
   return(output);
 }
 
-proc pfd_singular_general_prepare (in_struct input, int id, string tempdir, string terms_name)
+proc pfd_singular_general_prepare (in_struct input, int id, string tempdir, string terms_name, string output_format)
 {
   if (pfd_singular_is_already_computed(input)) {
     return(1);
@@ -51,7 +51,7 @@ proc pfd_singular_general_prepare (in_struct input, int id, string tempdir, stri
 
   pfd_singular_prepareSingleEntryFraction(input);
 
-  def triv = pfd_singular_is_trivial(input);
+  def triv = pfd_singular_is_trivial(input, output_format);
   if (typeof(triv) == "out_struct") {
     return (2);
   }
@@ -71,7 +71,7 @@ proc pfd_singular_is_already_computed (in_struct input)
   string from_dir = args[1];
   string to_dir = args[2];
 
-  if (file_exists(to_dir + "result_" + filename + ".txt")) {
+  if (file_exists(to_dir + "result_" + filename + ".ssi")) {
     return(1);
   } else {
     return(0);
@@ -100,7 +100,7 @@ proc pfd_singular_prepareSingleEntryFraction (in_struct input)
 }
 
 
-proc pfd_singular_is_trivial (in_struct input)
+proc pfd_singular_is_trivial (in_struct input, string output_format)
 {
   system("--ticks-per-sec",1000);
   short = 0;
@@ -184,18 +184,26 @@ proc pfd_singular_is_trivial (in_struct input)
     write("ssi:w "+to_dir+"result_"+filename+".ssi", result);
 
     // write as clear text
-    write(":w " + to_dir + "result_" + filename + ".txt", pfd_as_txt(result));
-    write(":w " + to_dir + "result_" + filename + "_input.txt", pfd_as_txt_input(result));
+    if (find(output_format, "cleartext")) {
+      write(":w " + to_dir + "result_" + filename + ".txt", pfd_as_txt(result));
+    }
+    if (find(output_format, "listnumden")) {
+      write(":w " + to_dir + "result_" + filename + "_input.txt", pfd_as_txt_input(result));
+    }
 
     // write denominator indexed
-    indexed_pfd, indexed_factors = pfd_as_indexed_txt(result);
-    write(":w "+to_dir+"result_indexed_denominator_"+filename+".txt", indexed_pfd);
-    write(":w "+to_dir+"result_factors_denominator_"+filename+".txt", indexed_factors);
+    if (find(output_format, "indexed_denom")) {
+      indexed_pfd, indexed_factors = pfd_as_indexed_txt(result);
+      write(":w "+to_dir+"result_indexed_denominator_"+filename+".txt", indexed_pfd);
+      write(":w "+to_dir+"result_factors_denominator_"+filename+".txt", indexed_factors);
+    }
 
     // write indexed
-    indexed_pfd, indexed_factors = pfd_as_indexed_txt(factorized_numerators_result);
-    write(":w "+to_dir+"result_indexed_"+filename+".txt", indexed_pfd);
-    write(":w "+to_dir+"result_factors_"+filename+".txt", indexed_factors);
+    if (find(output_format, "indexed_all")) {
+      indexed_pfd, indexed_factors = pfd_as_indexed_txt(factorized_numerators_result);
+      write(":w "+to_dir+"result_indexed_"+filename+".txt", indexed_pfd);
+      write(":w "+to_dir+"result_factors_"+filename+".txt", indexed_factors);
+    }
 
     out_struct output;
     output.result = "success! (trivial problem)";
@@ -225,22 +233,6 @@ proc pfd_singular_prepare_input (in_struct input, int id, string tempdir, string
   fraction = nonlin[1];
   nonlin = nonlin[2];
 
-
-/*
-  poly f = fraction[1];
-  if(typeof(fraction[2])=="list") {
-    list g=fraction[2];
-  } else {
-    poly g=fraction[2];
-  }
-
-  int debug=0;
-
-  list input = prepare_terms(f, g);
-
-  ideal q = input[1];
-  list terms = input[2];
-*/
 
   ideal q = fraction[1];
   list terms = fraction[2];
@@ -333,7 +325,7 @@ proc pfd_singular_terms_left(string path)
   return(size(terms[1]));
 }
 
-proc pfd_singular_write_result (int id, string tempdir)
+proc pfd_singular_write_result (int id, string tempdir, string output_format)
 {
   system("--ticks-per-sec",1000);
   short = 0;
@@ -368,22 +360,30 @@ proc pfd_singular_write_result (int id, string tempdir)
   string indexed_factors;
   list factorized_numerators_result = factorize_numerators(result);
 
-  //write ssi 
+  //write ssi
   write("ssi:w "+to_dir+"result_"+filename+".ssi",result);
 
   // write as clear text
-  write(":w " + to_dir + "result_" + filename + ".ssi", pfd_as_txt(result))
-  write(":w " + to_dir + "result_" + filename + "_input.txt", pfd_as_txt_input(result));
+  if (find(output_format, "cleartext")) {
+    write(":w " + to_dir + "result_" + filename + ".ssi", pfd_as_txt(result));
+  }
+  if (find(output_format, "listnumden")) {
+    write(":w " + to_dir + "result_" + filename + "_input.txt", pfd_as_txt_input(result));
+  }
 
   // write denominator indexed
-  indexed_pfd, indexed_factors = pfd_as_indexed_txt(result);
-  write(":w "+to_dir+"result_indexed_denominator_"+filename+".txt", indexed_pfd);
-  write(":w "+to_dir+"result_factors_denominator_"+filename+".txt", indexed_factors);
+  if (find(output_format, "indexed_denom")) {
+    indexed_pfd, indexed_factors = pfd_as_indexed_txt(result);
+    write(":w "+to_dir+"result_indexed_denominator_"+filename+".txt", indexed_pfd);
+    write(":w "+to_dir+"result_factors_denominator_"+filename+".txt", indexed_factors);
+  }
 
   // write indexed
-  indexed_pfd, indexed_factors = pfd_as_indexed_txt(factorized_numerators_result);
-  write(":w "+to_dir+"result_indexed_"+filename+".txt", indexed_pfd);
-  write(":w "+to_dir+"result_factors_"+filename+".txt", indexed_factors);
+  if (find(output_format, "indexed_all")) {
+    indexed_pfd, indexed_factors = pfd_as_indexed_txt(factorized_numerators_result);
+    write(":w "+to_dir+"result_indexed_"+filename+".txt", indexed_pfd);
+    write(":w "+to_dir+"result_factors_"+filename+".txt", indexed_factors);
+  }
 
   out_struct output;
   output.result = "success!";

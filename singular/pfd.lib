@@ -3655,11 +3655,8 @@ SEE ALSO: pfd, pfdParallel, pfdMat, pfdSingleEntrySSI
   intvec steps = args[5];
   int save_int_res = args[6];
   int parallelize = args[7];
-
-/*
-  string input_format = args[8];
-  string output_format = args[9]; "ssi/"
-*/
+  string input_format = args[8]; //"ssi" or "listnumden"
+  string output_format = args[9]; //"ssi" or "listnumden" or "cleartext" or "indexed_denom" or "indexed_all"
 
 
   int i,j,k;
@@ -3682,56 +3679,53 @@ SEE ALSO: pfd, pfdParallel, pfdMat, pfdSingleEntrySSI
   int debug = 0;
 
   list result;
-  if(parallelize)
-    {result = pfdParallel(fraction);}
-  else {
-    if (pfd_implementation == "pfd1") {
-      //format: pfd(list(q,terms)[,debug,steps,save_int_res])
-      result = pfd(fraction, save_int_res, steps, save_int_res);
+  if(parallelize) {
+    result = pfdParallel(fraction);
+  } else{if (pfd_implementation == "pfd1") {
+    //format: pfd(list(q,terms)[,debug,steps,save_int_res])
+    result = pfd(fraction, save_int_res, steps, save_int_res);
+  } else{if (pfd_implementation == "pfd2") {
+    // TODO: check whether the pfd2 implementation does not already handle
+    // this case.
+    list fractioni, resulti, resultq;
+    ideal q = fraction[1];
+    list terms = fraction[2];
+    int index;
+    intvec indices;
+    intvec powers;
 
-    } else{if (pfd_implementation == "pfd2") {
-      // TODO: check whether the pfd2 implementation does not already handle
-      // this case.
-      list fractioni, resulti, resultq;
-      ideal q = fraction[1];
-      list terms = fraction[2];
-      int index;
-      intvec indices;
-      intvec powers;
+    result[1] = q;
+    result[2] = list();
 
-      result[1] = q;
-      result[2] = list();
-
-      for (i = 1; i <= size(terms); i++) {
-        indices = terms[i][2];
-        powers = terms[i][3];
-        fractioni[1] = terms[i][1]; // numerator
-        fractioni[2] = list();
-        fractioni[2][1] = ideal(q[indices]);
-        fractioni[2][2] = powers;
-        resulti = pfd2(fractioni[1], fractioni[2], save_int_res);
+    for (i = 1; i <= size(terms); i++) {
+      indices = terms[i][2];
+      powers = terms[i][3];
+      fractioni[1] = terms[i][1]; // numerator
+      fractioni[2] = list();
+      fractioni[2][1] = ideal(q[indices]);
+      fractioni[2][2] = powers;
+      resulti = pfd2(fractioni[1], fractioni[2], save_int_res);
 
 
-        // need to convert back from q[indices] to q
-        // for fractioni, we created a new q, with the ith generator determined by
-        // the ith index in indices
-        resultq = list();
-        for (j = 1; j <= size(resulti[2]); j++) {
-          for (k = 1; k <= size(resulti[2][j][2]); k++) {
-            index = resulti[2][j][2][k];
-            resulti[2][j][2][k] = indices[index];
-          }
-          resultq[j] = list();
-          resultq[j][1] = resulti[2][j][1];
-          resultq[j][2] = resulti[2][j][2];
-          resultq[j][3] = resulti[2][j][3];
+      // need to convert back from q[indices] to q
+      // for fractioni, we created a new q, with the ith generator determined by
+      // the ith index in indices
+      resultq = list();
+      for (j = 1; j <= size(resulti[2]); j++) {
+        for (k = 1; k <= size(resulti[2][j][2]); k++) {
+          index = resulti[2][j][2][k];
+          resulti[2][j][2][k] = indices[index];
         }
-        result[2] = mergepfd(result[2], resultq);
+        resultq[j] = list();
+        resultq[j][1] = resulti[2][j][1];
+        resultq[j][2] = resulti[2][j][2];
+        resultq[j][3] = resulti[2][j][3];
       }
-    } else {
-      ERROR(pfd_implementation + " not implemented");
-    }}
-  }
+      result[2] = mergepfd(result[2], resultq);
+    }
+  } else {
+    ERROR(pfd_implementation + " not implemented");
+  }}}
 
   t = rtimer-t;
 
@@ -3741,24 +3735,32 @@ SEE ALSO: pfd, pfdParallel, pfdMat, pfdSingleEntrySSI
 
   string indexed_pfd;
   string indexed_factors;
-  list factorized_numerators_result = factorize_numerators(result);
 
   // write ssi
   write("ssi:w "+to_dir+"result_"+filename+".ssi", result);
 
   // write as clear text
-  write(":w " + to_dir + "result_" + filename + ".txt", pfd_as_txt(result));
-  write(":w " + to_dir + "result_" + filename + "_input.txt", pfd_as_txt_input(result));
+  if (find(output_format, "cleartext")) {
+    write(":w " + to_dir + "result_" + filename + ".txt", pfd_as_txt(result));
+  }
+  if (find(output_format, "listnumden")) {
+    write(":w " + to_dir + "result_" + filename + "_input.txt", pfd_as_txt_input(result));
+  }
 
   // write denominator indexed
-  indexed_pfd, indexed_factors = pfd_as_indexed_txt(result);
-  write(":w "+to_dir+"result_indexed_denominator_"+filename+".txt", indexed_pfd);
-  write(":w "+to_dir+"result_factors_denominator_"+filename+".txt", indexed_factors);
+  if (find(output_format, "indexed_denom")) {
+    indexed_pfd, indexed_factors = pfd_as_indexed_txt(result);
+    write(":w "+to_dir+"result_indexed_denominator_"+filename+".txt", indexed_pfd);
+    write(":w "+to_dir+"result_factors_denominator_"+filename+".txt", indexed_factors);
+  }
 
   // write indexed
+  if (find(output_format, "indexed_all")) {
+  list factorized_numerators_result = factorize_numerators(result);
   indexed_pfd, indexed_factors = pfd_as_indexed_txt(factorized_numerators_result);
   write(":w "+to_dir+"result_indexed_"+filename+".txt", indexed_pfd);
   write(":w "+to_dir+"result_factors_"+filename+".txt", indexed_factors);
+  }
 
   write( ":a "+to_dir+"resources_"+filename+".txt"
        , sprintf( "Time: %s ms,  Memory: %s Bytes with implementation %s"
@@ -3837,6 +3839,8 @@ proc parsePfdSingleEntryArgs(list #)
   intvec steps = 1,1,1,1;
   int save_int_res = 1;
   int parallelize = 0;
+  string input_format = "ssi";
+  string output_format = "ssi,cleartext,listnumden,indexed_all,indexed_denom";
 
   // user defined
   if (size(#) > 0) {
@@ -3877,6 +3881,13 @@ proc parsePfdSingleEntryArgs(list #)
     parallelize = #[7];
   }
 
+  if (size(#)>7) {
+    input_format = #[8];
+  }
+  if (size(#)>8) {
+    output_format = #[9];
+  }
+
   return ( list( from_dir
                , to_dir
                , pfd_implementation
@@ -3884,6 +3895,8 @@ proc parsePfdSingleEntryArgs(list #)
                , steps
                , save_int_res
                , parallelize
+               , input_format
+               , output_format
                )
          );
 }
@@ -3940,12 +3953,19 @@ proc pfd_as_txt(list result)
   return (dec);
 }
 
-proc pfd_as_txt_input(list result)
+proc pfd_as_txt_input(list result, list #)
 {
   string dec;
   string nonlin_fact;
   int i;
   int j;
+  int factorized_denom;
+
+  if(size(#) > 0) {
+    factorized_denom = #[1];
+  } else {
+    factorized_denom = 1;
+  }
 
   string input_representation = "list( ";
 
@@ -3981,6 +4001,9 @@ proc pfd_as_txt_input(list result)
     }
     if (size(nonlin_fact) > 0) {
         denom = denom + "*" + nonlin_fact;
+    }
+    if (!factorized_denom) {
+      execute("denom = string(" + denom + ");");
     }
     input_representation = input_representation + "list( " + num + ", " + denom + ")";
   }
@@ -4210,8 +4233,8 @@ proc prepareSingleEntryFraction( string filename
       // format correct, we are done here.
       return();
     }
-    // Bad format, continuing below to fix. Note, this will overwrite input
-    // TODO: vary write name to avoid overwriting
+    // in this case, the check function will throw and error, should now exit
+    // programme.
   } else {
     list summands;
     if (!defined(basering)) {
@@ -4219,7 +4242,7 @@ proc prepareSingleEntryFraction( string filename
       filename);
     }
     string s = read(":r " + from_dir + filename + ".txt");
-    execute("summands = " + input);
+    execute("summands = " + s + ";");
     list formatted_fraction = process_l_input(summands);
     write("ssi:w "+from_dir+filename+".ssi", formatted_fraction);
   }
