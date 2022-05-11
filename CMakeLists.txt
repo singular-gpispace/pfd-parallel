@@ -93,9 +93,12 @@ set_target_properties (SINGULAR-parallel-module
 )
 bundle_GPISpace_add_rpath (TARGET SINGULAR-parallel-module INSTALL_DIRECTORY "LIB")
 
+set(PFD_EXAMPLE_PATH "${CMAKE_INSTALL_PREFIX}/example_data")
+
 add_subdirectory (interface)
 add_subdirectory (workflow)
 add_subdirectory (singular)
+add_subdirectory (example_data)
 
 configure_file("src/config.hpp.in"
   "${CMAKE_BINARY_DIR}/src/config.hpp"
@@ -106,7 +109,6 @@ add_custom_target (Config
   ALL
   DEPENDS "${CMAKE_BINARY_DIR}/src/config.hpp"
 )
-
 
 
 #install (DIRECTORY "${SINGULAR_HOME}/"
