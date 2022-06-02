@@ -54,12 +54,6 @@ namespace singular_parallel
       );
 
     NO_NAME_MANGLING
-      void singular_parallel_compute
-       ( unsigned int const& id
-       , const pnet_options& options
-       );
-
-    NO_NAME_MANGLING
       void pfd_serial_compute_pfd
        ( unsigned int const& id
        , const pnet_options& options
@@ -100,13 +94,6 @@ namespace singular_parallel
 
     NO_NAME_MANGLING
       void pfd_compute_step
-      ( unsigned int const& id
-      , const pnet_options& options
-      , const std::string& step
-      );
-
-    NO_NAME_MANGLING
-      singular_parallel::pnet_list pfd_loop_init
       ( unsigned int const& id
       , const pnet_options& options
       , const std::string& step
@@ -157,14 +144,6 @@ namespace singular_parallel
       );
 
     NO_NAME_MANGLING
-      int pfd_loop_merge
-      ( unsigned int const& id
-      , unsigned int const& term_count
-      , const pnet_options& options
-      , const std::string& step
-      );
-
-    NO_NAME_MANGLING
       unsigned int pfd_fork_merge_pair
       ( unsigned int const& id
       , unsigned int const& left
@@ -173,28 +152,6 @@ namespace singular_parallel
       , const std::string& step
       );
 
-
-    NO_NAME_MANGLING
-      void pfd_fork_merge
-      ( unsigned int const& id
-      , unsigned int const& term_count
-      , const pnet_options& options
-      , const std::string& step
-      );
-
-    NO_NAME_MANGLING
-      singular_parallel::pnet_list  pfd_loop_cycle_terms
-      ( unsigned int const& id
-      , const pnet_options& options
-      , const std::string& step
-      );
-
-    NO_NAME_MANGLING
-      void  pfd_loop_finish
-      ( unsigned int const& id
-      , const pnet_options& options
-      , const std::string& step
-      );
 
     NO_NAME_MANGLING
       unsigned int pfd_fork_finish

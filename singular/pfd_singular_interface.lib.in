@@ -21,9 +21,9 @@ proc pfd_singular_filename_no_suffix (string matrixname, int row, int col)
 proc pfd_singular_compute (in_struct input)
 {
   string filename = pfd_singular_filename( input.matrixname
-                                     , input.suffix
-                                     , input.row
-                                     , input.col);
+                                         , input.suffix
+                                         , input.row
+                                         , input.col);
   if (input.suffix == "txt") {
     execute("ring r = " + input.neededring + ";");
   }
@@ -43,7 +43,12 @@ proc pfd_singular_compute (in_struct input)
   return(output);
 }
 
-proc pfd_singular_general_prepare (in_struct input, int id, string tempdir, string terms_name, string output_format)
+proc pfd_singular_general_prepare( in_struct input
+                                 , int id
+                                 , string tempdir
+                                 , string terms_name
+                                 , string output_format
+                                 )
 {
   if (pfd_singular_is_already_computed(input)) {
     return(1);
@@ -211,7 +216,11 @@ proc pfd_singular_is_trivial (in_struct input, string output_format)
   }
 }
 
-proc pfd_singular_prepare_input (in_struct input, int id, string tempdir, string terms_name)
+proc pfd_singular_prepare_input( in_struct input
+                               , int id
+                               , string tempdir
+                               , string terms_name
+                               )
 {
   system("--ticks-per-sec",1000);
   short = 0;
@@ -255,11 +264,11 @@ proc get_loop_strat(string step) {
 }
 
 proc pfd_singular_compute_step ( int id
-                           , string step
-                           , string from_terms
-                           , string to_terms
-                           , string tempdir
-                           )
+                               , string step
+                               , string from_terms
+                               , string to_terms
+                               , string tempdir
+                               )
 {
   system("--ticks-per-sec",1000);
   short = 0;
@@ -279,8 +288,6 @@ proc pfd_singular_compute_step ( int id
   list dec = generic_dec_loop(step, get_loop_strat(step), terms[1], q, debug, l);
 
   t = rtimer-t;
-//  write(":a "+to_dir+"resources_"+filename+".txt",
-//        sprintf(step + " Time: %s ms,  Memory: %s Bytes",t,memory(2)));
   write(":w "+tempdir+"/"+step+"_"+string(id)+".time",
         string(t));
 
@@ -411,23 +418,17 @@ proc pfd_split_terms(int id,
   int i;
 
   list term_lists = list();
-  //list dec_lists = list();
   for(i = 1; i <= split_count; i++) {
     term_lists[i] = list();
-    //dec_lists[i] = list();
   }
 
   for(i = 0; i < term_count; i++) {
     term_lists[1 + i % split_count][1 + i div split_count] = terms[1 + i];
   }
-  //for(i = 0; i < dec_count; i++) {
-  //  dec_lists[1 + i % split_count][1 + i div split_count] = dec[1 + i];
-  //}
 
   for(i = 0; i < split_count; i++) {
     write("ssi:w " + tempdir + "/" + out_filename + "_" +
               string(id) + "_" + string(i) + ".ssi",
-          //list(term_lists[i], dec_lists[i]));
           term_lists[i + 1]);
   }
   write("ssi:w " + tempdir + "/" + out_filename + "_dectemp_" +
@@ -474,35 +475,6 @@ proc pfd_fork_compute_term( int id
                    ".ssi", list(list(), result) );
 }
 
-
-proc pfd_fork_merge( int id
-                   , int term_count
-                   , string step
-                   , string filename
-                   , string tempdir
-                   )
-{
-  int i;
-  list dec = read("ssi:r " + tempdir +
-                             "/" + filename + "_dec_" +
-                             string(id) +
-                             ".ssi");
-
-  for (i = 1; i <= term_count; i++) {
-    list result = read("ssi:r " + tempdir +
-                                "/" + filename + "_result_" +
-                                string(id) + "_" + string(i) +
-                                ".ssi");
-
-    dec = mergepfd(dec, result);
-  }
-
-  write( "ssi:w " + tempdir +
-                    "/" + filename + "_dec_" +
-                    string(id) +
-                    ".ssi"
-       , dec);
-}
 
 proc pfd_fork_merge_pair( int id
                         , int left

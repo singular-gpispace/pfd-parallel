@@ -484,33 +484,6 @@ namespace singular_parallel
         return sorted_list;
       }
 
-
-    NO_NAME_MANGLING
-      void singular_parallel_compute
-      ( unsigned int const& id
-      , const pnet_options& options
-      )
-      {
-        singular::init_singular ();
-
-        singular::register_struct(options.in_struct_name,
-                                  options.in_struct_desc);
-        singular::register_struct(options.out_struct_name,
-                                  options.out_struct_desc);
-        singular::load_library (options.needed_library);
-        singular::load_ssi("input", get_in_struct_filename( options.tempdir
-                                        , config::parallel_list_base_name()
-                                        , id));
-        singular::call_and_discard(options.out_struct_name + " output = " +
-                                    options.function_name +
-                                    "(input);");
-        singular::write_ssi("output", get_out_struct_filename( options.tempdir
-                                            , config::parallel_list_base_name()
-                                            , id)
-                                            );
-        singular::call_and_discard("kill output;");
-      }
-
     NO_NAME_MANGLING
       void pfd_serial_compute_pfd
       ( unsigned int const& id
@@ -1019,42 +992,6 @@ namespace singular_parallel
                             % ("\"" + options.tempdir + "\"");
 
         singular::call_and_discard(command.str());
-      }
-
-
-    NO_NAME_MANGLING
-      void pfd_fork_merge
-      ( unsigned int const& id
-      , unsigned int const& term_count
-      , const pnet_options& options
-      , const std::string& step
-      )
-      {
-        unsigned int i;
-        std::string file = get_from_name(step);
-        singular::init_singular ();
-
-        singular::register_struct(options.in_struct_name,
-                                  options.in_struct_desc);
-        singular::register_struct(options.out_struct_name,
-                                  options.out_struct_desc);
-        singular::load_library (options.needed_library);
-
-        boost::format command =
-              boost::format("pfd_fork_merge(%1%, %2%, %3%, %4%, %5%);")
-                            % id
-                            % term_count
-                            % ("\"" + step + "\"")
-                            % ("\"" + file + "\"")
-                            % ("\"" + options.tempdir + "\"");
-
-        singular::call_and_discard(command.str());
-
-        for (i = 1; i <= term_count; i++) {
-          remove((options.tempdir + "/" + file + "_result_" +
-                       std::to_string(id) + "_" + std::to_string(i) +
-                       ".ssi").c_str());
-        }
       }
 
     NO_NAME_MANGLING
