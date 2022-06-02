@@ -79,6 +79,11 @@ git clone                                                         \
     $software_ROOT/pfd
 
 ```
+Fetch all submodules:
+```bash
+git submodule update --init --recursive
+
+```
 
 Add the spack repo in pfd to the spack installation:
 ```bash
