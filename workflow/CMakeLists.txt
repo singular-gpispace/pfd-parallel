@@ -72,8 +72,6 @@ function(addinstall_pnet module_name)
   )
 endfunction()
 
-addinstall_pnet(parallel_all)
-addinstall_pnet(parallel_first)
 addinstall_pnet(parallel_allpfd
                 pfd_compute.xpnet
                 pfd_fork_compute_step.xpnet

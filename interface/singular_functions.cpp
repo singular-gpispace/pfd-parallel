@@ -6,14 +6,13 @@
 #include <sstream>
 #include <iostream>
 #include <iomanip>
-#include <boost/uuid/sha1.hpp>
+//#include <boost/uuid/sha1.hpp>
 #include <boost/filesystem.hpp>
 #include <src/config.hpp>
 #include <util-generic/finally.hpp>
 
 /*** Private function declarations ***/
 
-std::string hash_to_string(const unsigned int *hash, const int len);
 std::ifstream open_file (std::string const& fname);
 
 /*** Private functions ***/
@@ -26,18 +25,6 @@ std::ifstream open_file (std::string const& fname)
     throw std::runtime_error("bad bile name\n");
   }
   return ifs;
-}
-
-std::string hash_to_string( const unsigned int *hash, const int len)
-{
-  std::stringstream strstr;
-  strstr <<  std::hex<<std::setfill('0')
-         <<  std::setw(sizeof(int)*2);
-  for (int i=0; i < len; i++) {
-    strstr << hash[i];
-  }
-
-  return strstr.str();
 }
 
 /*** Public functions ***/
@@ -96,28 +83,6 @@ template<typename R> std::pair<int, R> proc (idhdl h, ScopedLeftv const& arg)
   iiRETURNEXPR.CleanUp();
 
   return std::make_pair (i, r);
-}
-
-static void error_callback(const char* msg)
-{
-  throw std::runtime_error("Singular error: " + std::string(msg));
-}
-
-bool init_singular ()
-{
-  if (currPack == NULL) // use this to check if this instance has already been
-                        // initializied
-  {
-    mp_set_memory_functions (omMallocFunc, omReallocSizeFunc, omFreeSizeFunc);
-    siInit (const_cast<char*> (config::singularLibrary().string().c_str()));
-    currentVoice = feInitStdin (NULL);
-    errorreported = 0;
-    myynest = 1;
-    WerrorS_callback=error_callback;
-
-    return true;
-  }
-  return false;
 }
 
 void load_singular_library (std::string const& library_name)
@@ -371,22 +336,29 @@ lists ssi_read_newstruct (si_link l, std::string const& struct_name)
   return li;
 }
 
-std::pair<int, lists> call_user_proc (std::string const& function_name,
-  std::string const& needed_library, int in_type, lists in_lst)
-{
-  ScopedLeftv arg (in_type, lCopy (in_lst));
-  return proc<lists> (symbol (needed_library, function_name), arg);
-}
-
-std::pair<int, lists> call_user_proc (std::string const& function_name,
-  std::string const& needed_library, ScopedLeftv& u_arg)
-{
-  return proc<lists> (symbol (needed_library, function_name), u_arg);
-}
-
-
-
 namespace singular {
+
+  static void error_callback(const char* msg)
+  {
+    throw std::runtime_error("Singular error: " + std::string(msg));
+  }
+
+  bool init_singular ()
+  {
+    if (currPack == NULL) // use this to check if this instance has already been
+                        // initializied
+    {
+      mp_set_memory_functions (omMallocFunc, omReallocSizeFunc, omFreeSizeFunc);
+      siInit (const_cast<char*> (config::singularLibrary().string().c_str()));
+      currentVoice = feInitStdin (NULL);
+      errorreported = 0;
+      myynest = 1;
+      WerrorS_callback=error_callback;
+
+      return true;
+    }
+    return false;
+  }
 
   void call (std::string const& command)
   {
@@ -697,34 +669,3 @@ void write_temp_structs_to_file( lists const& struct_list
   }
 }
 
-std::string calculate_file_sha1_hash(std::ifstream & ifs)
-{
-  boost::uuids::detail::sha1 sha1;
-  unsigned int hash[5];
-
-  /* sha1 loop */
-  char buf[1024];
-  while(ifs.good()) {
-    ifs.read(buf,sizeof(buf));
-    sha1.process_bytes(buf,ifs.gcount());
-  }
-
-  if(!ifs.eof()) {
-    throw std::runtime_error("not at eof\n");
-  }
-
-  sha1.get_digest(hash);
-  std::stringstream strstr;
-  strstr << hash_to_string(hash, (int)sizeof(hash)/sizeof(unsigned int));
-
-  return strstr.str();
-}
-
-std::string calculate_file_sha1_hash(std::string const& disk_filename)
-{
-  std::ifstream ifs = open_file(disk_filename.c_str());
-  std::string s_hash = calculate_file_sha1_hash(ifs);
-  ifs.close();
-
-  return s_hash;
-}

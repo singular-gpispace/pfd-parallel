@@ -423,7 +423,7 @@ namespace singular_parallel
       {
         int row, col;
         std::string matrix_name;
-        init_singular ();
+        singular::init_singular ();
         singular::register_struct(options.in_struct_name,
                                   options.in_struct_desc);
         if (net_type == "pfd") {
@@ -491,7 +491,7 @@ namespace singular_parallel
       , const pnet_options& options
       )
       {
-        init_singular ();
+        singular::init_singular ();
 
         singular::register_struct(options.in_struct_name,
                                   options.in_struct_desc);
@@ -517,7 +517,7 @@ namespace singular_parallel
       , const pnet_options& options
       )
       {
-        init_singular ();
+        singular::init_singular ();
 
         singular::register_struct(options.in_struct_name,
                                   options.in_struct_desc);
@@ -544,7 +544,7 @@ namespace singular_parallel
       , const singular_parallel::pnet_options& options
       )
       {
-        init_singular ();
+        singular::init_singular ();
 
         singular::register_struct(options.in_struct_name,
                                   options.in_struct_desc);
@@ -583,7 +583,7 @@ namespace singular_parallel
       , const pnet_options& options
       )
       {
-        init_singular ();
+        singular::init_singular ();
 
         singular::register_struct(options.in_struct_name,
                                   options.in_struct_desc);
@@ -604,7 +604,7 @@ namespace singular_parallel
       , const pnet_options& options
       )
       {
-        init_singular ();
+        singular::init_singular ();
 
         singular::register_struct(options.in_struct_name,
                                   options.in_struct_desc);
@@ -650,7 +650,7 @@ namespace singular_parallel
       , const std::string& first_step
       )
       {
-        init_singular ();
+        singular::init_singular ();
 
         singular::register_struct(options.in_struct_name,
                                   options.in_struct_desc);
@@ -679,7 +679,7 @@ namespace singular_parallel
       , const std::string& first_step
       )
       {
-        init_singular ();
+        singular::init_singular ();
 
         singular::register_struct(options.in_struct_name,
                                   options.in_struct_desc);
@@ -737,7 +737,7 @@ namespace singular_parallel
                                                 , options.tempdir));
         write_current_time(time_path);
 
-        init_singular ();
+        singular::init_singular ();
 
         singular::register_struct(options.in_struct_name,
                                   options.in_struct_desc);
@@ -770,7 +770,7 @@ namespace singular_parallel
       , const std::string& out_file
       )
       {
-        init_singular ();
+        singular::init_singular ();
 
         singular::register_struct(options.in_struct_name,
                                   options.in_struct_desc);
@@ -878,7 +878,7 @@ namespace singular_parallel
                              "/" + to_name + "_" + std::to_string(id) +
                              ".ssi");
 
-        init_singular ();
+        singular::init_singular ();
         singular::load_library (options.needed_library);
         boost::format command =
               boost::format("pfd_singular_skip_step(%1%, %2%);")
@@ -930,7 +930,7 @@ namespace singular_parallel
                              "/" + to_name + "_" + std::to_string(id) +
                              ".ssi");
 
-        init_singular ();
+        singular::init_singular ();
         singular::load_library (options.needed_library);
         boost::format command =
               boost::format("pfd_singular_hand_forward(%1%, %2%);")
@@ -1002,7 +1002,7 @@ namespace singular_parallel
       , const std::string to_file
       )
       {
-        init_singular ();
+        singular::init_singular ();
 
         singular::register_struct(options.in_struct_name,
                                   options.in_struct_desc);
@@ -1032,7 +1032,7 @@ namespace singular_parallel
       {
         unsigned int i;
         std::string file = get_from_name(step);
-        init_singular ();
+        singular::init_singular ();
 
         singular::register_struct(options.in_struct_name,
                                   options.in_struct_desc);
@@ -1102,7 +1102,7 @@ namespace singular_parallel
 
         // merge the lists of terms
         std::string file = get_from_name(step);
-        init_singular ();
+        singular::init_singular ();
 
         singular::register_struct(options.in_struct_name,
                                   options.in_struct_desc);
@@ -1192,7 +1192,7 @@ namespace singular_parallel
                                                "_" + std::to_string(id) +
                                                ".ssi");
 
-        init_singular ();
+        singular::init_singular ();
         singular::load_library (options.needed_library);
         boost::format command =
             boost::format("pfd_merge_decs_and_write(%1%, %2%, %3%);")
@@ -1227,7 +1227,7 @@ namespace singular_parallel
       , const std::string last_step
       )
       {
-        init_singular ();
+        singular::init_singular ();
 
         singular::register_struct(options.in_struct_name,
                                   options.in_struct_desc);

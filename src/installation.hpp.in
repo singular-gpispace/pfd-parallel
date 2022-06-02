@@ -18,8 +18,6 @@ namespace singular_parallel
     installation (boost::filesystem::path const&,
      boost::filesystem::path const&);
 
-    boost::filesystem::path workflow_all() const;
-    boost::filesystem::path workflow_first() const;
     boost::filesystem::path workflow_pfd() const;
     boost::filesystem::path workflow_dir() const;
     gspc::installation gspc_installation

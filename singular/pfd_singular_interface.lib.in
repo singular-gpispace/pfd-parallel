@@ -390,8 +390,6 @@ proc pfd_singular_write_result (int id, string tempdir, string output_format)
   return(output);
 }
 
-// while loop functions
-
 proc pfd_split_terms(int id,
                      string in_filename,
                      string out_filename,
@@ -561,32 +559,6 @@ proc pfd_singular_log_duration(int id,
   string to_dir = input[5];
     write(":a "+to_dir+"resources_"+filename+".txt",
           sprintf(measure_name+" time: %s ms",duration));
-}
-
-proc pfd_singular_get_tdegree_vector( int id
-                                    , string file
-                                    , string tempdir
-                                    )
-{
-  list terms = read("ssi:r " + tempdir + "/" + file + "_" +
-          string(id) + ".ssi");
-  terms = terms[1] + terms[2];
-  int n = size(terms);
-  int i,j;
-  int itdegree;
-  list vtdegree;
-
-  // iterate over terms in list
-  for (i = 1; i <= n; i++) {
-    itdegree = 0;
-
-    //iterate over factors of denominator, calculating the total degree
-    for (j = 1; j <= size(terms[i][3]); j++) {
-      itdegree = itdegree + terms[i][3][j];
-    }
-    vtdegree = vtdegree + list(itdegree);
-  }
-  return (vtdegree);
 }
 
 proc mod_init() {

@@ -116,7 +116,7 @@ namespace singular_parallel
       , const long& duration
       )
       {
-        init_singular ();
+        singular::init_singular ();
 
         singular::register_struct(options.in_struct_name,
                                   options.in_struct_desc);

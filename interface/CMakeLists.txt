@@ -12,12 +12,8 @@ extended_add_library (
   COMPILE_DEFINITIONS SING_NDEBUG OM_NDEBUG
   LIBRARIES GPISpace::workflow_development
             partial_static_parallel_allpfd_wrapper
-            partial_static_parallel_all_wrapper
-            partial_static_parallel_first_wrapper
             Singular
-  DEPENDS parallel_all_and_wrapper-library
-          parallel_first_and_wrapper-library
-          parallel_allpfd_and_wrapper-library
+  DEPENDS parallel_allpfd_and_wrapper-library
           Config
   INSTALL INSTALL_DESTINATION "libexec/workflow"
 )

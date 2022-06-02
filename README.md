@@ -36,7 +36,10 @@ write. In the following, we assume this path is set as the bash variable
 
 ```bash
 export software_ROOT=<software-root>
+
 ```
+Note, this needs to be set for every new terminal session that the user wants to
+use for this project.
 
 ## Setup Spack itself
 If spack is not already present, clone spack from github:
@@ -48,7 +51,7 @@ For the most predictable experience, check out verison v0.17 of spack:
 ```bash
 cd $software_ROOT/spack
 git checkout v0.17
-cd -
+cd $software_ROOT
 
 ```
 To be able to use spack from the command line, run the setup script (Note, in

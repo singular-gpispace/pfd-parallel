@@ -22,7 +22,6 @@ proc mod_init()
             "string outstructdesc, " +
             "string neededlibrary, " +
             "string functionname, " +
-            "string expandnodefunction, " +
             "string inputdir, " +
             "string outputdir, " +
             "string filename, " +
@@ -30,7 +29,6 @@ proc mod_init()
             "string algorithm, " +
             "string pfdimplementation, " +
             "string outputformat, " +
-            "int upperbound, " +
             "int splitmax, " +
             "int sortinput, " +
             "int parprop, " +
@@ -122,29 +120,19 @@ proc get_parallel_launch_command(string ret_name, string tempdir, string pnet_id
             "pc.options.inputdir, " +
             "pc.options.outputdir, " +
             "pc.options.outputformat";
-  if (pnet_id == "wait_first") {
-    return ("def " + ret_name + " = sggspc_wait_first(l, " + common_args +
-      ", 0, pc.options.sortinput, 0, pc.options.steps[1]," +
-      "pc.options.steps[2], pc.options.steps[3], pc.options.steps[4]);");
-  }
-  if (pnet_id == "wait_all") {
-    return ("def " + ret_name + " = sggspc_wait_all(l, " + common_args +
-      ", 0, pc.options.sortinput, 0, pc.options.steps[1]," +
-      "pc.options.steps[2], pc.options.steps[3], pc.options.steps[4]);");
-  }
   if (pnet_id == "pfd") {
     return ("def " + ret_name + " = sggspc_pfd(l, " + common_args +
       ", pc.options.splitmax, " +
       "pc.options.sortinput, pc.options.parprop, pc.options.steps[1]," +
       "pc.options.steps[2], pc.options.steps[3], pc.options.steps[4]);");
+  } else {
+    return("not a valid pnet_id");
   }
 }
 
 proc check_for_valid_pnet_id(string pnet_id)
 {
-  if ((pnet_id != "wait_all") &&
-    (pnet_id != "wait_first") &&
-    (pnet_id != "pfd")) {
+  if (pnet_id != "pfd") {
     ERROR("Unknown function '" + pnet_id + ",' please give correct option");
   }
 }
@@ -205,16 +193,6 @@ static proc parallel_wait(list l,
   string s_command = get_parallel_launch_command("sm_result", tempdir, pnet_id);
   execute(s_command);
   return (sm_result);
-}
-
-proc parallel_waitfirst(list l, configToken gc, configToken pc)
-{
-  return(parallel_wait(l, gc, pc, "wait_first"));
-}
-
-proc parallel_waitall(list l, configToken gc, configToken pc)
-{
-  return(parallel_wait(l, gc, pc, "wait_all"));
 }
 
 proc parallel_waitpfd(list l, configToken gc, configToken pc)
@@ -555,73 +533,4 @@ proc  pfd_fullyparallel( string matrixname
               , 100 // parallel, so 100% internal parallel
               , steps
               );
-}
-
-/*** companion functions ***/
-
-proc companion_structs_config()
-{
-  configToken pc = configure_parallel();
-
-  pc.options.instructname = "in_struct";
-  pc.options.instructdesc = "int index, " +
-                            "string rootdir";
-  pc.options.outstructname = "out_struct";
-  pc.options.outstructdesc = "string result";
-  pc.options.neededlibrary = "@PFD_SING_LIB_PATH@/companion_gspc_interface.lib";
-  pc.options.functionname = "companion_gspc_compute";
-
-  return (pc);
-}
-
-proc parallel_companion ( string rootdir
-                        , list file_indices
-                        , list #
-                        )
-"USAGE:   parallel_companion(rootdir, file_indices[, gc]), rootdir string,  file_indicies list, gc configToken
-PURPOSE:  apply @code{companion} in parallel to the data saved in the
-          files identified by the file_indices.
-          @code{rootdir} is the path to the directory relative to which the
-          input files will be found and the output will be written.
-"
-{
-  configToken gc, pc;
-  int i;
-  list l;
-
-  /*
-  if (! defined(basering)) {
-    ERROR("Please set the applicable ring required for the underlying polynomials");
-    return(0);
-  }
-  */
-
-  if (size(#) >= 1) {
-    gc = #[1];
-  } else {
-    gc = default_gspc_config();
-  }
-
-
-  pc = companion_structs_config();
-
-  newstruct(pc.options.instructname, pc.options.instructdesc);
-  newstruct(pc.options.outstructname, pc.options.outstructdesc);
-  in_struct ins;
-
-  ins.rootdir = rootdir;
-
-  for (i = 1; i <= size(file_indices); i++) {
-      ins.index = file_indices[i];
-      l[i] = ins;
-  }
-
-  def re_all = parallel_waitall(l,gc,pc);
-
-  if (size(#) < 1) {
-    system("sh", "rm -rv " + gc.options.tempdir);
-  }
-  print (re_all);
-
-  return (1);
 }

@@ -36,8 +36,6 @@ class ScopedLeftv
 };
 
 
-//bool init_singular (std::string const&);
-bool init_singular ();
 void load_singular_library (std::string const&);
 bool register_struct(std::string const&, std::string const&);
 si_link ssi_open_for_read (std::string const&);
@@ -98,6 +96,8 @@ void write_temp_structs_to_file( lists const& struct_list
 /*** direct singular call based function ***/
 
 namespace singular {
+
+  bool init_singular ();
 
   void call (std::string const& command);
 

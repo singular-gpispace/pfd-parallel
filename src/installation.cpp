@@ -57,23 +57,11 @@ namespace singular_parallel
     {
       return installation_path / "libexec" / "workflow";
     }
-    boost::filesystem::path workflow_all_file
-      (boost::filesystem::path const& installation_path)
-    {
-      // TODO: to sth. about several nets
-      return workflow_path (installation_path) / "parallel_all.pnet";
-    }
     boost::filesystem::path workflow_pfd_file
       (boost::filesystem::path const& installation_path)
     {
       // TODO: to sth. about several nets
       return workflow_path (installation_path) / "parallel_allpfd.pnet";
-    }
-    boost::filesystem::path workflow_first_file
-      (boost::filesystem::path const& installation_path)
-    {
-      // TODO: to sth. about several nets
-      return workflow_path (installation_path) / "parallel_first.pnet";
     }
   }
 
@@ -96,23 +84,15 @@ namespace singular_parallel
     //! \todo more detailed tests!?
     check_is_directory (gspc_home (_gspc_path));
     check_is_directory (workflow_path (_path));
-    check_is_file (workflow_all());
-    check_is_file (workflow_first());
     check_is_file (workflow_pfd());
   }
 
-  boost::filesystem::path installation::workflow_all() const
-  {
-    return workflow_all_file (_path);
-  }
+
   boost::filesystem::path installation::workflow_pfd() const
   {
     return workflow_pfd_file (_path);
   }
-  boost::filesystem::path installation::workflow_first() const
-  {
-    return workflow_first_file (_path);
-  }
+
   boost::filesystem::path installation::workflow_dir() const
   {
     return workflow_path (_path);
