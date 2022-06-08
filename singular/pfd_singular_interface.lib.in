@@ -372,7 +372,7 @@ proc pfd_singular_write_result (int id, string tempdir, string output_format)
 
   // write as clear text
   if (find(output_format, "cleartext")) {
-    write(":w " + to_dir + "result_" + filename + ".ssi", pfd_as_txt(result));
+    write(":w " + to_dir + "result_" + filename + ".txt", pfd_as_txt(result));
   }
   if (find(output_format, "listnumden")) {
     write(":w " + to_dir + "result_" + filename + "_input.txt", pfd_as_txt_input(result));
