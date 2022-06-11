@@ -3840,7 +3840,7 @@ proc parsePfdSingleEntryArgs(list #)
   int save_int_res = 0;
   int parallelize = 0;
   string input_format = "ssi";
-  string output_format = "ssi,cleartext,listnumden,indexed_all,indexed_denom";
+  string output_format = "ssi,cleartext,listnumden,indexed_denom";
 
   // user defined
   if (size(#) > 0) {

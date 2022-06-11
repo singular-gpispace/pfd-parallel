@@ -229,7 +229,7 @@ proc configure_pfd()
 {
   configToken pc = configure_parallel();
   intvec steps = 1,1,1,1;
-  string outputformat = "ssi,cleartext,listnumden,indexed_all,indexed_denom";
+  string outputformat = "ssi,cleartext,listnumden,indexed_denom";
 
   pc.options.instructname = "in_struct";
   pc.options.instructdesc = "string matrixname, int row, int col, " +

@@ -183,11 +183,11 @@ proc pfd_singular_is_trivial (in_struct input, string output_format)
 
     string indexed_pfd;
     string indexed_factors;
-    list factorized_numerators_result = factorize_numerators(result);
 
     // write ssi
     write("ssi:w "+to_dir+"result_"+filename+".ssi", result);
 
+    /*
     // write as clear text
     if (find(output_format, "cleartext")) {
       write(":w " + to_dir + "result_" + filename + ".txt", pfd_as_txt(result));
@@ -205,10 +205,12 @@ proc pfd_singular_is_trivial (in_struct input, string output_format)
 
     // write indexed
     if (find(output_format, "indexed_all")) {
+      list factorized_numerators_result = factorize_numerators(result);
       indexed_pfd, indexed_factors = pfd_as_indexed_txt(factorized_numerators_result);
       write(":w "+to_dir+"result_indexed_"+filename+".txt", indexed_pfd);
       write(":w "+to_dir+"result_factors_"+filename+".txt", indexed_factors);
     }
+    */
 
     out_struct output;
     output.result = "success! (trivial problem)";
@@ -365,7 +367,6 @@ proc pfd_singular_write_result (int id, string tempdir, string output_format)
 
   string indexed_pfd;
   string indexed_factors;
-  list factorized_numerators_result = factorize_numerators(result);
 
   //write ssi
   write("ssi:w "+to_dir+"result_"+filename+".ssi",result);
@@ -387,6 +388,7 @@ proc pfd_singular_write_result (int id, string tempdir, string output_format)
 
   // write indexed
   if (find(output_format, "indexed_all")) {
+    list factorized_numerators_result = factorize_numerators(result);
     indexed_pfd, indexed_factors = pfd_as_indexed_txt(factorized_numerators_result);
     write(":w "+to_dir+"result_indexed_"+filename+".txt", indexed_pfd);
     write(":w "+to_dir+"result_factors_"+filename+".txt", indexed_factors);
