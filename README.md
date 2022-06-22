@@ -75,12 +75,13 @@ Clone the pfd repository into this directory:
 ```bash
 git clone                                                         \
     --depth 1                                                     \
-    https://github.com/singular-gpispace/PFD.git                  \
+    https://github.com/singular-gpispace/PFD2.git                  \
     $software_ROOT/pfd
 
 ```
 Fetch all submodules:
 ```bash
+cd $software_ROOT/pfd
 git submodule update --init --recursive
 
 ```
