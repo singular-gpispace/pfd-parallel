@@ -240,7 +240,7 @@ proc configure_pfd()
   pc.options.outstructdesc = "string result";
   pc.options.neededlibrary = "@PFD_SING_LIB_PATH@/pfd_singular_interface.lib";
   pc.options.functionname = "pfd_singular_compute";
-  pc.options.pfdimplementation = "pfd1";
+  pc.options.pfdimplementation = "lein";
   pc.options.splitmax = 8;
   pc.options.sortinput = 1;
   pc.options.parprop = 100;
@@ -374,12 +374,12 @@ PURPOSE:  apply @code{pfd} in parallel to the rational function saved in the
     if ( typeof(#[7]) != "string") {
       ERROR("pfdimplementation requires a string");
     } else {
-      if ((#[7] == "pfd1") ||
-          (#[7] == "pfd2") ||
+      if ((#[7] == "lein") ||
+          (#[7] == "MultivariateApart_kl") ||
           (#[7] == "both")) {
         pc.options.pfdimplementation = #[7];
       } else {
-        ERROR("pfdimplementation may only be 'pfd1', 'pfd2' or 'both'");
+        ERROR("pfdimplementation may only be 'lein', 'MultivariateApart_kl' or 'both'");
       }
     }
   }

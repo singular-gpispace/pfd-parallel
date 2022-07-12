@@ -27,8 +27,8 @@ proc pfd_singular_compute (in_struct input)
   if (input.suffix == "txt") {
     execute("ring r = " + input.neededring + ";");
   }
-  if ((input.pfdimplementation == "pfd1") ||
-      (input.pfdimplementation == "pfd2")) {
+  if ((input.pfdimplementation == "lein") ||
+      (input.pfdimplementation == "MultivariateApart_kl")) {
     pfdSingleEntry( filename
                   , input.inputdir
                   , input.outputdir
