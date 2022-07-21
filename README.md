@@ -1,4 +1,4 @@
-# PFD - Partial Fraction Decomposition
+# PFD-Parallel - Partial Fraction Decomposition in Parallel
 
 We provide a massively parallel framework for partial fraction decomposition of
 rational functions based on the [Singular/GPI-Space framework](https://www.mathematik.uni-kl.de/~boehm/singulargpispace/).
@@ -26,8 +26,8 @@ some of their dependencies and the project code itself.
 
 # Installation --- Using Spack
 Spack is a package manager for supercomputers, Linux, and macOS, for which a
-local repo is to be found in the directory `spack` in the pfd source tree. For
-most users, this should be the easiest way to install the pfd project and all
+local repo is to be found in the directory `spack` in the pfd-parallel source tree. For
+most users, this should be the easiest way to install the pfd-parallel project and all
 it's dependencies, with minimal configuration required.
 
 We will assume the user has some directory path to which she/he can read and
@@ -69,54 +69,53 @@ spack spec zlib
 ```
 This may take a while the first time.
 
-## Clone and setup pfd
+## Clone and setup pfd-parallel
 
-Clone the pfd repository into this directory:
+Clone the pfd-parallel repository into this directory:
 ```bash
 git clone                                                         \
     --depth 1                                                     \
-    https://github.com/singular-gpispace/PFD2.git                  \
-    $software_ROOT/pfd
+    https://github.com/singular-gpispace/pfd-parallel.git         \
+    $software_ROOT/pfd-parallel
 
 ```
 Fetch all submodules:
 ```bash
-cd $software_ROOT/pfd
+cd $software_ROOT/pfd-parallel
 git submodule update --init --recursive
 
 ```
 
-Add the spack repo in pfd to the spack installation:
+Add the spack repo in pfd-parallel to the spack installation:
 ```bash
-spack repo add $software_ROOT/pfd/spack
+spack repo add $software_ROOT/pfd-parallel/spack
 
 ```
 
-Finally, install pfd:
+Finally, install pfd-parallel:
 ```bash
-spack install pfd
+spack install pfd-parallel
 ```
 Note, this may take a long time, as it needs to build gpi-space and singular
 (including dependencies), both of which are quite extensive.
 
-Once pfd is installed, using pfd requires loading pfd:
+Once pfd-parallel is installed, using pfd-parallel requires loading the installed software:
 ```bash
-spack load pfd
+spack load pfd-parallel
 ```
 
 For the examples below, the user needs to set the following environment
 variables:
 ```bash
 export PFD_ROOT=$software_ROOT
-export PFD_REPO=$software_ROOT/pfd
-export PFD_INSTALL_DIR=$PFD_PREFIX
+export PFD_REPO=$software_ROOT/pfd-parallel
 export PFD_INPUT_DIR=$PFD_ROOT/input
 export PFD_OUTPUT_DIR=$PFD_ROOT/output
 ```
 
 # Installation --- Manually from sources
 
-As an alternative to spack, pfd and its dependencies can also be compiled
+As an alternative to spack, pfd-parallel and its dependencies can also be compiled
 directly.  For most users, a spack installation should suffice, in which case
 this section can be skipped.
 
@@ -132,16 +131,16 @@ computation nodes to be used for running the system.
 cat > env_vars_pfd.txt << "EOF"
 export software_ROOT=<software-root>
 # Some fast location in local system for hosting build directories,
-# for example, something like /tmpbig/$USER/pfd or just $HOME/pfd if the user has a
+# for example, something like /tmpbig/$USER/pfd-parallel or just $HOME/pfd-parallel if the user has a
 # fast home directory.
 
 export install_ROOT=<install-root>
 # The install root is recommended to be some network (nfs) mountpoint, where
 # each node of the cluster should be able to read from, for example
-# something like /scratch/$USER/pfd
+# something like /scratch/$USER/pfd-parallel
 
 export compile_ROOT=$software_ROOT
-# Optionally, this might be set to something like /dev/shm/$USER/pfd that
+# Optionally, this might be set to something like /dev/shm/$USER/pfd-parallel that
 # stores files purely in memory, thus the contents of this
 # location will be lost after reboot.  It can speed up the computation times, as
 # all disk io becomes memory io.
@@ -174,10 +173,10 @@ export SINGULAR_INSTALL_DIR=$install_ROOT/Singular
 export SINGULAR_BUILD_DIR=$compile_ROOT/Singular/build
 
 # PFD:
-export PFD_ROOT=$software_ROOT/pfd
-export PFD_REPO=$PFD_ROOT/pfd
-export PFD_INSTALL_DIR=$install_ROOT/pfd
-export PFD_BUILD_DIR=$compile_ROOT/pfd/build
+export PFD_ROOT=$software_ROOT/pfd-parallel
+export PFD_REPO=$PFD_ROOT/pfd-parallel
+export PFD_INSTALL_DIR=$install_ROOT/pfd-parallel
+export PFD_BUILD_DIR=$compile_ROOT/pfd-parallel/build
 export PFD_INPUT_DIR=$PFD_ROOT/input
 export PFD_OUTPUT_DIR=$PFD_ROOT/output
 EOF
@@ -620,8 +619,8 @@ mkdir -p $PFD_ROOT && cd $PFD_ROOT
 
 git clone                                                         \
     --depth 1                                                     \
-    https://github.com/singular-gpispace/PFD.git                  \
-    pfd
+    https://github.com/singular-gpispace/pfd-parallel.git         \
+    pfd-parallel
 
 mkdir -p $PFD_BUILD_DIR
 cmake -D CMAKE_INSTALL_PREFIX=$PFD_INSTALL_DIR   \
