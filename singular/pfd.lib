@@ -3656,7 +3656,7 @@ SEE ALSO: leinartas_adapted, pfdParallel, pfdMat, pfdSingleEntrySSI
   int save_int_res = args[6];
   int parallelize = args[7];
   string input_format = args[8]; //"ssi" or "listnumden"
-  string output_format = args[9]; //"ssi" or "listnumden" or "cleartext" or "indexed_denom" or "indexed_all"
+  string output_format = args[9]; //"ssi" or "listnumden" or "cleartext" or "indexed_denominator" or "indexed_numerator_denominator"
 
 
   int i,j,k;
@@ -3681,10 +3681,10 @@ SEE ALSO: leinartas_adapted, pfdParallel, pfdMat, pfdSingleEntrySSI
   list result;
   if(parallelize) {
     result = pfdParallel(fraction);
-  } else{if (pfd_implementation == "lein") {
+  } else{if (pfd_implementation == "Leinartas") {
     //format: leinartas_adapted(list(q,terms)[,debug,steps,save_int_res])
     result = leinartas_adapted(fraction, save_int_res, steps, save_int_res);
-  } else{if (pfd_implementation == "MultivariateApart_kl") {
+  } else{if (pfd_implementation == "MultivariateApart") {
     // TODO: check whether the MultivariateApart_kl implementation does not already handle
     // this case.
     list fractioni, resulti, resultq;
@@ -3748,14 +3748,14 @@ SEE ALSO: leinartas_adapted, pfdParallel, pfdMat, pfdSingleEntrySSI
   }
 
   // write denominator indexed
-  if (find(output_format, "indexed_denom")) {
+  if (find(output_format, "indexed_denominator")) {
     indexed_pfd, indexed_factors = pfd_as_indexed_txt(result);
     write(":w "+to_dir+"result_indexed_denominator_"+filename+".txt", indexed_pfd);
     write(":w "+to_dir+"result_factors_denominator_"+filename+".txt", indexed_factors);
   }
 
   // write indexed
-  if (find(output_format, "indexed_all")) {
+  if (find(output_format, "indexed_numerator_denominator")) {
   list factorized_numerators_result = factorize_numerators(result);
   indexed_pfd, indexed_factors = pfd_as_indexed_txt(factorized_numerators_result);
   write(":w "+to_dir+"result_indexed_"+filename+".txt", indexed_pfd);
@@ -3834,13 +3834,13 @@ proc parsePfdSingleEntryArgs(list #)
   // defaults:
   string from_dir = "";
   string to_dir = "";
-  string pfd_implementation = "lein";
+  string pfd_implementation = "Leinartas";
   int ignore_nonlin = 0;
   intvec steps = 1,1,1,1;
   int save_int_res = 0;
   int parallelize = 0;
   string input_format = "ssi";
-  string output_format = "ssi,cleartext,listnumden,indexed_denom";
+  string output_format = "ssi,cleartext,listnumden,indexed_denominator";
 
   // user defined
   if (size(#) > 0) {
@@ -3859,8 +3859,8 @@ proc parsePfdSingleEntryArgs(list #)
 
   if (size(#)>2) {
     pfd_implementation = #[3];
-    if ((pfd_implementation != "lein") &&
-        (pfd_implementation != "MultivariateApart_kl")) {
+    if ((pfd_implementation != "Leinartas") &&
+        (pfd_implementation != "MultivariateApart")) {
       ERROR("pfd_implementation should be 'lein' or 'MultivariateApart_kl'");
     }
   }
@@ -5040,7 +5040,7 @@ EXAMPLE:  example MultivariateApart_kl; shows an example"
           if(typeof(arguments[i][1])=="list") //input is list of lists
             {arguments[i] = list(arguments[i],1);}
         }
-        return(parallelWaitAll("MultivariateApart_kl",arguments));
+        return(parallelWaitAll("MultivariateApart",arguments));
       }
       else
       {

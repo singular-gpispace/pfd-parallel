@@ -688,7 +688,7 @@ configToken pfdconfig = configure_pfd();
 pfdconfig.options.filename = "fraction";
 pfdconfig.options.inputdir = "$PFD_INPUT_DIR";
 pfdconfig.options.outputdir = "$PFD_OUTPUT_DIR";
-pfdconfig.fdconfigptions.algorithm = "fullyParallel";
+pfdconfig.fdconfigptions.parallelism = "intertwined";
 
 ring r = 0, x, lp;
 
@@ -808,7 +808,7 @@ configToken pfdconfig = configure_pfd();
 pfdconfig.options.filename = "xb_deg5";
 pfdconfig.options.inputdir = "$PFD_REPO/example_data/ssi";
 pfdconfig.options.outputdir = "$PFD_OUTPUT_DIR";
-pfdconfig.fdconfigptions.algorithm = "fullyParallel";
+pfdconfig.options.parallelism = "intertwined";
 
 ring r = 0, x, lp;
 
@@ -843,7 +843,7 @@ It can now be started with
 ```
 
 Note, to run the same computation, but without the internal parallelism on each
-entry, the `algorithm` field in the `pfdconfig` tokens `options` field may be changed to
+entry, the `parallelism` field in the `pfdconfig` tokens `options` field may be changed to
 `waitAll`.
 
 

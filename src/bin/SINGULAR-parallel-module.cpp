@@ -274,7 +274,7 @@ namespace
   , num_tasks (get_num_tasks(arg_list, graph_type))
   , split_max(get_split_max(args, graph_type))
   , sort_input (get_singular_int_argument(args, 16, "sortinput"))
-  , par_prop (get_singular_int_argument(args, 17, "parprop"))
+  , par_prop (get_singular_int_argument(args, 17, "percentage"))
   , steps_active (get_steps_active(args, graph_type))
   , out_token (fetch_token_value_from_sing_scope (outstructname))
   , singular_parallel_installation ()

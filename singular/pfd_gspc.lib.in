@@ -26,12 +26,12 @@ proc mod_init()
             "string outputdir, " +
             "string filename, " +
             "string suffix, " +
+            "string parallelism, " +
             "string algorithm, " +
-            "string pfdimplementation, " +
             "string outputformat, " +
             "int splitmax, " +
             "int sortinput, " +
-            "int parprop, " +
+            "int percentage, " +
             "intvec steps"
             );
 }
@@ -123,7 +123,7 @@ proc get_parallel_launch_command(string ret_name, string tempdir, string pnet_id
   if (pnet_id == "pfd") {
     return ("def " + ret_name + " = sggspc_pfd(l, " + common_args +
       ", pc.options.splitmax, " +
-      "pc.options.sortinput, pc.options.parprop, pc.options.steps[1]," +
+      "pc.options.sortinput, pc.options.percentage, pc.options.steps[1]," +
       "pc.options.steps[2], pc.options.steps[3], pc.options.steps[4]);");
   } else {
     return("not a valid pnet_id");
@@ -229,27 +229,27 @@ proc configure_pfd()
 {
   configToken pc = configure_parallel();
   intvec steps = 1,1,1,1;
-  string outputformat = "ssi,cleartext,listnumden,indexed_denom";
+  string outputformat = "ssi,cleartext,listnumden,indexed_denominator";
 
   pc.options.instructname = "in_struct";
   pc.options.instructdesc = "string matrixname, int row, int col, " +
                             "string neededring, string inputdir, " +
                             "string outputdir, string suffix, " +
-                            "string pfdimplementation";
+                            "string algorithm";
   pc.options.outstructname = "out_struct";
   pc.options.outstructdesc = "string result";
   pc.options.neededlibrary = "@PFD_SING_LIB_PATH@/pfd_singular_interface.lib";
   pc.options.functionname = "pfd_singular_compute";
-  pc.options.pfdimplementation = "lein";
+  pc.options.algorithm = "Leinartas";
   pc.options.splitmax = 8;
   pc.options.sortinput = 1;
-  pc.options.parprop = 100;
+  pc.options.percentage = 100;
   pc.options.steps = steps;
   pc.options.outputformat = outputformat;
 
   pc.options.filename = "";
   pc.options.suffix = "txt";
-  pc.options.algorithm = "custom";
+  pc.options.parallelism = "custom";
 
   return (pc);
 }
@@ -275,7 +275,7 @@ proc parallel_pfd ( list entry_indices
     ins.inputdir = get_absolute_path (pc.options.inputdir);
     ins.outputdir = get_absolute_path (pc.options.outputdir);
     ins.suffix = pc.options.suffix;
-    ins.pfdimplementation = pc.options.pfdimplementation;
+    ins.algorithm = pc.options.algorithm;
     if ((ins.suffix =="txt") and (! defined(basering))) {
       ERROR("Please set the applicable ring required for the underlying polynomials");
       return(0);
@@ -289,10 +289,10 @@ proc parallel_pfd ( list entry_indices
       l[i] = ins;
     }
 
-    if (pc.options.algorithm == "waitAll") {
-      pc.options.parprop=0;
-    } else{if (pc.options.algorithm == "fullyParallel") {
-      pc.options.parprop=100;
+    if (pc.options.parallelism == "waitAll") {
+      pc.options.percentage=0;
+    } else{if (pc.options.parallelism == "intertwined") {
+      pc.options.percentage=100;
     }}
 
     def re_all = parallel_waitpfd(l,gc,pc);
@@ -366,20 +366,20 @@ PURPOSE:  apply @code{pfd} in parallel to the rational function saved in the
     if ( typeof(#[6]) != "int") {
       ERROR("parallel proportion requires an int");
     } else {
-      pc.options.parprop = #[6];
+      pc.options.percentage = #[6];
     }
   }
 
   if (size(#) >= 7) {
     if ( typeof(#[7]) != "string") {
-      ERROR("pfdimplementation requires a string");
+      ERROR("algorithm requires a string");
     } else {
-      if ((#[7] == "lein") ||
-          (#[7] == "MultivariateApart_kl") ||
+      if ((#[7] == "Leinartas") ||
+          (#[7] == "MultivariateApart") ||
           (#[7] == "both")) {
-        pc.options.pfdimplementation = #[7];
+        pc.options.algorithm = #[7];
       } else {
-        ERROR("pfdimplementation may only be 'lein', 'MultivariateApart_kl' or 'both'");
+        ERROR("algorithm may only be 'Leinartas', 'MultivariateApart' or 'both'");
       }
     }
   }
