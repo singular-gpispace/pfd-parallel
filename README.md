@@ -27,13 +27,14 @@ ways of installation. The preferable way is the use the package manager Spack, w
 care of all dependencies automatically. The second way is a manual installation of a components,
 which can be used in case the installation with Spack is not possible on the target system.
 
-# Installation --- Using Spack
-Spack is a package manager for supercomputers, Linux, and macOS, for which a
-local repo is to be found in the directory `spack` in the pfd-parallel source tree. For
+# Installation using Spack
+Spack is a package manager specifically aimed at handling software installations in supercomputing environments, but
+usable on anything from a personal computer to an HPC cluster. It supports Linux and macOS (note that the Singular/GPI-Space
+framework requires Linux). A local repository for Space can be found in the directory `spack` in the pfd-parallel source tree. For
 most users, this should be the easiest way to install the pfd-parallel project and all
 it's dependencies, with minimal configuration required.
 
-We will assume the user has some directory path to which she/he can read and
+We will assume that the user has some directory path to which she/he can read and
 write. In the following, we assume this path is set as the bash variable
 `software_ROOT`:
 
@@ -99,8 +100,8 @@ Finally, install pfd-parallel:
 ```bash
 spack install pfd-parallel
 ```
-Note, this may take a long time, as it needs to build gpi-space and singular
-(including dependencies), both of which are quite extensive.
+Note, this may take quite a bit of time, when doing the initial installation, as it needs to build GPI-Space and Singular
+including dependencies.
 
 Once pfd-parallel is installed, using pfd-parallel requires loading the installed software:
 ```bash
@@ -116,11 +117,15 @@ export PFD_INPUT_DIR=$PFD_ROOT/input
 export PFD_OUTPUT_DIR=$PFD_ROOT/output
 ```
 
-# Installation --- Manually from sources
+The following section is not necessary if installation via Spack has been completed, and should be skipped. It contains
+everything what Spack does automatically for you.
 
-As an alternative to spack, pfd-parallel and its dependencies can also be compiled
-directly.  For most users, a spack installation should suffice, in which case
-this section can be skipped.
+
+# Manual installation from sources
+
+As an alternative to Spack, pfd-parallel and its dependencies can also be compiled
+directly.  For most users, a Spack installation should suffice, in which case
+this section should be skipped.
 
 For the various dependencies, it is recommended to create a file that exports
 the various install locations as environment variables. For this purpose, the
