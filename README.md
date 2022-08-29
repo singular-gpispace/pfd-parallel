@@ -118,7 +118,7 @@ export PFD_OUTPUT_DIR=$PFD_ROOT/output
 ```
 
 The following section is not necessary if installation via Spack has been completed, and should be skipped. It contains
-everything what Spack does automatically for you.
+everything what Spack does automatically for you. Please continue with the Example section.
 
 
 # Manual installation from sources
@@ -855,7 +855,7 @@ entry, the `parallelism` field in the `pfdconfig` tokens `options` field may be 
 `waitAll`.
 
 
-## Appendix: Standard packages required to build the framework
+# Appendix: Standard packages required to build the framework
 
 Assuming that we are installing on a Ubuntu system (analogous packages exist in other distributions), we give installation instructions for standard packages which are required by the framework and may not be included in your of-the-shelf installation.
 
