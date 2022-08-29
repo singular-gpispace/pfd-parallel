@@ -18,11 +18,14 @@ Most of the parallelization code is an adapted version of the
 [wait-all-first](https://github.com/singular-gpispace/wait-all-first)
 repository, implemented primarily by Lukas Ristau.
 
-This project provides a function for applying the partial fraction decoposition
-function to a matrix of rational functions.
+Since this is most useful in practical applications, the implementation provides a function for applying the partial fraction decoposition
+function to specified entries of a two-dimensional array of rational functions.
 
-To get this project up and running, you need to compile Singular, GPI-Space,
-some of their dependencies and the project code itself.
+To use the framework, it is required to install Singular, GPI-Space,
+some of their dependencies and the project code itself. In the following we provide two different
+ways of installation. The preferable way is the use the package manager Spack, which will take
+care of all dependencies automatically. The second way is a manual installation of a components,
+which can be used in case the installation with Spack is not possible on the target system.
 
 # Installation --- Using Spack
 Spack is a package manager for supercomputers, Linux, and macOS, for which a
@@ -39,7 +42,7 @@ export software_ROOT=<software-root>
 
 ```
 Note, this needs to be set for every new terminal session that the user wants to
-use for this project.
+use for this project (or you must make sure it is set automatically).
 
 ## Setup Spack itself
 If spack is not already present, clone spack from github:
@@ -47,27 +50,27 @@ If spack is not already present, clone spack from github:
 git clone https://github.com/spack/spack.git $software_ROOT/spack
 
 ```
-For the most predictable experience, check out verison v0.17 of spack:
+We check out verison v0.17 of Spack (the current version):
 ```bash
 cd $software_ROOT/spack
 git checkout v0.17
 cd $software_ROOT
 
 ```
-To be able to use spack from the command line, run the setup script (Note, in
-future, this step should be repeated at the start of any new terminal session
+To be able to use spack from the command line, run the setup script (note, that
+this step has to be repeated at the start of any new terminal session
 requiring spack):
 ```bash
 . $software_ROOT/spack/share/spack/setup-env.sh
 
 ```
-Next, spack still neeeds boostrap clingo.  This can be done by concretizing any
+Next, Spack still needs to boostrap clingo.  This can be done by concretizing any
 spec, for example
 ```bash
 spack spec zlib
 
 ```
-This may take a while the first time.
+This may take a while when installing the first time.
 
 ## Clone and setup pfd-parallel
 
