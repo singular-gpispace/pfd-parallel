@@ -696,7 +696,7 @@ configToken pfdconfig = configure_pfd();
 pfdconfig.options.filename = "fraction";
 pfdconfig.options.inputdir = "$PFD_INPUT_DIR";
 pfdconfig.options.outputdir = "$PFD_OUTPUT_DIR";
-pfdconfig.fdconfigptions.parallelism = "intertwined";
+pfdconfig.options.parallelism = "intertwined";
 
 ring r = 0, x, lp;
 
