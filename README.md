@@ -3,13 +3,19 @@
 We provide a massively parallel framework for partial fraction decomposition of
 rational functions based on the [Singular/GPI-Space framework](https://www.mathematik.uni-kl.de/~boehm/singulargpispace/).
 
-Our implementation is based on the approach described in the paper
+Our implementation is based on 
 
-Janko, Boehm, Marcel Wittmann, Zihao Wu, Yingxuan Xu, and Yang Zhang:
+1) the approach described in the paper
+
+Janko Boehm, Marcel Wittmann, Zihao Wu, Yingxuan Xu, and Yang Zhang:
 IBP reduction coefficients made simple, JHEP 12 (2020) 054,
 
 which has been implemened in Singular in the library
 [pfd.lib](https://github.com/Singular/Singular/blob/spielwiese/Singular/LIB/pfd.lib).
+
+2) MultivariateApart algorithm
+
+Matthias Heller, Andreas von Manteuffel, Comput.Phys.Commun. 271 (2022) 108174 
 
 Although applicable in general, it is aimed at the partial fraction
 decomposition of integration-by-parts coefficients in high energy physics.
