@@ -42,10 +42,10 @@ it's dependencies, with minimal configuration required.
 
 We will assume that the user has some directory path to which she/he can read and
 write. In the following, we assume this path is set as the bash variable
-`software_ROOT`:
+`example_ROOT`:
 
 ```bash
-export software_ROOT=<software-root>
+export example_ROOT=<software-root>
 
 ```
 Note, this needs to be set for every new terminal session that the user wants to
@@ -54,21 +54,21 @@ use for this project (or you must make sure it is set automatically).
 ## Setup Spack itself
 If spack is not already present, clone spack from github:
 ```bash
-git clone https://github.com/spack/spack.git $software_ROOT/spack
+git clone https://github.com/spack/spack.git $example_ROOT/spack
 
 ```
 We check out verison v0.17 of Spack (the current version):
 ```bash
-cd $software_ROOT/spack
+cd $example_ROOT/spack
 git checkout v0.17
-cd $software_ROOT
+cd $example_ROOT
 
 ```
 To be able to use spack from the command line, run the setup script (note, that
 this step has to be repeated at the start of any new terminal session
 requiring spack):
 ```bash
-. $software_ROOT/spack/share/spack/setup-env.sh
+. $example_ROOT/spack/share/spack/setup-env.sh
 
 ```
 Next, Spack still needs to boostrap clingo.  This can be done by concretizing any
@@ -81,24 +81,18 @@ This may take a while when installing the first time.
 
 ## Clone and setup pfd-parallel
 
-Clone the pfd-parallel repository into this directory:
+Clone the pfd spack repository into this directory:
 ```bash
 git clone                                                         \
     --depth 1                                                     \
-    https://github.com/singular-gpispace/pfd-parallel.git         \
-    $software_ROOT/pfd-parallel
-
-```
-Fetch all submodules:
-```bash
-cd $software_ROOT/pfd-parallel
-git submodule update --init --recursive
+    https://github.com/singular-gpispace/spack-packages.git       \
+    $example_ROOT/spack-packages
 
 ```
 
-Add the spack repo in pfd-parallel to the spack installation:
+Add the spack repo to the spack installation:
 ```bash
-spack repo add $software_ROOT/pfd-parallel/spack
+spack repo add $example_ROOT/spack-packages
 
 ```
 
@@ -117,10 +111,9 @@ spack load pfd-parallel
 For the examples below, the user needs to set the following environment
 variables:
 ```bash
-export PFD_ROOT=$software_ROOT
-export PFD_REPO=$software_ROOT/pfd-parallel
-export PFD_INPUT_DIR=$PFD_ROOT/input
-export PFD_OUTPUT_DIR=$PFD_ROOT/output
+export PFD_ROOT=$example_ROOT
+export PFD_INPUT_DIR=$example_ROOT/input
+export PFD_OUTPUT_DIR=$example_ROOT/results
 ```
 
 The following section is not necessary if installation via Spack has been completed, and should be skipped. It contains
@@ -143,7 +136,7 @@ computation nodes to be used for running the system.
 
 ```bash
 cat > env_vars_pfd.txt << "EOF"
-export software_ROOT=<software-root>
+export example_ROOT=<software-root>
 # Some fast location in local system for hosting build directories,
 # for example, something like /tmpbig/$USER/pfd-parallel or just $HOME/pfd-parallel if the user has a
 # fast home directory.
@@ -153,7 +146,7 @@ export install_ROOT=<install-root>
 # each node of the cluster should be able to read from, for example
 # something like /scratch/$USER/pfd-parallel
 
-export compile_ROOT=$software_ROOT
+export compile_ROOT=$example_ROOT
 # Optionally, this might be set to something like /dev/shm/$USER/pfd-parallel that
 # stores files purely in memory, thus the contents of this
 # location will be lost after reboot.  It can speed up the computation times, as
@@ -171,7 +164,7 @@ export PKG_CONFIG_PATH="${Libssh2_ROOT}/lib/pkgconfig:${Libssh2_ROOT}/lib64/pkgc
 
 
 # GPI-Space:
-export GPI_ROOT_DIR=$software_ROOT
+export GPI_ROOT_DIR=$example_ROOT
 export GPISPACE_REPO=$GPI_ROOT_DIR/gpispace/gpispace
 export GPISPACE_BUILD_DIR=$compile_ROOT/gpispace/build
 export GPISPACE_INSTALL_DIR=$install_ROOT/gpispace
@@ -180,19 +173,19 @@ export GSPC_HOME=$GPISPACE_INSTALL_DIR # Set mostly for legacy reasons
 export SHARED_DIRECTORY_FOR_TESTS=$GPISPACE_BUILD_DIR/tests
 
 # Singular:
-export SING_ROOT=$software_ROOT/Singular
+export SING_ROOT=$example_ROOT/Singular
 export DEP_LIBS=$install_ROOT/sing_dep_libs
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$DEP_LIBS/lib
 export SINGULAR_INSTALL_DIR=$install_ROOT/Singular
 export SINGULAR_BUILD_DIR=$compile_ROOT/Singular/build
 
 # PFD:
-export PFD_ROOT=$software_ROOT/pfd-parallel
+export PFD_ROOT=$example_ROOT/pfd-parallel
 export PFD_REPO=$PFD_ROOT/pfd-parallel
 export PFD_INSTALL_DIR=$install_ROOT/pfd-parallel
 export PFD_BUILD_DIR=$compile_ROOT/pfd-parallel/build
-export PFD_INPUT_DIR=$PFD_ROOT/input
-export PFD_OUTPUT_DIR=$PFD_ROOT/output
+export PFD_INPUT_DIR=$example_ROOT/input
+export PFD_OUTPUT_DIR=$example_ROOT/results
 EOF
 
 ```
@@ -211,7 +204,7 @@ source env_vars_pfd.txt
 
 Ensure that the compile and install roots exist:
 ```bash
-mkdir -p $software_ROOT
+mkdir -p $example_ROOT
 mkdir -p $install_ROOT
 mkdir -p $compile_ROOT
 
@@ -768,15 +761,7 @@ Create the input files:
 ```bash
 mkdir -p $PFD_INPUT_DIR
 mkdir -p $PFD_OUTPUT_DIR
-pushd $PFD_INPUT_DIR
-for r in {1..4}
-do
-  for c in {1..4}
-  do
-    echo "x/(x*(x+1))" > fraction_"$r"_"$c".txt
-  done
-done
-popd
+cp -v $PFD_INSTALL_DIR/example_data/* $PFD_INPUT_DIR
 
 ```
 
@@ -792,67 +777,6 @@ chmod a+x run_pfd_example.sh
 which can be started with
 ```
 ./run_pfd_example.sh
-
-```
-
-To run more an example with real PFD data, some data is provided as `ssi`
-("simple Singular interface") files under `example_data/ssi`, which can be
-decomposed with the Singular script `real_pfd.sing`:
-```bash
-mkdir -p $PFD_ROOT/tempdir
-echo $(hostname) > $PFD_ROOT/nodefile
-
-cat > real_pfd.sing.temp << "EOF"
-LIB "pfd_gspc.lib";
-
-// configuration for gpispace
-configToken gspcconfig = configure_gspc();
-
-gspcconfig.options.tempdir = "$PFD_ROOT/tempdir";
-gspcconfig.options.nodefile = "$PFD_ROOT/nodefile";
-gspcconfig.options.procspernode = 8;
-
-// Should the user want to run withouth the gspc-monitor
-// the following two lines may be commented out.
-gspcconfig.options.loghostfile = "$PFD_ROOT/loghostfile";
-gspcconfig.options.logport = 6439;
-
-// configuration for the problem to be computed.
-configToken pfdconfig = configure_pfd();
-pfdconfig.options.filename = "xb_deg5";
-pfdconfig.options.inputdir = "$PFD_REPO/example_data/ssi";
-pfdconfig.options.outputdir = "$PFD_OUTPUT_DIR";
-pfdconfig.options.parallelism = "intertwined";
-
-ring r = 0, x, lp;
-
-list l = list( list(1, 1), list(1, 2), list(1, 3), list(1, 4)
-             , list(1, 5), list(1, 6), list(1, 7), list(1, 8)
-             , list(1, 9), list(1, 10)
-             );
-parallel_pfd( l
-            , gspcconfig
-            , pfdconfig
-            );
-exit;
-EOF
-./shell_expand_script.sh real_pfd.sing.temp real_pfd.sing
-
-```
-
-To run the Singular Script, the following bash script may be used:
-```bash
-cat > run_real_pfd.sh << "EOF"
-SINGULARPATH="$PFD_INSTALL_DIR/LIB"                               \
-        $SINGULAR_INSTALL_DIR/bin/Singular                        \
-        real_pfd.sing
-EOF
-chmod a+x run_pfd_example.sh
-
-```
-It can now be started with
-```
-./run_real_pfd.sh
 
 ```
 
