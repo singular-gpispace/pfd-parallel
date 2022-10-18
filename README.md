@@ -667,7 +667,7 @@ preferably with the optional argument for the path to where the input files are
 found.  The user may also provide in a separate argument the path of where the
 output files should be written.
 
-An example script `test_parallel_pfd.sing` in Singular for a 4 by 4 matrix might
+An example script `test_parallel_pfd.sing` in Singular for a 1 by 10 matrix might
 be
 
 ```bash
@@ -700,9 +700,8 @@ pfdconfig.options.parallelism = "intertwined";
 ring r = 0, x, lp;
 
 list entries = list( list(1, 1), list(1, 2), list(1, 3), list(1, 4)
-                   , list(2, 1), list(2, 2), list(2, 3), list(2, 4)
-                   , list(3, 1), list(3, 2), list(3, 3), list(3, 4)
-                   , list(4, 1), list(4, 2), list(4, 3), list(4, 4)
+                   , list(1, 5), list(1, 6), list(1, 7), list(1, 8)
+                   , list(1, 9), list(1, 10)
                    );
 
 parallel_pfd( entries
