@@ -9,7 +9,7 @@ set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wextra")
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
 
-find_package (GPISpace 22.03 EXACT REQUIRED)
+find_package (GPISpace REQUIRED)
 
 find_package (util-cmake REQUIRED)
 include (util-cmake/add_macros)
