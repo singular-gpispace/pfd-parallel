@@ -97,7 +97,7 @@ spack install pfd-parallel
 Note, this may take quite a bit of time, when doing the initial installation, as it needs to build GPI-Space and Singular
 including dependencies.
 
-Once pfd-parallel is installed, using pfd-parallel requires loading the installed software:
+Once pfd-parallel is installed, to use pfd-parallel load the package via:
 ```bash
 spack load pfd-parallel
 ```
