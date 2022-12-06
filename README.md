@@ -40,7 +40,7 @@ framework and hence our package requires Linux).
 
 We will assume that the user has some directory path with read and
 write access. In the following, we assume this path is set as the environment variable
-`example_ROOT`, as detailed in the following example:
+`software_ROOT`, as detailed in the following example:
 
 ```bash
 export software_ROOT=~/singular-gpispace
@@ -56,9 +56,9 @@ git clone https://github.com/spack/spack.git $software_ROOT/spack
 ```
 We check out verison v0.17 of Spack (the current version):
 ```bash
-cd $example_ROOT/spack
+cd $software_ROOT/spack
 git checkout v0.17
-cd $example_ROOT
+cd $software_ROOT
 
 ```
 To be able to use spack from the command line, run the setup script:
@@ -105,9 +105,9 @@ spack load pfd-parallel
 For the examples below, the user needs to set the following environment
 variables:
 ```bash
-export PFD_ROOT=$example_ROOT
-export PFD_INPUT_DIR=$example_ROOT/input
-export PFD_OUTPUT_DIR=$example_ROOT/results
+export PFD_ROOT=$software_ROOT
+export PFD_INPUT_DIR=$software_ROOT/input
+export PFD_OUTPUT_DIR=$software_ROOT/results
 ```
 
 The following section is not necessary if installation via Spack has been completed, and should be skipped. It contains
@@ -130,7 +130,7 @@ computation nodes to be used for running the system.
 
 ```bash
 cat > env_vars_pfd.txt << "EOF"
-export example_ROOT=<software-root>
+export software_ROOT=<software-root>
 # Some fast location in local system for hosting build directories,
 # for example, something like /tmpbig/$USER/pfd-parallel or just $HOME/pfd-parallel if the user has a
 # fast home directory.
@@ -140,7 +140,7 @@ export install_ROOT=<install-root>
 # each node of the cluster should be able to read from, for example
 # something like /scratch/$USER/pfd-parallel
 
-export compile_ROOT=$example_ROOT
+export compile_ROOT=$software_ROOT
 # Optionally, this might be set to something like /dev/shm/$USER/pfd-parallel that
 # stores files purely in memory, thus the contents of this
 # location will be lost after reboot.  It can speed up the computation times, as
@@ -158,7 +158,7 @@ export PKG_CONFIG_PATH="${Libssh2_ROOT}/lib/pkgconfig:${Libssh2_ROOT}/lib64/pkgc
 
 
 # GPI-Space:
-export GPI_ROOT_DIR=$example_ROOT
+export GPI_ROOT_DIR=$software_ROOT
 export GPISPACE_REPO=$GPI_ROOT_DIR/gpispace/gpispace
 export GPISPACE_BUILD_DIR=$compile_ROOT/gpispace/build
 export GPISPACE_INSTALL_DIR=$install_ROOT/gpispace
@@ -167,19 +167,19 @@ export GSPC_HOME=$GPISPACE_INSTALL_DIR # Set mostly for legacy reasons
 export SHARED_DIRECTORY_FOR_TESTS=$GPISPACE_BUILD_DIR/tests
 
 # Singular:
-export SING_ROOT=$example_ROOT/Singular
+export SING_ROOT=$software_ROOT/Singular
 export DEP_LIBS=$install_ROOT/sing_dep_libs
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$DEP_LIBS/lib
 export SINGULAR_INSTALL_DIR=$install_ROOT/Singular
 export SINGULAR_BUILD_DIR=$compile_ROOT/Singular/build
 
 # PFD:
-export PFD_ROOT=$example_ROOT/pfd-parallel
+export PFD_ROOT=$software_ROOT/pfd-parallel
 export PFD_REPO=$PFD_ROOT/pfd-parallel
 export PFD_INSTALL_DIR=$install_ROOT/pfd-parallel
 export PFD_BUILD_DIR=$compile_ROOT/pfd-parallel/build
-export PFD_INPUT_DIR=$example_ROOT/input
-export PFD_OUTPUT_DIR=$example_ROOT/results
+export PFD_INPUT_DIR=$software_ROOT/input
+export PFD_OUTPUT_DIR=$software_ROOT/results
 EOF
 
 ```
@@ -198,7 +198,7 @@ source env_vars_pfd.txt
 
 Ensure that the compile and install roots exist:
 ```bash
-mkdir -p $example_ROOT
+mkdir -p $software_ROOT
 mkdir -p $install_ROOT
 mkdir -p $compile_ROOT
 
