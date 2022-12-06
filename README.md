@@ -48,8 +48,8 @@ export software_ROOT=~/singular-gpispace
 ```
 Note, this needs to be set again if you open a new terminal session (preferably set it automatically by adding the line to your .profile file).
 
-## Setup Spack itself
-If Spack is not already present in this directory, clone Spack from Github:
+## Install Spack
+If Spack is not already present in the above directory, clone Spack from Github:
 ```bash
 git clone https://github.com/spack/spack.git $software_ROOT/spack
 
@@ -75,6 +75,15 @@ spack spec zlib
 
 ```
 This may take a while when installing the first time.
+
+Note that Spack can be uninstalled by just deleting its directory and its configuration files (typically you do NOT want to do that now):
+
+```bash
+cd
+rm -rf $software_ROOT/spack/
+rm -rf .spack
+
+```
 
 ## Clone and setup pfd-parallel
 
