@@ -61,14 +61,14 @@ git checkout v0.17
 cd $example_ROOT
 
 ```
-To be able to use spack from the command line, run the setup script (note, that
-this step has to be repeated at the start of any new terminal session
-requiring spack):
+To be able to use spack from the command line, run the setup script:
 ```bash
 . $software_ROOT/spack/share/spack/setup-env.sh
 
 ```
-Next, Spack still needs to boostrap clingo.  This can be done by concretizing any
+Note, this script needs to be executed again if you open a new terminal session (preferably set it automatically by adding the line to your .profile file).
+
+Finally, Spack needs to boostrap clingo.  This can be done by concretizing any
 spec, for example
 ```bash
 spack spec zlib
