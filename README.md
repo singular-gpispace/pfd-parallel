@@ -78,18 +78,15 @@ This may take a while when installing the first time.
 
 ## Clone and setup pfd-parallel
 
-Clone the pfd spack repository into this directory:
+Clone the Singular/GPI-Space package repository into this directory:
 ```bash
-git clone                                                         \
-    --depth 1                                                     \
-    https://github.com/singular-gpispace/spack-packages.git       \
-    $software_ROOT/spack-packages
+git clone https://github.com/singular-gpispace/spack-packages.git $software_ROOT/spack-packages
 
 ```
 
-Add the spack repo to the spack installation:
+Add the Singular/GPI-Space package repository to the Spack installation:
 ```bash
-spack repo add $example_ROOT/spack-packages
+spack repo add $software_ROOT/spack-packages
 
 ```
 
