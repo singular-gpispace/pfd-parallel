@@ -10,7 +10,7 @@ Our implementation is based on a combination of the following two algorithms:
 Janko Boehm, Marcel Wittmann, Zihao Wu, Yingxuan Xu, and Yang Zhang:
 IBP reduction coefficients made simple, JHEP 12 (2020) 054,
 
-which has been implemened in Singular in the library
+which has been implemened in [Singular](https://www.singular.uni-kl.de) in the library
 [pfd.lib](https://github.com/Singular/Singular/blob/spielwiese/Singular/LIB/pfd.lib).
 
 2) MultivariateApart algorithm
@@ -20,7 +20,7 @@ Matthias Heller, Andreas von Manteuffel, Comput.Phys.Commun. 271 (2022) 108174
 Although applicable in general, its primary aim is the partial fraction
 decomposition of integration-by-parts coefficients in high energy physics.
 
-Our package relies on code developed in the repository
+Our package relies on code developed in the  repository
 [framework](https://github.com/singular-gpispace/framework)
 implemented primarily by Lukas Ristau.
 
