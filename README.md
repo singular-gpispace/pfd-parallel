@@ -1,9 +1,9 @@
 # PFD-Parallel - Partial Fraction Decomposition in Parallel
 
-We provide a massively parallel framework for partial fraction decomposition of
+This package provide a massively parallel framework for partial fraction decomposition of
 rational functions based on the [Singular/GPI-Space framework](https://www.mathematik.uni-kl.de/~boehm/singulargpispace/).
 
-Our implementation is based on the following two algorithms:
+Our implementation is based on a combination of the following two algorithms:
 
 1) the approach described in the paper
 
@@ -17,44 +17,41 @@ which has been implemened in Singular in the library
 
 Matthias Heller, Andreas von Manteuffel, Comput.Phys.Commun. 271 (2022) 108174 
 
-Although applicable in general, it is aimed at the partial fraction
+Although applicable in general, its primary aim is the partial fraction
 decomposition of integration-by-parts coefficients in high energy physics.
 
-Most of the parallelization code is an adapted version of the
-[wait-all-first](https://github.com/singular-gpispace/wait-all-first)
-repository, implemented primarily by Lukas Ristau.
+Our package relies on code developed in the repository
+[framework](https://github.com/singular-gpispace/framework)
+implemented primarily by Lukas Ristau.
 
-Since this is most useful in practical applications, the implementation provides a function for applying the partial fraction decoposition
-function to specified entries of a two-dimensional array of rational functions.
+Since most useful in applications in high energy physics, the main function of our framework applies the partial fraction decoposition
+function to a specified subset of entries of a two-dimensional array of rational functions.
 
 To use the framework, it is required to install Singular, GPI-Space,
 some of their dependencies and the project code itself. In the following we provide two different
-ways of installation. The preferable way is the use the package manager Spack, which will take
-care of all dependencies automatically. The second way is a manual installation of a components,
-which can be used in case the installation with Spack is not possible on the target system.
+ways of installation. The preferable way is the use the supercomputing package manager Spack, which will take
+care of all dependencies automatically. 
+The second way is a manual installation of a components, which can be used in case the installation with Spack is not possible on the target system.
 
 # Installation using Spack
 Spack is a package manager specifically aimed at handling software installations in supercomputing environments, but
 usable on anything from a personal computer to an HPC cluster. It supports Linux and macOS (note that the Singular/GPI-Space
-framework requires Linux). A local repository for Space can be found in the directory `spack` in the pfd-parallel source tree. For
-most users, this should be the easiest way to install the pfd-parallel project and all
-it's dependencies, with minimal configuration required.
+framework and hence our package requires Linux).
 
-We will assume that the user has some directory path to which she/he can read and
-write. In the following, we assume this path is set as the bash variable
-`example_ROOT`:
+We will assume that the user has some directory path with read and
+write access. In the following, we assume this path is set as the environment variable
+`example_ROOT`, as detailed in the following example:
 
 ```bash
-export example_ROOT=<software-root>
+export software_ROOT = ~/singular-gpispace
 
 ```
-Note, this needs to be set for every new terminal session that the user wants to
-use for this project (or you must make sure it is set automatically).
+Note, this needs to be set again if you open a new terminal session (preferably set it automatically by adding the line to your .profile file).
 
 ## Setup Spack itself
-If spack is not already present, clone spack from github:
+If spack is not already present in this directory, clone spack from github:
 ```bash
-git clone https://github.com/spack/spack.git $example_ROOT/spack
+git clone https://github.com/spack/spack.git $software_ROOT/spack
 
 ```
 We check out verison v0.17 of Spack (the current version):
