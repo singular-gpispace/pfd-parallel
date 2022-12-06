@@ -49,7 +49,7 @@ export software_ROOT=~/singular-gpispace
 Note, this needs to be set again if you open a new terminal session (preferably set it automatically by adding the line to your .profile file).
 
 ## Setup Spack itself
-If spack is not already present in this directory, clone spack from github:
+If Spack is not already present in this directory, clone Spack from Github:
 ```bash
 git clone https://github.com/spack/spack.git $software_ROOT/spack
 
@@ -65,7 +65,7 @@ To be able to use spack from the command line, run the setup script (note, that
 this step has to be repeated at the start of any new terminal session
 requiring spack):
 ```bash
-. $example_ROOT/spack/share/spack/setup-env.sh
+. $software_ROOT/spack/share/spack/setup-env.sh
 
 ```
 Next, Spack still needs to boostrap clingo.  This can be done by concretizing any
@@ -83,7 +83,7 @@ Clone the pfd spack repository into this directory:
 git clone                                                         \
     --depth 1                                                     \
     https://github.com/singular-gpispace/spack-packages.git       \
-    $example_ROOT/spack-packages
+    $software_ROOT/spack-packages
 
 ```
 
