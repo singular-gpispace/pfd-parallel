@@ -57,7 +57,7 @@ git clone https://github.com/spack/spack.git $software_ROOT/spack
 We check out verison v0.17 of Spack (the current version):
 ```bash
 cd $software_ROOT/spack
-git checkout v0.17
+git checkout v0.19.0
 cd $software_ROOT
 
 ```
