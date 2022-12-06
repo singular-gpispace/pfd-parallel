@@ -54,13 +54,21 @@ If Spack is not already present in the above directory, clone Spack from Github:
 git clone https://github.com/spack/spack.git $software_ROOT/spack
 
 ```
-We check out verison v0.17 of Spack (the current version):
+We check out verison v0.19.0 of Spack (the current version):
 ```bash
 cd $software_ROOT/spack
 git checkout v0.19.0
 cd $software_ROOT
 
 ```
+Spack requires a couple of standard system packages to be present. For example, on an Ubuntu machines they can be installed by
+
+```bash
+sudo apt install curl
+
+```
+more....
+
 To be able to use spack from the command line, run the setup script:
 ```bash
 . $software_ROOT/spack/share/spack/setup-env.sh
