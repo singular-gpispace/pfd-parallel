@@ -95,6 +95,8 @@ rm -rf .spack
 
 ## Install pfd-parallel
 
+Once you have installed Spack, our package can be installed with just three lines of code.
+
 Clone the Singular/GPI-Space package repository into this directory:
 ```bash
 git clone https://github.com/singular-gpispace/spack-packages.git $software_ROOT/spack-packages
@@ -114,25 +116,19 @@ spack install pfd-parallel
 Note, this may take quite a bit of time, when doing the initial installation, as it needs to build GPI-Space and Singular
 including dependencies.
 
+## Load pfd-parallel
+
 Once pfd-parallel is installed, to use pfd-parallel load the package via:
 ```bash
 spack load pfd-parallel
 ```
 
-For the examples below, the user needs to set the following environment
-variables:
-```bash
-export PFD_ROOT=$software_ROOT
-export PFD_INPUT_DIR=$software_ROOT/input
-export PFD_OUTPUT_DIR=$software_ROOT/results
-```
-
 # Example to run PFD
 To run an example, we need a Singular script that loads the `pfd_gspc.lib`
-library. A gpi-space configure token needs to be prepared, with some important
+library. A GPI-Space configure token needs to be prepared, with some important
 configuration:  The path of a temporary directory, where files will be stored
 during the computation and handling of the various files at runtime, the
-location of a nodefile, containing a location on then network where gpi-space is
+location of a nodefile, containing a location on then network where GPI-Space is
 installed, the number of processes each node should run in parallel, the address
 of a running instance of the gpi-space monitoring tool, as well as the port on
 which the monitoring tool is listening (Note, the program can be run without the
@@ -150,8 +146,15 @@ preferably with the optional argument for the path to where the input files are
 found.  The user may also provide in a separate argument the path of where the
 output files should be written.
 
-An example script `test_parallel_pfd.sing` in Singular for a 1 by 10 matrix might
-be
+For the examples below, the user needs to set the following environment
+variables providing the software root and input and output directories:
+```bash
+export PFD_ROOT=$software_ROOT
+export PFD_INPUT_DIR=$software_ROOT/input
+export PFD_OUTPUT_DIR=$software_ROOT/results
+```
+
+An example script `test_parallel_pfd.sing` in Singular for a 1 by 10 matrix is created as follows:
 
 ```bash
 mkdir -p $PFD_ROOT/tempdir
