@@ -82,8 +82,14 @@ spec, for example
 spack spec zlib
 
 ```
-This may take a while when installing the first time.
 
+Note: If you experience connection timeouts due to a slow internet connection you can set the variable `connect_timeout` to a larger value, or to zero, which means no timeout.
+```bash
+/spack/etc/spack/defaults/config.yaml
+
+```
+
+### How to uninstall Spack
 Note that Spack can be uninstalled by just deleting its directory and its configuration files (typically you do NOT want to do that now):
 
 ```bash
