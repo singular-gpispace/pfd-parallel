@@ -120,7 +120,7 @@ Finally, install pfd-parallel:
 spack install pfd-parallel
 ```
 Note, this may take quite a bit of time, when doing the initial installation, as it needs to build GPI-Space and Singular
-including dependencies.
+including dependencies. Installing further components of the framework or updating is then typically quick.
 
 ## Load pfd-parallel
 
