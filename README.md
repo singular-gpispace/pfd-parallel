@@ -93,7 +93,7 @@ rm -rf .spack
 
 ```
 
-## Clone and setup pfd-parallel
+## Install pfd-parallel
 
 Clone the Singular/GPI-Space package repository into this directory:
 ```bash
@@ -127,11 +127,149 @@ export PFD_INPUT_DIR=$software_ROOT/input
 export PFD_OUTPUT_DIR=$software_ROOT/results
 ```
 
-The following section is not necessary if installation via Spack has been completed, and should be skipped. It contains
-everything what Spack does automatically for you. Please continue with the Example section.
+# Example to run PFD
+To run an example, we need a Singular script that loads the `pfd_gspc.lib`
+library. A gpi-space configure token needs to be prepared, with some important
+configuration:  The path of a temporary directory, where files will be stored
+during the computation and handling of the various files at runtime, the
+location of a nodefile, containing a location on then network where gpi-space is
+installed, the number of processes each node should run in parallel, the address
+of a running instance of the gpi-space monitoring tool, as well as the port on
+which the monitoring tool is listening (Note, the program can be run without the
+monitoring tool, in which case the last two options should remain unset). Next,
+the ring in which the rational function's numerator and denominator is found is
+declared.  The input of the system is in the form of files, identified by the
+row and column in a matrix where it must be found, in the form
+`<basename>_<row>_<col>.(txt|ssi)`, where the suffix is txt if the file is in
+plain text format, and ssi if the input files are in this binary format
+implemented by singular. To specify the input files to be calculated, put the
+coordinates of the matrix entries to be calculated in a list of lists.
 
+Finally, all this is provided to the `parallel_pfd` function as arguments,
+preferably with the optional argument for the path to where the input files are
+found.  The user may also provide in a separate argument the path of where the
+output files should be written.
+
+An example script `test_parallel_pfd.sing` in Singular for a 1 by 10 matrix might
+be
+
+```bash
+mkdir -p $PFD_ROOT/tempdir
+hostname > $PFD_ROOT/nodefile
+hostname > $PFD_ROOT/loghostfile
+
+cat > test_parallel_pfd.sing.temp << "EOF"
+LIB "pfd_gspc.lib";
+
+// configuration for gpispace
+configToken gspcconfig = configure_gspc();
+
+gspcconfig.options.tempdir = "$PFD_ROOT/tempdir";
+gspcconfig.options.nodefile = "$PFD_ROOT/nodefile";
+gspcconfig.options.procspernode = 8;
+
+// Should the user want to run withouth the gspc-monitor
+// the following two lines may be commented out.
+gspcconfig.options.loghostfile = "$PFD_ROOT/loghostfile";
+gspcconfig.options.logport = 6439;
+
+// configuration for the problem to be computed.
+configToken pfdconfig = configure_pfd();
+pfdconfig.options.filename = "xb_deg5";
+pfdconfig.options.inputdir = "$PFD_INPUT_DIR";
+pfdconfig.options.outputdir = "$PFD_OUTPUT_DIR";
+pfdconfig.options.parallelism = "intertwined";
+
+ring r = 0, x, lp;
+
+list entries = list( list(1, 1), list(1, 2), list(1, 3), list(1, 4)
+                   , list(1, 5), list(1, 6), list(1, 7), list(1, 8)
+                   , list(1, 9), list(1, 10)
+                   );
+
+parallel_pfd( entries
+            , gspcconfig
+            , pfdconfig
+            );
+exit;
+EOF
+
+```
+We want to expand the environment variables in the script above, so create a
+hacky script for this purpose:
+```bash
+cat > shell_expand_script.sh << "EOF"
+echo 'cat <<END_OF_TEXT' >  temp.sh
+cat "$1"                 >> temp.sh
+echo 'END_OF_TEXT'       >> temp.sh
+bash temp.sh >> "$2"
+rm temp.sh
+EOF
+
+chmod a+x shell_expand_script.sh
+./shell_expand_script.sh test_parallel_pfd.sing.temp test_parallel_pfd.sing
+
+```
+
+Next, if you wish to start a monitor, this may be done with the following
+script:
+```bash
+cat > start_monitor.sh << "EOF"
+#!/usr/bin/bash
+
+set -euo pipefail
+
+# raster or native (native for X forwarding)
+QT_DEBUG_PLUGINS=0                                                \
+        QT_GRAPHICSSYSTEM=native                                  \
+        $PFD_INSTALL_DIR/libexec/bundle/gpispace/bin/gspc-monitor \
+        --port 6439 &
+
+EOF
+chmod a+x start_monitor.sh
+
+```
+It may simply be run as
+```
+./start_monitor.sh
+
+```
+
+Ensure that the `--port` number matches the one set in the singular script.
+Also, if this is run over ssh on a remote machine, make sure that x forwarding
+is enabled.
+
+Create the input files:
+```bash
+mkdir -p $PFD_INPUT_DIR
+mkdir -p $PFD_OUTPUT_DIR
+cp -v $PFD_INSTALL_DIR/example_data/* $PFD_INPUT_DIR
+
+```
+
+Finally, the test may be run with the script
+```bash
+cat > run_pfd_example.sh << "EOF"
+SINGULARPATH="$PFD_INSTALL_DIR/LIB"                               \
+        $SINGULAR_INSTALL_DIR/bin/Singular                        \
+        test_parallel_pfd.sing
+EOF
+chmod a+x run_pfd_example.sh
+```
+which can be started with
+```
+./run_pfd_example.sh
+
+```
+
+Note, to run the same computation, but without the internal parallelism on each
+entry, the `parallelism` field in the `pfdconfig` tokens `options` field may be changed to
+`waitAll`.
 
 # Manual installation from sources
+
+Note: This section is not necessary if the installation via Spack has been completed. It contains
+everything what Spack does automatically for you.
 
 As an alternative to Spack, pfd-parallel and its dependencies can also be compiled
 directly.  For most users, a Spack installation should suffice, in which case
@@ -655,147 +793,9 @@ cmake --build ${PFD_BUILD_DIR}                   \
       -j $(nproc)
 
 ```
-# Example to run PFD
-To run an example, we need a Singular script that loads the `pfd_gspc.lib`
-library. A gpi-space configure token needs to be prepared, with some important
-configuration:  The path of a temporary directory, where files will be stored
-during the computation and handling of the various files at runtime, the
-location of a nodefile, containing a location on then network where gpi-space is
-installed, the number of processes each node should run in parallel, the address
-of a running instance of the gpi-space monitoring tool, as well as the port on
-which the monitoring tool is listening (Note, the program can be run without the
-monitoring tool, in which case the last two options should remain unset). Next,
-the ring in which the rational function's numerator and denominator is found is
-declared.  The input of the system is in the form of files, identified by the
-row and column in a matrix where it must be found, in the form
-`<basename>_<row>_<col>.(txt|ssi)`, where the suffix is txt if the file is in
-plain text format, and ssi if the input files are in this binary format
-implemented by singular. To specify the input files to be calculated, put the
-coordinates of the matrix entries to be calculated in a list of lists.
-
-Finally, all this is provided to the `parallel_pfd` function as arguments,
-preferably with the optional argument for the path to where the input files are
-found.  The user may also provide in a separate argument the path of where the
-output files should be written.
-
-An example script `test_parallel_pfd.sing` in Singular for a 1 by 10 matrix might
-be
-
-```bash
-mkdir -p $PFD_ROOT/tempdir
-hostname > $PFD_ROOT/nodefile
-hostname > $PFD_ROOT/loghostfile
-
-cat > test_parallel_pfd.sing.temp << "EOF"
-LIB "pfd_gspc.lib";
-
-// configuration for gpispace
-configToken gspcconfig = configure_gspc();
-
-gspcconfig.options.tempdir = "$PFD_ROOT/tempdir";
-gspcconfig.options.nodefile = "$PFD_ROOT/nodefile";
-gspcconfig.options.procspernode = 8;
-
-// Should the user want to run withouth the gspc-monitor
-// the following two lines may be commented out.
-gspcconfig.options.loghostfile = "$PFD_ROOT/loghostfile";
-gspcconfig.options.logport = 6439;
-
-// configuration for the problem to be computed.
-configToken pfdconfig = configure_pfd();
-pfdconfig.options.filename = "xb_deg5";
-pfdconfig.options.inputdir = "$PFD_INPUT_DIR";
-pfdconfig.options.outputdir = "$PFD_OUTPUT_DIR";
-pfdconfig.options.parallelism = "intertwined";
-
-ring r = 0, x, lp;
-
-list entries = list( list(1, 1), list(1, 2), list(1, 3), list(1, 4)
-                   , list(1, 5), list(1, 6), list(1, 7), list(1, 8)
-                   , list(1, 9), list(1, 10)
-                   );
-
-parallel_pfd( entries
-            , gspcconfig
-            , pfdconfig
-            );
-exit;
-EOF
-
-```
-We want to expand the environment variables in the script above, so create a
-hacky script for this purpose:
-```bash
-cat > shell_expand_script.sh << "EOF"
-echo 'cat <<END_OF_TEXT' >  temp.sh
-cat "$1"                 >> temp.sh
-echo 'END_OF_TEXT'       >> temp.sh
-bash temp.sh >> "$2"
-rm temp.sh
-EOF
-
-chmod a+x shell_expand_script.sh
-./shell_expand_script.sh test_parallel_pfd.sing.temp test_parallel_pfd.sing
-
-```
-
-Next, if you wish to start a monitor, this may be done with the following
-script:
-```bash
-cat > start_monitor.sh << "EOF"
-#!/usr/bin/bash
-
-set -euo pipefail
-
-# raster or native (native for X forwarding)
-QT_DEBUG_PLUGINS=0                                                \
-        QT_GRAPHICSSYSTEM=native                                  \
-        $PFD_INSTALL_DIR/libexec/bundle/gpispace/bin/gspc-monitor \
-        --port 6439 &
-
-EOF
-chmod a+x start_monitor.sh
-
-```
-It may simply be run as
-```
-./start_monitor.sh
-
-```
-
-Ensure that the `--port` number matches the one set in the singular script.
-Also, if this is run over ssh on a remote machine, make sure that x forwarding
-is enabled.
-
-Create the input files:
-```bash
-mkdir -p $PFD_INPUT_DIR
-mkdir -p $PFD_OUTPUT_DIR
-cp -v $PFD_INSTALL_DIR/example_data/* $PFD_INPUT_DIR
-
-```
-
-Finally, the test may be run with the script
-```bash
-cat > run_pfd_example.sh << "EOF"
-SINGULARPATH="$PFD_INSTALL_DIR/LIB"                               \
-        $SINGULAR_INSTALL_DIR/bin/Singular                        \
-        test_parallel_pfd.sing
-EOF
-chmod a+x run_pfd_example.sh
-```
-which can be started with
-```
-./run_pfd_example.sh
-
-```
-
-Note, to run the same computation, but without the internal parallelism on each
-entry, the `parallelism` field in the `pfdconfig` tokens `options` field may be changed to
-`waitAll`.
 
 
-# Appendix: Standard packages required to build the framework
+## Appendix: Standard packages required to build the framework (manual installation
 
 Assuming that we are installing on a Ubuntu system (analogous packages exist in other distributions), we give installation instructions for standard packages which are required by the framework and may not be included in your of-the-shelf installation.
 
