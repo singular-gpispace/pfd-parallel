@@ -129,7 +129,7 @@ Once pfd-parallel is installed, to use pfd-parallel load the package via:
 spack load pfd-parallel
 ```
 
-# Example to run PFD
+# Example to run pfd-parallel
 To run an example, we need a Singular script that loads the `pfd_gspc.lib`
 library. A GPI-Space configure token needs to be prepared, with some important
 configuration:  The path of a temporary directory, where files will be stored
