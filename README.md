@@ -132,8 +132,8 @@ spack load pfd-parallel
 ## Set up ssh
 
 GPI-Space requires a working SSH environment with a password-less
-SSH-key when using the SSH RIF strategy. To ensure this, make sure when
-generating your ssh keypair to leave the password field empty.
+SSH-key when using the SSH RIF strategy. To ensure this, 
+leave the password field empty when generating your ssh keypair.
 
 By default, `${HOME}/.ssh/id_rsa` is used for authentication. If no such key exists,
 ```bash
@@ -261,7 +261,7 @@ It can be run as
 
 ```
 
-Ensure that the `--port` number matches the one set in the singular script.
+Make sure that the `--port` number matches the one set in the singular script.
 Also, if this is run over ssh on a remote machine, make sure that x forwarding
 is enabled.
 
