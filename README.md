@@ -204,8 +204,7 @@ exit;
 EOF
 
 ```
-We want to expand the environment variables in the script above, so create a
-hacky script for this purpose:
+We expand the environment variables in the script created above using the following script:
 ```bash
 cat > shell_expand_script.sh << "EOF"
 echo 'cat <<END_OF_TEXT' >  temp.sh
@@ -220,11 +219,11 @@ chmod a+x shell_expand_script.sh
 
 ```
 
-Next, if you wish to start a monitor, this may be done with the following
-script:
+Next, we create a script to start the graphical GPI-Space monitor displaying a Gant diagram of the computation. 
+Note that if you do not want to use the monitor, you can skip these steps, but have to comment out the respective lines in the script `test_parallel_pfd.sing`.
 ```bash
 cat > start_monitor.sh << "EOF"
-#!/usr/bin/bash
+#!/bin/bash
 
 set -euo pipefail
 
@@ -238,7 +237,7 @@ EOF
 chmod a+x start_monitor.sh
 
 ```
-It may simply be run as
+It can be run as
 ```
 ./start_monitor.sh
 
