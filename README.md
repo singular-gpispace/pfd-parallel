@@ -141,7 +141,7 @@ ssh-keygen -t rsa -b 4096 -N '' -f "${HOME}/.ssh/id_rsa"
 ```
 can be used to create one. 
 
-Your key has to be registered with the machine you want to compute on. On a cluster with shared home directory, this only has to be done on one machine. If you compute on your personal machine, as we assume in this tutorial, you can register the key with:
+Your key has to be registered with the machine you want to compute on. On a cluster with shared home directory, this only has to be done on one machine. For example, if you compute on your personal machine, you can register the key with:
 ```bash
 ssh-copy-id -f -i "${HOME}/.ssh/id_rsa" "${HOSTNAME}"
 ```
