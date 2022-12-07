@@ -83,9 +83,9 @@ spack spec zlib
 
 ```
 
-Note: If you experience connection timeouts due to a slow internet connection you can set the variable `connect_timeout` to a larger value, or to zero, which means no timeout.
+Note: If you experience connection timeouts due to a slow internet connection you can set in the following file the variable `connect_timeout` to a larger value, or to zero, which means no timeout.
 ```bash
-/spack/etc/spack/defaults/config.yaml
+$software_ROOT/spack/etc/spack/defaults/config.yaml
 
 ```
 
