@@ -138,12 +138,21 @@ leave the password field empty when generating your ssh keypair.
 By default, `${HOME}/.ssh/id_rsa` is used for authentication. If no such key exists,
 ```bash
 ssh-keygen -t rsa -b 4096 -N '' -f "${HOME}/.ssh/id_rsa"
+
 ```
 can be used to create one. 
+
+If you compute on your personal machine, there must run an ssh server. On an Ubuntu machine, the respective package can be installed by:
+
+```bash
+sudo apt install openssh-server
+
+```
 
 Your key has to be registered with the machine you want to compute on. On a cluster with shared home directory, this only has to be done on one machine. For example, if you compute on your personal machine, you can register the key with:
 ```bash
 ssh-copy-id -f -i "${HOME}/.ssh/id_rsa" "${HOSTNAME}"
+
 ```
 
 
