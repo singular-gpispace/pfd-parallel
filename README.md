@@ -61,10 +61,11 @@ git checkout releases/v0.19
 cd $software_ROOT
 
 ```
-Spack requires a couple of standard system packages to be present. For example, on an Ubuntu machines they can be installed by
+Spack requires a couple of standard system packages to be present. For example, on an Ubuntu machines they can be installed by the following commands (which typically require sudo privilege)
 
 ```bash
-sudo apt install curl
+sudo apt update
+sudo apt install build-essential ca-certificates coreutils curl environment-modules gfortran git gpg lsb-release python3 python3-distutils python3-venv unzip zip
 
 ```
 more....
