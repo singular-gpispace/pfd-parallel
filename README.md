@@ -248,7 +248,7 @@ set -euo pipefail
 # raster or native (native for X forwarding)
 QT_DEBUG_PLUGINS=0                                                \
         QT_GRAPHICSSYSTEM=native                                  \
-        gspc-monitor \
+        $PFD_INSTALL_DIR/libexec/bundle/gpispace/bin/gspc-monitor \
         --port 6439 &
 
 EOF
