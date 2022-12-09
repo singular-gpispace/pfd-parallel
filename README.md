@@ -154,9 +154,9 @@ Your key has to be registered with the machine you want to compute on. On a clus
 ssh-copy-id -f -i "${HOME}/.ssh/id_rsa" "${HOSTNAME}"
 
 ```
+# Example how to use pfd-parallel
 
-
-# Example to run pfd-parallel
+# Appendix: Scripts to run an xample in pfd-parallel
 To run an example, we need a Singular script that loads the `pfd_gspc.lib`
 library. A GPI-Space configure token needs to be prepared, with some important
 configuration:  The path of a temporary directory, where files will be stored
@@ -301,7 +301,7 @@ Note, to run the same computation, but without the internal parallelism on each
 entry, the `parallelism` field in the `pfdconfig` tokens `options` field may be changed to
 `waitAll`.
 
-# Manual installation from sources
+# Appendix: Manual installation from sources
 
 Note: This section is not necessary if the installation via Spack has been completed. It contains
 everything what Spack does automatically for you.
@@ -830,7 +830,7 @@ cmake --build ${PFD_BUILD_DIR}                   \
 ```
 
 
-## Appendix: Standard packages required to build the framework (manual installation
+## Standard packages required to build the framework via the manual installation
 
 Assuming that we are installing on a Ubuntu system (analogous packages exist in other distributions), we give installation instructions for standard packages which are required by the framework and may not be included in your of-the-shelf installation.
 
