@@ -156,26 +156,30 @@ ssh-copy-id -f -i "${HOME}/.ssh/id_rsa" "${HOSTNAME}"
 ```
 # Example how to use pfd-parallel
 
-# Appendix: Scripts to run an xample in pfd-parallel
-To run an example, we need a Singular script that loads the `pfd_gspc.lib`
-library. A GPI-Space configure token needs to be prepared, with some important
+# Appendix: Convenient scripts to run an example in pfd-parallel
+To run examples repeatedly, it can be useful to create a Singular script and a 
+couple of shell scripts. This is described in the following, again at the above 
+exmaple.
+
+We start out by creating a Singular script. It will loads the `pfd_gspc.lib`
+library. A GPI-Space configure token is prepared, with the
 configuration:  The path of a temporary directory, where files will be stored
 during the computation and handling of the various files at runtime, the
 location of a nodefile, containing a location on then network where GPI-Space is
 installed, the number of processes each node should run in parallel, the address
-of a running instance of the gpi-space monitoring tool, as well as the port on
-which the monitoring tool is listening (Note, the program can be run without the
-monitoring tool, in which case the last two options should remain unset). Next,
-the ring in which the rational function's numerator and denominator is found is
-declared.  The input of the system is in the form of files, identified by the
-row and column in a matrix where it must be found, in the form
+of a running instance of the GPI-Space monitoring tool, as well as the port on
+which the monitoring tool is listening (note, the framework can be run without the
+monitoring tool, in which case the corresponding entries should remain unset). Next,
+the ring in which the numerators and denominators of the rational functions are contained is
+declared.  The input of the computation is specified in terms of files, referenced by the
+row and column index in a matrix where it must be found, in the form
 `<basename>_<row>_<col>.(txt|ssi)`, where the suffix is txt if the file is in
-plain text format, and ssi if the input files are in this binary format
-implemented by singular. To specify the input files to be calculated, put the
-coordinates of the matrix entries to be calculated in a list of lists.
+plain text format, and ssi if the input files are in this high-performence binary format
+used by Singular. In the text format input files, the
+coordinates of the matrix entries to be calculated are given in a list of lists.
 
-Finally, all this is provided to the `parallel_pfd` function as arguments,
-preferably with the optional argument for the path to where the input files are
+Finally, all the tokens and index pairs are provided to the `parallel_pfd` function as arguments,
+preferably with an optional argument for the path to where the input files are
 found.  The user may also provide in a separate argument the path of where the
 output files should be written.
 
