@@ -155,11 +155,18 @@ ssh-copy-id -f -i "${HOME}/.ssh/id_rsa" "${HOSTNAME}"
 
 ```
 # Example how to use pfd-parallel
+We first create a nodefile, which contains the names of the nodes used for computations with our framework. In our example, it just contains the result of hostname.
+
+```bash
+hostname > $PFD_ROOT/nodefile
+
+```
+
 
 # Appendix: Convenient scripts to run an example in pfd-parallel
 To run examples repeatedly, it can be useful to create a Singular script and a 
 couple of shell scripts. This is described in the following, again at the above 
-exmaple.
+example.
 
 We start out by creating a Singular script. It will loads the `pfd_gspc.lib`
 library. A GPI-Space configure token is prepared, with the
