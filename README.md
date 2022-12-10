@@ -269,12 +269,6 @@ parallel_pfd( entries
 
 ```
 
-For more details on the algorithmic options, please refer to the paper and the Singular library
-
-```bash
-less $PFD_INSTALL_DIR/LIB/pfd_gspc.lib
-
-```
 
 
 # Appendix: Convenient scripts to run an example in pfd-parallel
