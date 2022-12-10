@@ -161,10 +161,8 @@ ssh-copy-id -f -i "${HOME}/.ssh/id_rsa" "${HOSTNAME}"
 We define environment variables with paths of directories, which will used for input and output, and create the respective directories. 
 
 ```bash
-export PFD_INPUT_DIR=$software_ROOT/input
-export PFD_OUTPUT_DIR=$software_ROOT/results
-mkdir -p $PFD_INPUT_DIR
-mkdir -p $PFD_OUTPUT_DIR
+mkdir -p $software_ROOT/input
+mkdir -p $software_ROOT/results
 
 ```
 To execute an example, we will use rational function data, which is provided with the installation and is copied by the following command to in the input directory.
@@ -193,7 +191,7 @@ mkdir -p $software_ROOT/tempdir
 In case you do not want to use the monitor, you should not set in Singular the fields options.loghostfile and options.logport of the GPI-Space configuration token (see below). In order to use the GPI-Space Monitor, we need a loghostfile with the name of the machine running the monitor.
 
 ```bash
-hostname > $PFD_ROOT/loghostfile
+hostname > $software_ROOT/loghostfile
 
 ```
 
@@ -213,7 +211,7 @@ SINGULARPATH="$PFD_INSTALL_DIR/LIB"  $SINGULAR_INSTALL_DIR/bin/Singular
 
 ```
 
-In Singular now do what follows below.
+In Singular, now do what follows below.
 
 This
 * loads the library giving access to pfd-parallel,
@@ -268,6 +266,13 @@ parallel_pfd( entries
             , gspcconfig
             , pfdconfig
             );
+
+```
+
+For more details on the algorithmic options, please refer to the paper and the Singular library
+
+```bash
+less $PFD_INSTALL_DIR/LIB/pfd_gspc.lib
 
 ```
 
