@@ -213,6 +213,64 @@ SINGULARPATH="$PFD_INSTALL_DIR/LIB"  $SINGULAR_INSTALL_DIR/bin/Singular
 
 ```
 
+In Singular now do what follows below.
+
+This
+* loads the library giving access to pfd-parallel,
+* creates a configuration token for the Singular/GPI-Space framework,
+  * adds information where to store temporary data (in the field options.tmpdir),
+  * where to find the nodefile (in the field options.nodefile), and
+  * sets how many processes per node should be started (in the field options.procspernode, usually one process per core, not taking hyper-threading into account; you may have to adjust according to your hardware),
+* creates a configuration token for pfd-parallel, adds information on
+  * the base file name (in the field pfdconfig.filename),
+  * the input directory (in the field pfdconfig.inputdir)
+  * the output directory  (in the field pfdconfig.outputdir)
+  * the choice of parallelization strategy (in the field pfdconfig.parallelism). Note, to run the same computation, but without the internal parallelism on each entry, the `parallelism` field in the `pfdconfig` tokens `options` field may be changed to
+`waitAll`.
+
+* creates a polynomial ring containing the numerators and denominators
+* creates a list with the indices of the array entries to be decomposed (referencing the base file name)
+* and starts the computation.
+
+Note that in more fancy environments like a cluster, one should specify absolute paths to the nodefile and the temp directory.
+
+
+```bash
+LIB "pfd_gspc.lib";
+
+// configuration for gpispace
+configToken gspcconfig = configure_gspc();
+
+gspcconfig.options.tempdir = "tempdir";
+gspcconfig.options.nodefile = "nodefile";
+gspcconfig.options.procspernode = 8;
+
+// Should the user want to run withouth the gspc-monitor
+// the following two lines may be commented out.
+gspcconfig.options.loghostfile = "loghostfile";
+gspcconfig.options.logport = 6439;
+
+// configuration for the problem to be computed.
+configToken pfdconfig = configure_pfd();
+pfdconfig.options.filename = "xb_deg5";
+pfdconfig.options.inputdir = "input";
+pfdconfig.options.outputdir = "results";
+pfdconfig.options.parallelism = "intertwined";
+
+ring r = 0, x, lp;
+
+list entries = list( list(1, 1), list(1, 2), list(1, 3), list(1, 4)
+                   , list(1, 5), list(1, 6), list(1, 7), list(1, 8)
+                   , list(1, 9), list(1, 10)
+                   );
+
+parallel_pfd( entries
+            , gspcconfig
+            , pfdconfig
+            );
+
+```
+
 
 # Appendix: Convenient scripts to run an example in pfd-parallel
 To run examples repeatedly, it can be useful to create a Singular script and a 
