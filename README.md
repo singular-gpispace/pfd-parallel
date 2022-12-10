@@ -90,12 +90,12 @@ vim $software_ROOT/spack/etc/spack/defaults/config.yaml
 ```
 
 ### How to uninstall Spack
-Note that Spack can be uninstalled by just deleting its directory and its configuration files (typically you do NOT want to do that now):
+Note that Spack can be uninstalled by just deleting its directory and its configuration files. Typically you do NOT want to do that now, so the code is commented out. It can be useful if your Spack installation is broken:
 
 ```bash
-cd
-rm -rf $software_ROOT/spack/
-rm -rf .spack
+#cd
+#rm -rf $software_ROOT/spack/
+#rm -rf .spack
 
 ```
 
@@ -127,7 +127,9 @@ including dependencies. Installing further components of the framework or updati
 Once pfd-parallel is installed, to use pfd-parallel load the package via:
 ```bash
 spack load pfd-parallel
+
 ```
+Note that, in particular, the environment variable `PFD_INSTALL_DIR` is available only after executing this command.
 
 ## Set up ssh
 
@@ -155,10 +157,59 @@ ssh-copy-id -f -i "${HOME}/.ssh/id_rsa" "${HOSTNAME}"
 
 ```
 # Example how to use pfd-parallel
-We first create a nodefile, which contains the names of the nodes used for computations with our framework. In our example, it just contains the result of hostname.
+
+We define environment variables with paths of directories, which will used for input and output, and create the respective directories. 
 
 ```bash
-hostname > $PFD_ROOT/nodefile
+export PFD_INPUT_DIR=$software_ROOT/input
+export PFD_OUTPUT_DIR=$software_ROOT/results
+mkdir -p $PFD_INPUT_DIR
+mkdir -p $PFD_OUTPUT_DIR
+
+```
+To execute an example, we will use rational function data, which is provided with the installation and is copied by the following command to in the input directory.
+
+```bash
+cp -v $PFD_INSTALL_DIR/example_data/* $PFD_INPUT_DIR
+
+```
+
+
+We create a nodefile, which contains the names of the nodes used for computations with our framework. In our example, it just contains the result of hostname.
+
+```bash
+hostname > $software_ROOT/nodefile
+
+```
+Moreover, we need a directory for temporary files, which should be accessible from all machines involved in the computation:
+
+```bash
+mkdir -p $software_ROOT/tempdir
+
+```
+
+
+* Optionally, but recommended: We start the GPI-Space Monitor to display computations in form of a Gantt diagram (to do so, you need an X-Server running).
+In case you do not want to use the monitor, you should not set in Singular the fields options.loghostfile and options.logport of the GPI-Space configuration token (see below). In order to use the GPI-Space Monitor, we need a loghostfile with the name of the machine running the monitor.
+
+```bash
+hostname > $PFD_ROOT/loghostfile
+
+```
+
+On this machine, start the monitor, specifying a port number where the monitor will receive information from GPI-Space. The same port has to be specified in Singular in the field options.logport.
+
+```bash
+$PFD_INSTALL_DIR/libexec/bundle/gpispace/bin/gspc-monitor --port 6439 &
+
+```
+
+
+We start Singular in the directory where it will have direct access to all relevant directories we just created, telling it also where to find the libraries for our framework:
+
+```bash
+cd $software_ROOT
+SINGULARPATH="$PFD_INSTALL_DIR/LIB"  $SINGULAR_INSTALL_DIR/bin/Singular
 
 ```
 
@@ -196,6 +247,7 @@ variables providing the software root and input and output directories:
 export PFD_ROOT=$software_ROOT
 export PFD_INPUT_DIR=$software_ROOT/input
 export PFD_OUTPUT_DIR=$software_ROOT/results
+
 ```
 
 An example script `test_parallel_pfd.sing` in Singular for a 1 by 10 matrix is created as follows:
