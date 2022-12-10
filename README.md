@@ -269,6 +269,7 @@ parallel_pfd( entries
 
 ```
 
+The results can then be found in the directory `$software_ROOT/results`. Note that if an output file already exist, the respective computation will not be repeated to allow for restartability.
 
 
 # Appendix: Convenient scripts to run an example in pfd-parallel
