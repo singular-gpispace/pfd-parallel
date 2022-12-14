@@ -132,7 +132,7 @@ Once pfd-parallel is installed, to use pfd-parallel load the package via:
 spack load pfd-parallel
 
 ```
-Note that, in particular, the environment variable `PFD_INSTALL_DIR` is available only after executing this command.
+Note, that this command needs to be executed again if you open a new terminal session. In particular, the environment variable `PFD_INSTALL_DIR` is available only after executing this command.
 
 ## Set up ssh
 
