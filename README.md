@@ -161,7 +161,7 @@ ssh-copy-id -f -i "${HOME}/.ssh/id_rsa" "${HOSTNAME}"
 ```
 # Example how to use pfd-parallel
 
-We define environment variables with paths of directories, which will used for input and output, and create the respective directories. 
+We create directories which will used for input and output: 
 
 ```bash
 mkdir -p $software_ROOT/input
@@ -171,7 +171,7 @@ mkdir -p $software_ROOT/results
 To execute an example, we will use rational function data, which is provided with the installation and is copied by the following command to in the input directory.
 
 ```bash
-cp -v $PFD_INSTALL_DIR/example_data/* $PFD_INPUT_DIR
+cp -v $PFD_INSTALL_DIR/example_data/* $software_ROOT/input
 
 ```
 
