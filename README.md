@@ -93,7 +93,7 @@ vim $software_ROOT/spack/etc/spack/defaults/config.yaml
 ```
 
 ### How to uninstall Spack
-Note that Spack can be uninstalled by just deleting its directory and its configuration files. Typically you do NOT want to do that now, so the code is commented out. It can be useful if your Spack installation is broken:
+Note that Spack can be uninstalled by just deleting its directory and its configuration files. Be CAREFUL to do that, since it will delete your Spack setup. Typically you do NOT want to do that now, so the code is commented out. It can be useful if your Spack installation is broken:
 
 ```bash
 #cd
