@@ -65,6 +65,9 @@ Spack requires a couple of standard system packages to be present. For example, 
 
 ```bash
 sudo apt update
+
+```
+```bash
 sudo apt install build-essential ca-certificates coreutils curl environment-modules gfortran git gpg lsb-release python3 python3-distutils python3-venv unzip zip
 
 ```
