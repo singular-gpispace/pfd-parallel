@@ -161,9 +161,11 @@ ssh-copy-id -f -i "${HOME}/.ssh/id_rsa" "${HOSTNAME}"
 ```
 # Example how to use pfd-parallel
 
-If you start in a new terminal session (and did not configure your terminal to do this automatically) make sure to set `software_ROOT` and run the `setup-env.sh` script. Make also sure to load the pfd-parallel package in Spack:
+If you start in a new terminal session (and did not configure your terminal to do this automatically) make sure to set `software_ROOT` and run the `setup-env.sh` script. Make also sure to load the pfd-parallel package in Spack. As discussed above this can be done by:
 
 ```bash
+export software_ROOT=~/singular-gpispace
+. $software_ROOT/spack/share/spack/setup-env.sh
 spack load pfd-parallel
 
 ```
