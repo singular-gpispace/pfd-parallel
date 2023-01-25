@@ -281,7 +281,7 @@ parallel_pfd( entries
 
 ```
 
-The results can then be found in the directory `$software_ROOT/results`. Note that if an output file already exist, the respective computation will not be repeated to allow for restartability. The Singular command returns a list of strings providing information about whether the computation was successful, was skipped since the result file is already there, or there was an error.
+The results can then be found in the directory `$software_ROOT/results`. Note that if an output file already exist, the respective computation will not be repeated to allow for restartability. The Singular command returns a list of strings providing information about whether the computation was successful, was skipped since the result file is already there, or there occured an error.
 
 
 # Appendix: Convenient scripts to run an example in pfd-parallel
