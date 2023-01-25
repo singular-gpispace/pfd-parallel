@@ -180,7 +180,7 @@ mkdir -p $software_ROOT/results
 To execute an example, we will use rational function data, which is provided with the installation and is copied by the following command to in the input directory.
 
 ```bash
-cp -v $PFD_INSTALL_DIR/example_data/* $software_ROOT/input
+cp $PFD_INSTALL_DIR/example_data/* $software_ROOT/input
 
 ```
 
