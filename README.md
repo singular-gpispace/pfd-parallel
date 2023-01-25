@@ -281,7 +281,7 @@ parallel_pfd( entries
 
 ```
 
-The results can then be found in the directory `$software_ROOT/results`. Note that if an output file already exist, the respective computation will not be repeated to allow for restartability. The Singular command returns a list of strings providing information about whether the computation was successful, was skipped since the result file is already there, or there occurred an error.
+The results can then be found in the directory `$software_ROOT/results`. Note that if an output file already exist, the respective computation will not be repeated to allow for restartability. The Singular command returns a list of strings providing information about whether the computation was successful, was skipped since the result file is already there, or there occurred an error. After the above run, the output directory contains for each computation a file with the indexing of the denominators (in human readable form), a file with the actual partial fraction decomposition (in human readable form, referencing the denominator file), a text file containing the result without indexing (in human readable form), an ssi file in the binary Singular serialization format (consistent between input and output), and a resources file giving information about the time and memory used by the individual steps of the algorithm.
 
 
 # Appendix: Convenient scripts to run an example in pfd-parallel
