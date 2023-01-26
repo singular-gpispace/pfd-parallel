@@ -296,7 +296,7 @@ The results can then be found in the directory `$software_ROOT/results`. Note th
 
 ## Configuration options for pfd_parallel
 
-* Output formats (to be specified in the field pfdconfig.options.outputformat):
+* Output formats (to be specified in the field pfdconfig.options.outputformat as list of strings allowing for multiple output formats):
   * ssi      
     binary Singular serialization format (also used internally for serialization, consistent between input and output)  
     Note that the ssi format also contains the information about the basering, so if you read it in in Singular, you get both the ring and the answer  
@@ -318,11 +318,11 @@ The results can then be found in the directory `$software_ROOT/results`. Note th
   The computation also creates for each rational function a log file giving information about the the individual steps of the algorithm and their time and memory usage.  
   Naming convention: resources_filename_i_j.txt
   
-* Input formats (to be specified in the field pfdconfig.options.suffix):
-  * ssi (value of the field = ssi) 
+* Input formats (to be specified in the field pfdconfig.options.suffix as a string):
+  * ssi
     binary Singular serialization format, compatible to output format.
-  * listnumden (value of the field = txt) 
-    semi-human readable, list of lists of numerators and denominators  
+  * txt for accepting the listnumden format
+    semi-human readable format, list of lists of numerators and denominators  
     Note that to read this format into Singular, you have to first create the appropriate basering
     
   Note that if ssi is specified the program assumes that the data is available in the high-performance Singular  serialization format ssi, while if txt is specified, and the respective ssi file is not present in the input folder, the program automatically converts the text format listnumden to ssi, and continues with the ssi format.
