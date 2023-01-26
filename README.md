@@ -299,15 +299,18 @@ The results can then be found in the directory `$software_ROOT/results`. Note th
 * Output formats (in the field pfdconfig.outputformat):
   * ssi      
     binary Singular serialization format (also used internally for serialization, consistent between input and output)  
+    Note that the ssi format also contains the information about the basering, so if you read it in in Singular, you get both the ring and the answer
     Naming convention: result_filename_i_j.ssi
-  * listnumden  
+  * listnumden
+    semi-human readable, list (interpreted as a sum) of lists of numerators and factored denominators  
+    Note that to read this format into Singular, you have to first create the appropriate basering
     Naming convention: result_filename_i_j_input.txt  
   * indexed_denominator  
     human readable form, indexing of denominator factors, creates two files, one with the pfd and one with the indexed factors  
-    Naming convention: result_result_indexed_denominator_filename_i_j.ssi, result_factors_denominator_filename_i_j.txt
+    Naming convention: result_indexed_denominator_filename_i_j.txt, result_factors_denominator_filename_i_j.txt
   * indexed_numerator_denominator  
     human readable form, indexing of numerator and denominator factors, creates two files, one with the pfd and one with the indexed factors  
-    Naming convention: result_factors_denominator_filename_i_j.txt
+    Naming convention: result_indexed_filename_i_j.txt, result_factors_filename_i_j.txt
   * cleartext  
     human readable form, no indexing  
     Naming convention: result_filename_i_j.ssi
@@ -315,7 +318,12 @@ The results can then be found in the directory `$software_ROOT/results`. Note th
   The comutation also creates for each function a log file giving information about the the individual steps of the algorithm and their time and memory usage.  
   Naming convention: resources_filename_i_j.txt
   
-Note: The possilbe input formats are ssi or listnumden. 
+* Input formats:
+  * ssi
+    binary Singular serialization format, compatible to output format.
+  * listnumden
+    semi-human readable, list of lists of numerators and denominators  
+    Note that to read this format into Singular, you have to first create the appropriate basering
 
 * parallelization strategy (in the field pfdconfig.options.parallelism)
   * intertwined  
