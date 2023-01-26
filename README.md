@@ -172,7 +172,7 @@ spack load pfd-parallel
 
 ```
 
-# Setup directories and example files
+## Setup directories and example files
 
 We create directories which will used for input and output: 
 
@@ -202,7 +202,7 @@ mkdir -p $software_ROOT/tempdir
 
 ```
 
-# Start the monitor
+## Start the monitor
 
 Optionally, but recommended: We start the GPI-Space Monitor to display computations in form of a Gantt diagram (to do so, you need an X-Server running).
 In case you do not want to use the monitor, you should not set in Singular the fields options.loghostfile and options.logport of the GPI-Space configuration token (see below). In order to use the GPI-Space Monitor, we need a loghostfile with the name of the machine running the monitor.
@@ -219,7 +219,7 @@ $PFD_INSTALL_DIR/libexec/bundle/gpispace/bin/gspc-monitor --port 6439 &
 
 ```
 
-# Start Singular
+## Start Singular
 
 We start Singular in the directory where it will have direct access to all relevant directories we just created, telling it also where to find the libraries for our framework:
 
@@ -229,7 +229,7 @@ SINGULARPATH="$PFD_INSTALL_DIR/LIB"  $SINGULAR_INSTALL_DIR/bin/Singular
 
 ```
 
-# Configure and run computation in Singular
+## Configure and run computation in Singular
 
 In Singular, now do what follows below.
 
