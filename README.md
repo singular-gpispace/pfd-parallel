@@ -298,16 +298,24 @@ The results can then be found in the directory `$software_ROOT/results`. Note th
 
 * Output formats (in the field pfdconfig.outputformat):
   * ssi      
-    binary Singular serialization format (also used internally for serialization, consistent between input and output)    
+    binary Singular serialization format (also used internally for serialization, consistent between input and output)  
+    Naming convention: result_filename_i_j.ssi
   * listnumden  
+    Naming convention: result_filename_i_j_input.txt  
   * indexed_denominator  
-    human readable form, indexing of denominator factors, creates two files, one with the pfd and one with the indexed factors
+    human readable form, indexing of denominator factors, creates two files, one with the pfd and one with the indexed factors  
+    Naming convention: result_result_indexed_denominator_filename_i_j.ssi, result_factors_denominator_filename_i_j.txt
   * indexed_numerator_denominator  
-    human readable form, indexing of numerator and denominator factors, creates two files, one with the pfd and one with the indexed factors
+    human readable form, indexing of numerator and denominator factors, creates two files, one with the pfd and one with the indexed factors  
+    Naming convention: result_factors_denominator_filename_i_j.txt
   * cleartext  
-    human readable form, no indexing
+    human readable form, no indexing  
+    Naming convention: result_filename_i_j.ssi
 
-  The comutation also creates for each function a log file giving information about the the individual steps of the algorithm and their time and memory usage.
+  The comutation also creates for each function a log file giving information about the the individual steps of the algorithm and their time and memory usage.  
+  Naming convention: resources_filename_i_j.txt
+  
+Note: The possilbe input formats are ssi or listnumden. 
 
 * parallelization strategy (in the field pfdconfig.options.parallelism)
   * intertwined  
