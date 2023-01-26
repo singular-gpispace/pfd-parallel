@@ -313,7 +313,7 @@ The results can then be found in the directory `$software_ROOT/results`. Note th
     Naming convention: result_indexed_filename_i_j.txt, result_factors_filename_i_j.txt
   * cleartext  
     human readable form, no indexing  
-    Naming convention: result_filename_i_j.ssi
+    Naming convention: result_filename_i_j.txt
 
   The comutation also creates for each function a log file giving information about the the individual steps of the algorithm and their time and memory usage.  
   Naming convention: resources_filename_i_j.txt
@@ -335,7 +335,7 @@ The results can then be found in the directory `$software_ROOT/results`. Note th
     pfdconfig.options.percentage then has to be set to an integer p between 0 and 100 to specify that the p/100 largest of all input
     functions should be processed with parallelism per individual function (with choice of algorithm specified in pfdconfig.options.algorithm)
 
-* algorithmic strategy for sequential processing of functions (in the field pfdconfig.options.algorithm)
+* algorithmic strategy for sequential processing of functions (in the field pfdconfig.options.algorithm)  
   Note that parallel processing of individual functions always uses the Leinartas strategy.
   * Leinartas
   * MultivariateApart
