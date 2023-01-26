@@ -315,13 +315,13 @@ The results can then be found in the directory `$software_ROOT/results`. Note th
     human readable form, no indexing  
     Naming convention: result_filename_i_j.txt
 
-  The comutation also creates for each function a log file giving information about the the individual steps of the algorithm and their time and memory usage.  
+  The computation also creates for each rational function a log file giving information about the the individual steps of the algorithm and their time and memory usage.  
   Naming convention: resources_filename_i_j.txt
   
-* Input formats:
-  * ssi  
+* Input formats (in the field pfdconfig.suffix):
+  * ssi (value of the field ssi) 
     binary Singular serialization format, compatible to output format.
-  * listnumden  
+  * listnumden (value of the field txt) 
     semi-human readable, list of lists of numerators and denominators  
     Note that to read this format into Singular, you have to first create the appropriate basering
 
