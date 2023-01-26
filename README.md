@@ -161,6 +161,8 @@ ssh-copy-id -f -i "${HOME}/.ssh/id_rsa" "${HOSTNAME}"
 ```
 # Example how to use pfd-parallel
 
+## Setup Spack and load pfd-parallel
+
 If you start in a new terminal session (and did not configure your terminal to do this automatically) make sure to set `software_ROOT` and run the `setup-env.sh` script. Make also sure to load the pfd-parallel package in Spack. As discussed above this can be done by:
 
 ```bash
@@ -169,6 +171,8 @@ export software_ROOT=~/singular-gpispace
 spack load pfd-parallel
 
 ```
+
+# Setup directories and example files
 
 We create directories which will used for input and output: 
 
@@ -198,8 +202,9 @@ mkdir -p $software_ROOT/tempdir
 
 ```
 
+# Start the monitor
 
-* Optionally, but recommended: We start the GPI-Space Monitor to display computations in form of a Gantt diagram (to do so, you need an X-Server running).
+Optionally, but recommended: We start the GPI-Space Monitor to display computations in form of a Gantt diagram (to do so, you need an X-Server running).
 In case you do not want to use the monitor, you should not set in Singular the fields options.loghostfile and options.logport of the GPI-Space configuration token (see below). In order to use the GPI-Space Monitor, we need a loghostfile with the name of the machine running the monitor.
 
 ```bash
@@ -214,6 +219,7 @@ $PFD_INSTALL_DIR/libexec/bundle/gpispace/bin/gspc-monitor --port 6439 &
 
 ```
 
+# Start Singular
 
 We start Singular in the directory where it will have direct access to all relevant directories we just created, telling it also where to find the libraries for our framework:
 
@@ -222,6 +228,8 @@ cd $software_ROOT
 SINGULARPATH="$PFD_INSTALL_DIR/LIB"  $SINGULAR_INSTALL_DIR/bin/Singular
 
 ```
+
+# Configure and run computation in Singular
 
 In Singular, now do what follows below.
 
@@ -234,9 +242,10 @@ This
 * creates a configuration token for pfd-parallel, adds information on
   * the base file name (in the field pfdconfig.filename),
   * the input directory (in the field pfdconfig.inputdir)
-  * the output directory  (in the field pfdconfig.outputdir)
-  * the choice of parallelization strategy (in the field pfdconfig.parallelism). Note, to run the same computation, but without the internal parallelism on each entry, the `parallelism` field in the `pfdconfig` tokens `options` field may be changed to
-`waitAll`.
+  * the output directory (in the field pfdconfig.outputdir)
+  * the output format(s) (in the field pfdconfig.outputformat)
+  * the choice of parallelization strategy (in the field pfdconfig.parallelism)
+  * the choice of algorithmic strategy (in the field pfdconfig.algorithm). 
 
 * creates a polynomial ring containing the numerators and denominators
 * creates a list with the indices of the array entries to be decomposed (referencing the base file name)
@@ -265,7 +274,9 @@ configToken pfdconfig = configure_pfd();
 pfdconfig.options.filename = "xb_deg5";
 pfdconfig.options.inputdir = "input";
 pfdconfig.options.outputdir = "results";
+pfdconfig.options.outputformat = "ssi,cleartext,listnumden,indexed_denominator";
 pfdconfig.options.parallelism = "intertwined";
+pfdconfig.options.algorithm = "Leinartas";
 
 ring r = 0, x, lp;
 
@@ -281,7 +292,22 @@ parallel_pfd( entries
 
 ```
 
-The results can then be found in the directory `$software_ROOT/results`. Note that if an output file already exist, the respective computation will not be repeated to allow for restartability. The Singular command returns a list of strings providing information about whether the computation was successful, was skipped since the result file is already there, or there occurred an error. After the above run, the output directory contains for each computation a file with the indexing of the denominators (in human readable form), a file with the actual partial fraction decomposition (in human readable form, referencing the denominator file), a text file containing the result without indexing (in human readable form), an ssi file in the binary Singular serialization format (consistent between input and output), and a resources file giving information about the time and memory used by the individual steps of the algorithm.
+The results can then be found in the directory `$software_ROOT/results`. Note that if an output file already exist, the respective computation will not be repeated to allow for restartability. The Singular command returns a list of strings providing information about whether the computation was successful, or was skipped since the result file is already there. After the above run, the output directory contains for each individual computation output files in the requested formats. 
+
+## Configuration options for pfd_parallel
+
+* Output formats (in the field pfdconfig.outputformat):
+
+outputformat=ssi,cleartext,listnumden,indexed_denominator
+
+a file with the indexing of the denominators (in human readable form), a file with the actual partial fraction decomposition (in human readable form, referencing the denominator file), a text file containing the result without indexing (in human readable form), an ssi file in the binary Singular serialization format (consistent between input and output), and a resources file giving information about the time and memory used by the individual steps of the algorithm.
+
+* parallelization strategy (in the field pfdconfig.parallelism)
+
+parallelization strategy (in the field pfdconfig.parallelism). Note, to run the same computation, but without the internal parallelism on each entry, the `parallelism` field in the `pfdconfig` tokens `options` field may be changed to
+`waitAll`.
+
+* algorithmic strategy (in the field pfdconfig.algorithm)
 
 
 # Appendix: Convenient scripts to run an example in pfd-parallel
