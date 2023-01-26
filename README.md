@@ -324,6 +324,8 @@ The results can then be found in the directory `$software_ROOT/results`. Note th
   * listnumden (value of the field txt) 
     semi-human readable, list of lists of numerators and denominators  
     Note that to read this format into Singular, you have to first create the appropriate basering
+    
+  Note that if ssi is specified the program assumes that the data is available in the high-performance Singular  serialization format ssi, while if txt is specified, *and* the respective ssi file is not present in the input folder, the program automatically converts the text format listnumden to ssi, and continues with the ssi format.
 
 * parallelization strategy (in the field pfdconfig.options.parallelism)
   * intertwined  
