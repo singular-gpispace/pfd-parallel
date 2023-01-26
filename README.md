@@ -299,11 +299,11 @@ The results can then be found in the directory `$software_ROOT/results`. Note th
 * Output formats (in the field pfdconfig.outputformat):
   * ssi      
     binary Singular serialization format (also used internally for serialization, consistent between input and output)  
-    Note that the ssi format also contains the information about the basering, so if you read it in in Singular, you get both the ring and the answer
+    Note that the ssi format also contains the information about the basering, so if you read it in in Singular, you get both the ring and the answer  
     Naming convention: result_filename_i_j.ssi
-  * listnumden
+  * listnumden  
     semi-human readable, list (interpreted as a sum) of lists of numerators and factored denominators  
-    Note that to read this format into Singular, you have to first create the appropriate basering
+    Note that to read this format into Singular, you have to first create the appropriate basering  
     Naming convention: result_filename_i_j_input.txt  
   * indexed_denominator  
     human readable form, indexing of denominator factors, creates two files, one with the pfd and one with the indexed factors  
@@ -319,9 +319,9 @@ The results can then be found in the directory `$software_ROOT/results`. Note th
   Naming convention: resources_filename_i_j.txt
   
 * Input formats:
-  * ssi
+  * ssi  
     binary Singular serialization format, compatible to output format.
-  * listnumden
+  * listnumden  
     semi-human readable, list of lists of numerators and denominators  
     Note that to read this format into Singular, you have to first create the appropriate basering
 
