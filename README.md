@@ -297,17 +297,33 @@ The results can then be found in the directory `$software_ROOT/results`. Note th
 ## Configuration options for pfd_parallel
 
 * Output formats (in the field pfdconfig.outputformat):
-
-outputformat=ssi,cleartext,listnumden,indexed_denominator
+  * ssi
+    binary Singular serialization format (also used internally for serialization, consistent between input and output)
+  * listnumden
+  * indexed_denominator
+    human readable form, indexing of denominator factors, creates two files, one with the pfd and one with the indexed factors
+  * indexed_numerator_denominator
+    human readable form, indexing of numerator and denominator factors, creates two files, one with the pfd and one with the indexed factors
+  * cleartext
+    human readable form, no indexing
 
 a file with the indexing of the denominators (in human readable form), a file with the actual partial fraction decomposition (in human readable form, referencing the denominator file), a text file containing the result without indexing (in human readable form), an ssi file in the binary Singular serialization format (consistent between input and output), and a resources file giving information about the time and memory used by the individual steps of the algorithm.
 
-* parallelization strategy (in the field pfdconfig.parallelism)
+* parallelization strategy (in the field pfdconfig.options.parallelism)
+  * intertwined
+    internal parallelism on each function, intertwined with the parallelism over the different functions
+  * waitAll
+    parallelism over the different functions, no internal parallelism on individual functions
+  * size_strategy
+    handling the functions serially or in parallel depending on the size of the input function
+    pfdconfig.options.percentage then has to be set to an integer p between 0 and 100 to specify that the p/100 largest of all input
+    functions should be processed with parallelism per individual function (with choice of algorithm specified in pfdconfig.options.algorithm)
 
-parallelization strategy (in the field pfdconfig.parallelism). Note, to run the same computation, but without the internal parallelism on each entry, the `parallelism` field in the `pfdconfig` tokens `options` field may be changed to
-`waitAll`.
-
-* algorithmic strategy (in the field pfdconfig.algorithm)
+* algorithmic strategy for sequential processing of functions (in the field pfdconfig.options.algorithm)
+  Note that parallel processing of individual functions always uses the Leinartas strategy.
+  * Leinartas
+  * MultivariateApart
+  
 
 
 # Appendix: Convenient scripts to run an example in pfd-parallel
