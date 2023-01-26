@@ -296,7 +296,7 @@ The results can then be found in the directory `$software_ROOT/results`. Note th
 
 ## Configuration options for pfd_parallel
 
-* Output formats (in the field pfdconfig.outputformat):
+* Output formats (to be specified in the field pfdconfig.options.outputformat):
   * ssi      
     binary Singular serialization format (also used internally for serialization, consistent between input and output)  
     Note that the ssi format also contains the information about the basering, so if you read it in in Singular, you get both the ring and the answer  
@@ -318,16 +318,16 @@ The results can then be found in the directory `$software_ROOT/results`. Note th
   The computation also creates for each rational function a log file giving information about the the individual steps of the algorithm and their time and memory usage.  
   Naming convention: resources_filename_i_j.txt
   
-* Input formats (in the field pfdconfig.suffix):
-  * ssi (value of the field ssi) 
+* Input formats (to be specified in the field pfdconfig.options.suffix):
+  * ssi (value of the field = ssi) 
     binary Singular serialization format, compatible to output format.
-  * listnumden (value of the field txt) 
+  * listnumden (value of the field = txt) 
     semi-human readable, list of lists of numerators and denominators  
     Note that to read this format into Singular, you have to first create the appropriate basering
     
   Note that if ssi is specified the program assumes that the data is available in the high-performance Singular  serialization format ssi, while if txt is specified, and the respective ssi file is not present in the input folder, the program automatically converts the text format listnumden to ssi, and continues with the ssi format.
 
-* parallelization strategy (in the field pfdconfig.options.parallelism)
+* parallelization strategy (to be specified in the field pfdconfig.options.parallelism)
   * intertwined  
     internal parallelism on each function, intertwined with the parallelism over the different functions
   * waitAll  
@@ -337,7 +337,7 @@ The results can then be found in the directory `$software_ROOT/results`. Note th
     pfdconfig.options.percentage then has to be set to an integer p between 0 and 100 to specify that the p/100 largest of all input
     functions should be processed with parallelism per individual function (with choice of algorithm specified in pfdconfig.options.algorithm)
 
-* algorithmic strategy for sequential processing of functions (in the field pfdconfig.options.algorithm)  
+* algorithmic strategy for sequential processing of functions (to be specified in the field pfdconfig.options.algorithm)  
   Note that parallel processing of individual functions always uses the Leinartas strategy.
   * Leinartas
   * MultivariateApart
