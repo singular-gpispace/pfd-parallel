@@ -321,7 +321,7 @@ The results can then be found in the directory `$software_ROOT/results`. Note th
 * Input formats (to be specified in the field pfdconfig.options.suffix as a string):
   * ssi
     binary Singular serialization format, compatible to output format.
-  * txt for accepting the listnumden format
+  * txt for accepting the listnumden format  
     semi-human readable format, list of lists of numerators and denominators  
     Note that to read this format into Singular, you have to first create the appropriate basering
     
