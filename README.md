@@ -1,5 +1,7 @@
 # pfd-parallel - Massively Parallel Partial Fraction Decomposition
 
+Note: The information below, and further documentation, can be found in a more structured manner in the [wiki of our project](https://github.com/singular-gpispace/pfd-parallel/wiki).
+
 This package provide a massively parallel framework for partial fraction decomposition of
 rational functions based on the [Singular/GPI-Space framework](https://www.mathematik.uni-kl.de/~boehm/singulargpispace/).
 
