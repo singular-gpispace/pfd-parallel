@@ -3,7 +3,7 @@
 Note: The information below, and further documentation, can be found in a more structured manner in the 
 
 <p align="center">
-  [Wiki of the pfd-parallel project](https://github.com/singular-gpispace/pfd-parallel/wiki).
+  <a href="https://github.com/singular-gpispace/pfd-parallel/wiki">Wiki of the pfd-parallel project</a>
 </p>
 
 This package provide a massively parallel framework for partial fraction decomposition of
