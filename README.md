@@ -9,6 +9,8 @@ Note: The information below, and further documentation, can be found in a more s
 This package provide a massively parallel framework for partial fraction decomposition of
 rational functions based on the [Singular/GPI-Space framework](https://www.mathematik.uni-kl.de/~boehm/singulargpispace/).
 
+The project is supported by [Project B5](https://www.computeralgebra.de/sfb/projects/singular-a-new-level-of-abstraction-and-performance/) of [SFB-TRR 195](https://www.computeralgebra.de/sfb/) and [SymbTools](https://rptu.de/forschung/forschungsinitiative-rlp/symbtools) of [Forschungsinitiative RLP](https://mwg.rlp.de/de/themen/wissenschaft/forschung-transfer-und-innovation/forschung-und-innovation/forschungsinitiative-des-landes-rlp/).
+
 Our implementation is based on a combination of the following two algorithms:
 
 1) the approach described in the paper
