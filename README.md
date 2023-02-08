@@ -350,6 +350,11 @@ The results can then be found in the directory `$software_ROOT/results`. Note th
   * Leinartas
   * MultivariateApart
   
+# Funding
+
+The project is supported by [Project B5](https://www.computeralgebra.de/sfb/projects/singular-a-new-level-of-abstraction-and-performance/) of [SFB-TRR 195](https://www.computeralgebra.de/sfb/). Gefördert durch die Deutsche Forschungsgemeinschaft (DFG) - Projektnummer 286237555 - TRR 195 (Funded by the Deutsche Forschungsgemeinschaft (DFG, German Research Foundation) - Project-ID 286237555 - TRR 195).
+
+The project is also supported by [SymbTools](https://rptu.de/forschung/forschungsinitiative-rlp/symbtools) of [Forschungsinitiative RLP](https://mwg.rlp.de/de/themen/wissenschaft/forschung-transfer-und-innovation/forschung-und-innovation/forschungsinitiative-des-landes-rlp/).
 
 
 # Appendix: Convenient scripts to run an example in pfd-parallel
