@@ -350,6 +350,51 @@ The results can then be found in the directory `$software_ROOT/results`. Note th
   * Leinartas
   * MultivariateApart
   
+
+# How to cite
+
+If you use pfd-parallel in your research, please cite the software package:
+
+* Bibitem Format:
+
+  ```bash
+  D. Bendle, J. Boehm, M. Heymann, R. Ma, M. Rahn, L. Ristau, M. Wittmann, Z. Wu, Y. Zhang: pfd-parallel, a Singular/GPI-Space package for massively parallel multivariate partial fractioning, [https://github.com/singular-gpispace/pfd-parallel](https://github.com/singular-gpispace/pfd-parallel) (2022). 
+  ```
+
+* Bibtex Format:
+
+  ```bash
+  @misc{pfd,
+	author = {Boehm, Janko and Heymann, Murray and Ma, Rourou and Rahn, Mirko and Ristau, Lukas and Wittmann, Marcel and Wu, Zihao and Zhang, Yang},
+	title = {pfd-parallel, a Singular/GPI-Space package for massively parallel multivariate partial fractioning},
+	url = {https://github.com/singular-gpispace/pfd-parallel},
+	year = {2022}}
+  ```
+
+and the paper describing the algorithm
+
+* Bibitem Format:
+
+  ```bash
+  J. Boehm, M. Wittmann, Z. Wu, Y. Xu, Y. Zhang: IBP reduction coefficients made simple, JHEP (2020) 54, 39 pp [https://doi.org/10.1007/JHEP12(2020)054](https://doi.org/10.1007/JHEP12(2020)054)
+  ```
+* Bibtex Format:
+
+  ```bash
+  @article{pfd,
+	author = {Boehm, Janko and Wittmann, Marcel and Wu, Zihao and Xu, Yingxuan and Zhang, Yang},
+	doi = {10.1007/JHEP12(2020)054},
+	isbn = {1029-8479},
+	journal = {Journal of High Energy Physics},
+	number = {12},
+	pages = {54},
+	title = {IBP reduction coefficients made simple},
+	url = {https://doi.org/10.1007/JHEP12(2020)054},
+	volume = {2020},
+	year = {2020}}
+  ```
+
+  
 # Funding
 
 The project is supported by [Project B5](https://www.computeralgebra.de/sfb/projects/singular-a-new-level-of-abstraction-and-performance/) of [SFB-TRR 195](https://www.computeralgebra.de/sfb/). Gefördert durch die Deutsche Forschungsgemeinschaft (DFG) - Projektnummer 286237555 - TRR 195 (Funded by the Deutsche Forschungsgemeinschaft (DFG, German Research Foundation) - Project-ID 286237555 - TRR 195).
