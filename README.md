@@ -353,12 +353,15 @@ The results can then be found in the directory `$software_ROOT/results`. Note th
 
 # How to cite
 
+
 If you use pfd-parallel in your research, please cite the software package:
 
 * Bibitem Format:
 
   ```bash
-  D. Bendle, J. Boehm, M. Heymann, R. Ma, M. Rahn, L. Ristau, M. Wittmann, Z. Wu, Y. Zhang: pfd-parallel, a Singular/GPI-Space package for massively parallel multivariate partial fractioning, [https://github.com/singular-gpispace/pfd-parallel](https://github.com/singular-gpispace/pfd-parallel) (2022). 
+  D. Bendle, J. Boehm, M. Heymann, R. Ma, M. Rahn, L. Ristau, M. Wittmann, Z. Wu, Y. Zhang: 
+  pfd-parallel, a Singular/GPI-Space package for massively parallel multivariate partial fractioning, 
+  https://github.com/singular-gpispace/pfd-parallel (2022). 
   ```
 
 * Bibtex Format:
@@ -371,13 +374,40 @@ If you use pfd-parallel in your research, please cite the software package:
 	year = {2022}}
   ```
 
-and the paper describing the algorithm
+the corresponding paper
 
 * Bibitem Format:
 
   ```bash
-  J. Boehm, M. Wittmann, Z. Wu, Y. Xu, Y. Zhang: IBP reduction coefficients made simple, JHEP (2020) 54, 39 pp [https://doi.org/10.1007/JHEP12(2020)054](https://doi.org/10.1007/JHEP12(2020)054)
+  D. Bendle, J. Boehm, M. Heymann, R. Ma, M. Rahn, L. Ristau, M. Wittmann, Z. Wu, Y. Zhang: 
+  pfd-parallel, a Singular/GPI-Space package for massively parallel multivariate partial fractioning, 
+  arXiv:2104.06866 (2022). 
   ```
+
+* Bibtex Format:
+
+  ```bash
+  @misc{pfd,
+	author = {Boehm, Janko and Heymann, Murray and Ma, Rourou and Rahn, Mirko and Ristau, Lukas and Wittmann, Marcel and Wu, Zihao and Zhang, Yang},
+	title = {pfd-parallel, a Singular/GPI-Space package for massively parallel multivariate partial fractioning},
+	url = {https://arxiv.org/abs/2104.06866},
+	year = {2022}}
+  ```
+
+and, as applicable, the papers describing the algorithms which have been used
+
+* Bibitem Format:
+
+  ```bash
+  J. Boehm, M. Wittmann, Z. Wu, Y. Xu, Y. Zhang: IBP reduction coefficients made simple, 
+  JHEP (2020) 54, 39 pp, doi:10.1007/JHEP12(2020)054.
+  ```
+
+  ```bash
+  M. Heller, A. von Manteuffel: MultivariateApart: Generalized partial fractions, 
+  Comput. Phys. Commun. 271 (2022) 108174.
+  ```
+
 * Bibtex Format:
 
   ```bash
@@ -392,6 +422,19 @@ and the paper describing the algorithm
 	url = {https://doi.org/10.1007/JHEP12(2020)054},
 	volume = {2020},
 	year = {2020}}
+  ```
+
+  ```bash
+  @article{MultivariateApart,
+        title = {MultivariateApart: Generalized partial fractions},
+        journal = {Computer Physics Communications},
+        volume = {271},
+        pages = {108174},
+        year = {2022},
+        issn = {0010-4655},
+        doi = {https://doi.org/10.1016/j.cpc.2021.108174},
+        url = {https://www.sciencedirect.com/science/article/pii/S0010465521002861},
+        author = {Matthias Heller and Andreas {von Manteuffel}}}
   ```
 
   
