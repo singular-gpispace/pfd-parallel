@@ -333,6 +333,8 @@ The results can then be found in the directory `$software_ROOT/results`. Note th
     semi-human readable format, list of lists of numerators and denominators  
     Note that to read this format into Singular, you have to first create the appropriate base ring in the [Singular scripts](#configure-and-run-computation-in-singular).
     
+**Warning:** Note that if you choose to set `pfdconfig.options.suffix="txt"` in the [Singular scripts](#configure-and-run-computation-in-singular), the program is designed to convert the *.txt* file to *.ssi* file first (with the same file name but the suffix difference). Then, the program reads the *.ssi* file as input. However, if the *.ssi* file (with the same name) already exist in the input directory, the program **will ignore the .txt file** and directly use reads *.ssi* file as input. This always happens when one runs the program the 2nd time. We designed this to save the conversion time. However, if you runs the program the second time but you modified the input *.txt* files, **please delete the corresponding .ssi files in the input directory**. Otherwise, your modification will be **ignored**, the program will read the *.ssi* files converted from the older version of you *.txt* input. 
+    
  <!-- Note that if ssi is specified the program assumes that the data is available in the high-performance Singular  serialization format ssi, while if txt is specified, and the respective ssi file is not present in the input folder, the program automatically converts the text format listnumden to ssi, and continues with the ssi format.-->
 
 * parallelization strategy (to be specified in the field pfdconfig.options.parallelism)
