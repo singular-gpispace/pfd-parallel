@@ -331,7 +331,7 @@ The results can then be found in the directory `$software_ROOT/results`. Note th
     binary Singular serialization format, compatible to output format.
   * txt for accepting the listnumden format  
     semi-human readable format, list of lists of numerators and denominators  
-    Note that to read this format into Singular, you have to first create the appropriate base ring in the [Singular scripts](https://github.com/singular-gpispace/pfd-parallel#configure-and-run-computation-in-singular).
+    Note that to read this format into Singular, you have to first create the appropriate base ring in the [Singular scripts](./pfd-parallel#configure-and-run-computation-in-singular).
     
  <!-- Note that if ssi is specified the program assumes that the data is available in the high-performance Singular  serialization format ssi, while if txt is specified, and the respective ssi file is not present in the input folder, the program automatically converts the text format listnumden to ssi, and continues with the ssi format.-->
 
