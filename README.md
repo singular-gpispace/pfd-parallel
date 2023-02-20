@@ -241,26 +241,6 @@ SINGULARPATH="$PFD_INSTALL_DIR/LIB"  $SINGULAR_INSTALL_DIR/bin/Singular
 
 In Singular, now do what follows below.
 
-This
-* loads the library giving access to pfd-parallel,
-* creates a configuration token for the Singular/GPI-Space framework,
-  * adds information where to store temporary data (in the field options.tmpdir),
-  * where to find the nodefile (in the field options.nodefile), and
-  * sets how many processes per node should be started (in the field options.procspernode, usually one process per core, not taking hyper-threading into account; you may have to adjust according to your hardware),
-* creates a configuration token for pfd-parallel, adds information on
-  * the base file name (in the field pfdconfig.filename),
-  * the input directory (in the field pfdconfig.inputdir)
-  * the output directory (in the field pfdconfig.outputdir)
-  * the output format(s) (in the field pfdconfig.outputformat)
-  * the choice of parallelization strategy (in the field pfdconfig.parallelism)
-  * the choice of algorithmic strategy (in the field pfdconfig.algorithm). 
-
-* creates a polynomial ring containing the numerators and denominators
-* creates a list with the indices of the array entries to be decomposed (referencing the base file name)
-* and starts the computation.
-
-Note that in more fancy environments like a cluster, one should specify absolute paths to the nodefile and the temp directory.
-
 
 ```bash
 LIB "pfd_gspc.lib";
@@ -300,6 +280,26 @@ parallel_pfd( entries
 
 ```
 
+This
+* loads the library giving access to pfd-parallel,
+* creates a configuration token for the Singular/GPI-Space framework,
+  * adds information where to store temporary data (in the field options.tmpdir),
+  * where to find the nodefile (in the field options.nodefile), and
+  * sets how many processes per node should be started (in the field options.procspernode, usually one process per core, not taking hyper-threading into account; you may have to adjust according to your hardware),
+* creates a configuration token for pfd-parallel, adds information on
+  * the base file name (in the field pfdconfig.filename),
+  * the input directory (in the field pfdconfig.inputdir)
+  * the output directory (in the field pfdconfig.outputdir)
+  * the output format(s) (in the field pfdconfig.outputformat)
+  * the choice of parallelization strategy (in the field pfdconfig.parallelism)
+  * the choice of algorithmic strategy (in the field pfdconfig.algorithm). 
+
+* creates a polynomial ring containing the numerators and denominators
+* creates a list with the indices of the array entries to be decomposed (referencing the base file name)
+* and starts the computation.
+
+Note that in more fancy environments like a cluster, one should specify absolute paths to the nodefile and the temp directory.
+
 The results can then be found in the directory `$software_ROOT/results`. Note that if an output file already exist, the respective computation will not be repeated to allow for restartability. The Singular command returns a list of strings providing information about whether the computation was successful, or was skipped since the result file is already there. After the above run, the output directory contains for each individual computation output files in the requested formats. 
 
 ## Configuration options for pfd_parallel
@@ -331,9 +331,9 @@ The results can then be found in the directory `$software_ROOT/results`. Note th
     binary Singular serialization format, compatible to output format.
   * txt for accepting the listnumden format  
     semi-human readable format, list of lists of numerators and denominators  
-    Note that to read this format into Singular, you have to first create the appropriate basering
+    Note that to read this format into Singular, you have to first create the appropriate base ring in the [Singular scripts](https://github.com/singular-gpispace/pfd-parallel#configure-and-run-computation-in-singular).
     
-  Note that if ssi is specified the program assumes that the data is available in the high-performance Singular  serialization format ssi, while if txt is specified, and the respective ssi file is not present in the input folder, the program automatically converts the text format listnumden to ssi, and continues with the ssi format.
+ <!-- Note that if ssi is specified the program assumes that the data is available in the high-performance Singular  serialization format ssi, while if txt is specified, and the respective ssi file is not present in the input folder, the program automatically converts the text format listnumden to ssi, and continues with the ssi format.-->
 
 * parallelization strategy (to be specified in the field pfdconfig.options.parallelism)
   * intertwined  
