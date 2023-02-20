@@ -41,6 +41,8 @@ ways of installation. The preferable way is the use the supercomputing package m
 care of all dependencies automatically. 
 The second way is a manual installation of a components, which can be used in case the installation with Spack is not possible on the target system.
 
+We also provide a useful tool [pfd-parallel-listnumden-converter](https://github.com/Wu-Zihao/pfd-parallel-listnumden-converter) to convert Mathematica readable files to txt format readable by pfd-parallel (see [format configurations for pfd parallel](#configuration-options-for-pfd_parallel)). 
+
 # Installation using Spack
 Spack is a package manager specifically aimed at handling software installations in supercomputing environments, but
 usable on anything from a personal computer to an HPC cluster. It supports Linux and macOS (note that the Singular/GPI-Space
@@ -333,7 +335,7 @@ The results can then be found in the directory `$software_ROOT/results`. Note th
     semi-human readable format, list of lists of numerators and denominators  
     Note that to read this format into Singular, you have to first create the appropriate base ring in the [Singular scripts](#configure-and-run-computation-in-singular).
     
-**Warning:** If you set `pfdconfig.options.suffix="txt"` in the [Singular scripts](#configure-and-run-computation-in-singular), the program is designed to convert the *.txt* file to *.ssi* file first (with the same file name but the suffix difference). Then, the program reads the *.ssi* file as input. However, if the *.ssi* file (with the same name) already exist in the input directory, the program **will ignore the .txt file** and directly use reads *.ssi* file as input. This always happens when one runs the program the 2nd time. We designed this to save the conversion time. However, if you runs the program the second time but you modified the input *.txt* files, **please delete the corresponding .ssi files in the input directory**. Otherwise, your modification will be **ignored**, the program will read the *.ssi* files converted from the **older version** of you *.txt* input. 
+**Warning:** If you set `pfdconfig.options.suffix="txt"` in the [Singular scripts](#configure-and-run-computation-in-singular), the program is designed to convert the *.txt* file to *.ssi* file first (with the same file name but the suffix difference). Then, the program reads the *.ssi* file as input. However, if the *.ssi* file (with the same name) already exist in the input directory, the program **will ignore the .txt file** and directly use reads the *.ssi* file as input. This always happens when one runs the program the 2nd time. We designed this to save the conversion time. However, if you runs the program the second time but you modified the input *.txt* files, **please delete the corresponding .ssi files in the input directory**. Otherwise, your modification will be **ignored**, the program will read the *.ssi* files converted from the **older version** of your *.txt* input. 
 
 Also, the *.txt* file must be prepared in **listnumden** form to be readable by the program. For example, the expression $2+\frac{x y}{x+1}$ should be prepared as `list(list(2,1),list(x*y,x+1))` in the *.txt* input file. For this purpose, if you want to automatically convert Mathematica readable input files to listnumden form, you can use this tool: [pfd-parallel-listnumden-converter](https://github.com/Wu-Zihao/pfd-parallel-listnumden-converter).
     
