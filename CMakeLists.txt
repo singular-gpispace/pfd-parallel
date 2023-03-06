@@ -37,6 +37,7 @@ set (BUNDLE_ROOT "libexec/bundle")
 bundle_GPISpace (DESTINATION "${BUNDLE_ROOT}/gpispace"
   COMPONENTS "runtime"
              "monitoring"
+  INSTALL_DO_NOT_BUNDLE
 )
 
 install (DIRECTORY "${SINGULAR_HOME}/"
@@ -62,7 +63,6 @@ extended_add_library (NAME installation
             Util::Generic-Headers
             GPISpace::execution
   POSITION_INDEPENDENT
-  INSTALL_DO_NOT_BUNDLE
   INSTALL
 )
 
