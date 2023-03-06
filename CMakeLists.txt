@@ -33,7 +33,7 @@ find_boost (1.61 REQUIRED QUIET FROM_GPISPACE_INSTALLATION COMPONENTS
 list (APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/src/cmake/modules")
 find_package (Singular REQUIRED)
 
-set (INSTALL_DO_NOT_BUNDLE OFF CACHE BOOL "Do not bundle installed targets")
+set (INSTALL_DO_NOT_BUNDLE ON CACHE BOOL "Do not bundle installed targets")
 
 set (BUNDLE_ROOT "libexec/bundle")
 bundle_GPISpace (DESTINATION "${BUNDLE_ROOT}/gpispace"
