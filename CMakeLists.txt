@@ -4,7 +4,6 @@ enable_testing()
 
 set (CMAKE_CXX_STANDARD 17)
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
-set (INSTALL_DO_NOT_BUNDLE ON)
 
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wextra")
@@ -15,6 +14,7 @@ find_package (GPISpace REQUIRED)
 find_package (util-cmake REQUIRED)
 include (util-cmake/add_macros)
 include (util-cmake/beautify_find_boost)
+set (INSTALL_DO_NOT_BUNDLE ON)
 
 find_boost (1.61 REQUIRED QUIET FROM_GPISPACE_INSTALLATION COMPONENTS
   date_time
