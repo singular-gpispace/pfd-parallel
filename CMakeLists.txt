@@ -39,12 +39,12 @@ bundle_GPISpace (DESTINATION "${BUNDLE_ROOT}/gpispace"
              "monitoring"
 )
 
-set (INSTALL_DO_NOT_BUNDLE ON CACHE BOOL "Do not bundle installed targets")
-
 install (DIRECTORY "${SINGULAR_HOME}/"
   DESTINATION libexec/bundle/singular
   USE_SOURCE_PERMISSIONS
 )
+
+set (INSTALL_DO_NOT_BUNDLE ON CACHE BOOL "Do not bundle installed targets")
 
 set(SP_INSTALL_PATH "${CMAKE_INSTALL_PREFIX}")
 set(PFD_SING_LIB_PATH "${CMAKE_INSTALL_PREFIX}/LIB")
