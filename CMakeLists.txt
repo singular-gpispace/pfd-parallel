@@ -39,8 +39,6 @@ bundle_GPISpace (DESTINATION "${BUNDLE_ROOT}/gpispace"
              "monitoring"
 )
 
-option (INSTALL_DO_NOT_BUNDLE ON)
-
 install (DIRECTORY "${SINGULAR_HOME}/"
   DESTINATION libexec/bundle/singular
   USE_SOURCE_PERMISSIONS
@@ -66,6 +64,8 @@ extended_add_library (NAME installation
   POSITION_INDEPENDENT
   INSTALL
 )
+option (INSTALL_DO_NOT_BUNDLE ON)
+
 set_target_properties (SINGULAR-parallel-installation
   PROPERTIES
   INSTALL_RPATH_USE_LINK_PATH TRUE 
