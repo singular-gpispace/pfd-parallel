@@ -33,6 +33,8 @@ find_boost (1.61 REQUIRED QUIET FROM_GPISPACE_INSTALLATION COMPONENTS
 list (APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/src/cmake/modules")
 find_package (Singular REQUIRED)
 
+option (INSTALL_DO_NOT_BUNDLE ON)
+
 set (BUNDLE_ROOT "libexec/bundle")
 bundle_GPISpace (DESTINATION "${BUNDLE_ROOT}/gpispace"
   COMPONENTS "runtime"
@@ -54,7 +56,6 @@ include_directories ("${CMAKE_CURRENT_SOURCE_DIR}")
 include_directories ("${CMAKE_CURRENT_BINARY_DIR}/src")
 include_directories ("${CMAKE_BINARY_DIR}")
 
-option (INSTALL_DO_NOT_BUNDLE ON)
 extended_add_library (NAME installation
   TYPE SHARED
   NAMESPACE SINGULAR-parallel
