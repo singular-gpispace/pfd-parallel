@@ -4,6 +4,7 @@ enable_testing()
 
 set (CMAKE_CXX_STANDARD 17)
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
+set (INSTALL_DO_NOT_BUNDLE ON)
 
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wextra")
@@ -37,7 +38,6 @@ set (BUNDLE_ROOT "libexec/bundle")
 bundle_GPISpace (DESTINATION "${BUNDLE_ROOT}/gpispace"
   COMPONENTS "runtime"
              "monitoring"
-  INSTALL_DO_NOT_BUNDLE
 )
 
 install (DIRECTORY "${SINGULAR_HOME}/"
