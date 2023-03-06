@@ -64,11 +64,11 @@ extended_add_library (NAME installation
   POSITION_INDEPENDENT
   INSTALL
 )
-option (INSTALL_DO_NOT_BUNDLE ON)
 
 set_target_properties (SINGULAR-parallel-installation
   PROPERTIES
-  INSTALL_RPATH_USE_LINK_PATH TRUE 
+  INSTALL_RPATH_USE_LINK_PATH TRUE
+  INSTALL_DO_NOT_BUNDLE TRUE
 )
 bundle_GPISpace_add_rpath (TARGET SINGULAR-parallel-installation INSTALL_DIRECTORY "lib")
 
@@ -92,6 +92,7 @@ set_target_properties (SINGULAR-parallel-module
   PROPERTIES
   INSTALL_RPATH "$ORIGIN/../lib"
   INSTALL_RPATH_USE_LINK_PATH TRUE
+  INSTALL_DO_NOT_BUNDLE TRUE
 )
 bundle_GPISpace_add_rpath (TARGET SINGULAR-parallel-module INSTALL_DIRECTORY "LIB")
 
