@@ -54,7 +54,7 @@ include_directories ("${CMAKE_CURRENT_SOURCE_DIR}")
 include_directories ("${CMAKE_CURRENT_BINARY_DIR}/src")
 include_directories ("${CMAKE_BINARY_DIR}")
 
-
+option (INSTALL_DO_NOT_BUNDLE ON)
 extended_add_library (NAME installation
   TYPE SHARED
   NAMESPACE SINGULAR-parallel
@@ -67,8 +67,7 @@ extended_add_library (NAME installation
 )
 set_target_properties (SINGULAR-parallel-installation
   PROPERTIES
-  INSTALL_RPATH_USE_LINK_PATH TRUE
-  INSTALL_DO_NOT_BUNDLE ON 
+  INSTALL_RPATH_USE_LINK_PATH TRUE 
 )
 bundle_GPISpace_add_rpath (TARGET SINGULAR-parallel-installation INSTALL_DIRECTORY "lib")
 
