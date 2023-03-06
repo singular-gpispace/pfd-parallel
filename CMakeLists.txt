@@ -62,7 +62,7 @@ extended_add_library (NAME installation
             Util::Generic-Headers
             GPISpace::execution
   POSITION_INDEPENDENT
-  NSTALL_DO_NOT_BUNDLE
+  INSTALL_DO_NOT_BUNDLE
   INSTALL
 )
 
