@@ -44,7 +44,6 @@ install (DIRECTORY "${SINGULAR_HOME}/"
   USE_SOURCE_PERMISSIONS
 )
 
-set (INSTALL_DO_NOT_BUNDLE ON CACHE BOOL "Do not bundle installed targets")
 
 set(SP_INSTALL_PATH "${CMAKE_INSTALL_PREFIX}")
 set(PFD_SING_LIB_PATH "${CMAKE_INSTALL_PREFIX}/LIB")
@@ -69,6 +68,7 @@ extended_add_library (NAME installation
 set_target_properties (SINGULAR-parallel-installation
   PROPERTIES
   INSTALL_RPATH_USE_LINK_PATH TRUE
+  INSTALL_DO_NOT_BUNDLE ON 
 )
 bundle_GPISpace_add_rpath (TARGET SINGULAR-parallel-installation INSTALL_DIRECTORY "lib")
 
