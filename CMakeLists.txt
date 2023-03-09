@@ -14,7 +14,7 @@ find_package (GPISpace REQUIRED)
 find_package (util-cmake REQUIRED)
 include (util-cmake/add_macros)
 include (util-cmake/beautify_find_boost)
-set (INSTALL_DO_NOT_BUNDLE ON)
+set (INSTALL_DO_NOT_BUNDLE ON CACHE BOOL "")
 
 find_boost (1.61 REQUIRED QUIET FROM_GPISPACE_INSTALLATION COMPONENTS
   date_time
