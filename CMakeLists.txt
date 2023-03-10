@@ -14,6 +14,7 @@ find_package (GPISpace REQUIRED)
 find_package (util-cmake REQUIRED)
 include (util-cmake/add_macros)
 include (util-cmake/beautify_find_boost)
+set (INSTALL_DO_NOT_BUNDLE ON CACHE BOOL "")
 
 find_boost (1.61 REQUIRED QUIET FROM_GPISPACE_INSTALLATION COMPONENTS
   date_time
@@ -44,6 +45,7 @@ install (DIRECTORY "${SINGULAR_HOME}/"
   USE_SOURCE_PERMISSIONS
 )
 
+
 set(SP_INSTALL_PATH "${CMAKE_INSTALL_PREFIX}")
 set(PFD_SING_LIB_PATH "${CMAKE_INSTALL_PREFIX}/LIB")
 configure_file("src/installation.hpp.in" "src/installation.hpp")
@@ -52,7 +54,6 @@ include_directories ("src")
 include_directories ("${CMAKE_CURRENT_SOURCE_DIR}")
 include_directories ("${CMAKE_CURRENT_BINARY_DIR}/src")
 include_directories ("${CMAKE_BINARY_DIR}")
-
 
 extended_add_library (NAME installation
   TYPE SHARED
@@ -64,6 +65,7 @@ extended_add_library (NAME installation
   POSITION_INDEPENDENT
   INSTALL
 )
+
 set_target_properties (SINGULAR-parallel-installation
   PROPERTIES
   INSTALL_RPATH_USE_LINK_PATH TRUE
