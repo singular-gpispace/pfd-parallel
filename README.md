@@ -50,11 +50,11 @@ framework and hence our package requires Linux).
 
 We will assume that the user has some directory path with read and
 write access. In the following, we assume this path is set as the environment variable
-`software_ROOT`, and one needs to also set environment variable `install_ROOT` for another package in the same environment, which dosen't do anything to this package, as detailed in the following example:
+`software_ROOT`, as well as `install_ROOT`:
 
 ```bash
 export software_ROOT=~/singular-gpispace
-export install_ROOT=~
+export install_ROOT=~/singular-gpispace
 
 ```
 Note, this needs to be set again if you open a new terminal session (preferably set it automatically by adding the line to your .profile file).
