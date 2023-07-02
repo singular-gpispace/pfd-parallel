@@ -3837,7 +3837,7 @@ proc parsePfdSingleEntryArgs(list #)
   string pfd_implementation = "Leinartas";
   int ignore_nonlin = 0;
   intvec steps = 1,1,1,1;
-  int save_int_res = 0;
+  int save_int_res = 1;
   int parallelize = 0;
   string input_format = "ssi";
   string output_format = "ssi,cleartext,listnumden,indexed_denominator";
