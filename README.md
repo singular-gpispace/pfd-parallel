@@ -172,6 +172,14 @@ ssh-copy-id -f -i "${HOME}/.ssh/id_rsa" "${HOSTNAME}"
 ```
 # Example how to use pfd-parallel
 
+## A Mathematica interface for pfd-parallel
+
+At the current stage, we provide a Mathematica package, which can conveniently setup an environment to run pfd-parallel. One can get the package and see how to use it in:
+
+<p align="center">
+  <a href="https://github.com/Wu-Zihao/PfdParallelM/">Mathematica interface: PfdParallelM</a>
+</p>
+
 ## Setup Spack and load pfd-parallel
 
 If you start in a new terminal session (and did not configure your terminal to do this automatically) make sure to set `software_ROOT` and run the `setup-env.sh` script. Make also sure to load the pfd-parallel package in Spack. As discussed above this can be done by:
