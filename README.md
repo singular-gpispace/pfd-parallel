@@ -41,7 +41,7 @@ ways of installation. The preferable way is the use the supercomputing package m
 care of all dependencies automatically. 
 The second way is a manual installation of a components, which can be used in case the installation with Spack is not possible on the target system.
 
-We also provide a useful tool [pfd-parallel-listnumden-converter](https://github.com/Wu-Zihao/pfd-parallel-listnumden-converter) to convert Mathematica readable files to txt format readable by pfd-parallel (see [format configurations for pfd parallel](#configuration-options-for-pfd_parallel)). 
+Besides, we also provide a useful Mathematica package [PfdParallelM](https://github.com/Wu-Zihao/PfdParallelM) to use pfd-parallel more conveniently in Mathematica UI. Inside this package, there is a component [pfd-parallel-listnumden-converter](https://github.com/Wu-Zihao/pfd-parallel-listnumden-converter) for converting Mathematica readable files to txt format readable by pfd-parallel (see [format configurations for pfd parallel](#configuration-options-for-pfd_parallel)). It can be used individually for more advanced usage of pfd-parallel.
 
 # Installation using Spack
 Spack is a package manager specifically aimed at handling software installations in supercomputing environments, but
