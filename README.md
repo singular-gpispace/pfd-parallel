@@ -1,6 +1,6 @@
 # pfd-parallel - Massively Parallel Partial Fraction Decomposition
 
-Note: The information below, and further documentation, can be found in a more structured manner in the 
+Note: The information below, and more details, can be found in our wiki 
 
 <p align="center">
   <a href="https://github.com/singular-gpispace/pfd-parallel/wiki">Documentation of the pfd-parallel project</a>
@@ -13,7 +13,7 @@ The project is supported by [Project B5](https://www.computeralgebra.de/sfb/proj
 
 Our implementation is based on a combination of the following two algorithms:
 
-1) the approach described in the paper
+1) the enhanced Leinartas' algorithm described in the paper
 
 Janko Boehm, Marcel Wittmann, Zihao Wu, Yingxuan Xu, and Yang Zhang:
 IBP reduction coefficients made simple, JHEP 12 (2020) 054,
@@ -21,14 +21,14 @@ IBP reduction coefficients made simple, JHEP 12 (2020) 054,
 which has been implemened in [Singular](https://www.singular.uni-kl.de) in the library
 [pfd.lib](https://github.com/Singular/Singular/blob/spielwiese/Singular/LIB/pfd.lib).
 
-2) MultivariateApart algorithm
+2) the MultivariateApart algorithm as described in
 
 Matthias Heller, Andreas von Manteuffel, Comput.Phys.Commun. 271 (2022) 108174 
 
-Although applicable in general, its primary aim is the partial fraction
+Although applicable in general, the primary aim of our package is the partial fraction
 decomposition of integration-by-parts coefficients in high energy physics.
 
-Our package relies on code developed in the  repository
+Our package relies on code developed in the repository
 [framework](https://github.com/singular-gpispace/framework)
 implemented primarily by Lukas Ristau.
 
