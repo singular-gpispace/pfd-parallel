@@ -64,21 +64,21 @@ find_path (GMP_INCLUDE_DIR
   HINTS ${GMP_HOME} ENV GMP_HOME
 )
 
-find_path (FLINT_HOME
-  NAMES "lib/libflint.so"
-  HINTS ${FLINT_HOME} ENV FLINT_HOME
+#find_path (FLINT_HOME
+#  NAMES "lib/libflint.so"
+#  HINTS ${FLINT_HOME} ENV FLINT_HOME
+#
+#)
 
-)
-
-find_library (FLINT_LIBRARY
-  NAMES "flint"
-  HINTS ${FLINT_HOME}
-  PATH_SUFFIXES "lib"
-)
+#find_library (FLINT_LIBRARY
+#  NAMES "flint"
+#  HINTS ${FLINT_HOME}
+#  PATH_SUFFIXES "lib"
+#)
 
 find_library (GMP_LIBRARY
   NAMES "gmp"
-  ${GMP_HOME} ENV GMP_HOME
+  HINTS ${GMP_HOME} ENV GMP_HOME
 )
 
 mark_as_advanced ( SINGULAR_HOME
@@ -90,8 +90,8 @@ mark_as_advanced ( SINGULAR_HOME
                    SINGULAR_CONFIG_BIN
                    GMP_INCLUDE_DIR
                    GMP_LIBRARY
-                   FLINT_HOME
-                   FLINT_LIBRARY
+#                  FLINT_HOME
+#                  FLINT_LIBRARY
                    SINGULAR_VERSION
 )
 
@@ -106,8 +106,8 @@ find_package_handle_standard_args (Singular
                 SINGULAR_CONFIG_BIN
                 GMP_INCLUDE_DIR
                 GMP_LIBRARY
-                FLINT_HOME
-                FLINT_LIBRARY
+#               FLINT_HOME
+#               FLINT_LIBRARY
   VERSION_VAR SINGULAR_VERSION
 )
 
@@ -119,7 +119,7 @@ if (Singular_FOUND)
       "${SINGULAR_INCLUDE_DIR}/singular"
       "${GMP_INCLUDE_DIR}"
     LIBRARIES ${SINGULAR_LIBRARY}
-              ${FLINT_LIBRARY}
+#             ${FLINT_LIBRARY}
               ${OMALLOC_LIBRARY}
               ${POLYS_LIBRARY}
               ${RESOURCES_LIBRARY}
