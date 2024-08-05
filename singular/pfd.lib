@@ -1186,7 +1186,10 @@ proc pfd_functional_unit(list terms, ideal q, intvec steps, list #)
 
   dec = terms;
 
-  if (size(dec) == 1) {if(dec[1][1]==0){dec = list();}}
+  if (size(dec) == 1) {
+    if(dec[1][1]==0){dec = list();}
+    if(typeof(dec[1][1])!="poly") {dec[1][1] = poly(dec[1][1]);}
+    }
   dec = list(q, dec);
 
   if (voice <= printlevel) {displaypfd(dec)}
