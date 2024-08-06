@@ -120,7 +120,7 @@ EXAMPLE:  example pfdParallel; shows an example"
   int t4=0;
   int t5=0;
   string dtime = datetime();
-  for(i=0;i<=size(date);i++)
+  for(i=0;i<=size(dtime);i++)
     {if(dtime[i]==":") {dtime[i]="-";}}
 
   i=0;
