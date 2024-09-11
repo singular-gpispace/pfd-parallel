@@ -11,6 +11,11 @@ rational functions based on the [Singular/GPI-Space framework](https://www.mathe
 
 The project is supported by [Project B5](https://www.computeralgebra.de/sfb/projects/singular-a-new-level-of-abstraction-and-performance/) of [SFB-TRR 195](https://www.computeralgebra.de/sfb/) and [SymbTools](https://rptu.de/forschung/forschungsinitiative-rlp/symbtools) of [Forschungsinitiative RLP](https://mwg.rlp.de/de/themen/wissenschaft/forschung-transfer-und-innovation/forschung-und-innovation/forschungsinitiative-des-landes-rlp/).
 
+The accompaning paper of pfd-parallel is:
+
+Dominik Bendle, Janko Boehm, Murray Heymann, Rourou Ma, Mirko Rahn, Lukas Ristau, Marcel Wittmann, Zihao Wu, Hefeng Xu, and Yang Zhang:
+pfd-parallel, a Singular/GPI-Space package for massively parallel multivariate partial fractioning, Comput. Phys. Commun. 294 (2024) 108942
+
 Our implementation is based on a combination of the following two algorithms:
 
 1) the enhanced Leinartas' algorithm described in the paper
@@ -23,7 +28,7 @@ which has been implemened in [Singular](https://www.singular.uni-kl.de) in the l
 
 2) the MultivariateApart algorithm as described in
 
-Matthias Heller, Andreas von Manteuffel, Comput.Phys.Commun. 271 (2022) 108174 
+Matthias Heller, Andreas von Manteuffel, Comput. Phys. Commun. 271 (2022) 108174 
 
 Although applicable in general, the primary aim of our package is the partial fraction
 decomposition of integration-by-parts coefficients in high energy physics.
